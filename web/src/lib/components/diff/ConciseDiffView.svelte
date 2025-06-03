@@ -78,7 +78,7 @@
 
     let searchResultElements: HTMLSpanElement[] = $state([]);
     let didInitialJump = $state(false);
-    let scheduledJump: number | undefined = undefined;
+    let scheduledJump: ReturnType<typeof setTimeout> | undefined = undefined;
     $effect(() => {
         if (didInitialJump) {
             return;
