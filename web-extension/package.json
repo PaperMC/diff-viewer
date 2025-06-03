@@ -1,7 +1,7 @@
 {
     "name": "patch-roulette-web-extension",
-    "displayName": "Patch Roulette",
-    "description": "Streamlines opening diffs in the Patch Roulette Diff Viewer.",
+    "displayName": "diffs.dev Web Extension",
+    "description": "Streamlines opening diffs in the diffs.dev Diff Viewer.",
     "version": "0.0.7",
     "private": true,
     "type": "module",

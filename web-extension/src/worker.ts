@@ -4,7 +4,7 @@ import browser from "webextension-polyfill";
 function createContextMenu() {
     browser.contextMenus.create({
         id: "open-in-patch-roulette",
-        title: "Open in Patch Roulette Diff Viewer",
+        title: "Open with diffs.dev",
         contexts: ["all"],
     });
 }
