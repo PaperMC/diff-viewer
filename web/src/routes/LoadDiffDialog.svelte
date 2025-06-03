@@ -517,9 +517,11 @@
                                 <Popover.Trigger title="Edit filters" class="flex rounded-r-md btn-primary p-2 data-[state=open]:btn-primary-hover">
                                     <span class="iconify size-4 shrink-0 place-self-center octicon--filter-16" aria-hidden="true"></span>
                                 </Popover.Trigger>
-                                <Popover.Content side="top" class="z-10 overflow-hidden rounded-md border bg-neutral">
-                                    {@render blacklistPopoverContent()}
-                                </Popover.Content>
+                                <Popover.Portal>
+                                    <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
+                                        {@render blacklistPopoverContent()}
+                                    </Popover.Content>
+                                </Popover.Portal>
                             </Popover.Root>
                         </div>
                     </div>
