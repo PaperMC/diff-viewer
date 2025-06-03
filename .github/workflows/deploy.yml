@@ -14,7 +14,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
       - name: Install frontend dependencies
-        run: cd web && bun install
+        run: bun install
       - name: Build frontend
         run: cd web && bun run build
       - name: "Deploy to Cloudflare Pages"

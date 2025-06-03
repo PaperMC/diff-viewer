@@ -16,7 +16,7 @@ jobs:
                   ref: ${{ github.event.pull_request.head.ref }}
                   repository: ${{ github.event.pull_request.head.repo.full_name }}
             - uses: oven-sh/setup-bun@v2
-            - run: cd web && bun install
+            - run: bun install
             - run: cd web && bun run buildPreview
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v4"
