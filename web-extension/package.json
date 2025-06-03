@@ -1,8 +1,8 @@
 {
     "name": "patch-roulette-web-extension",
-    "displayName": "diffs.dev Web Extension",
+    "displayName": "diffs.dev",
     "description": "Streamlines opening diffs in the diffs.dev Diff Viewer.",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "private": true,
     "type": "module",
     "scripts": {
