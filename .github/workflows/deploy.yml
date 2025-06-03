@@ -25,6 +25,7 @@ jobs:
             githubToken: ${{ secrets.GITHUB_TOKEN }}
             projectName: "diffs"
             directory: "web/.svelte-kit/cloudflare"
+            deploymentName: Production
         env:
             VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
             VITE_GITHUB_CLIENT_SECRET: ${{ secrets.VITE_GITHUB_CLIENT_SECRET }}
