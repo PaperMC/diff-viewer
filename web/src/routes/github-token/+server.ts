@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
 
-export const POST: RequestHandler = ({ url }) => {
+export const POST: RequestHandler = async ({ url }) => {
     const code = url.searchParams.get("code");
     if (!code) {
         return new Response("Missing code parameter", { status: 400 });
