@@ -27,6 +27,8 @@
     import { on } from "svelte/events";
     import ActionsPopover from "./ActionsPopover.svelte";
     import LoadDiffDialog from "./LoadDiffDialog.svelte";
+    import InfoPopup from "./InfoPopup.svelte";
+    import { Button } from "bits-ui";
 
     const globalOptions = GlobalOptions.init();
     const viewer = MultiFileDiffViewerState.init();
@@ -225,6 +227,38 @@
                 <LoadDiffDialog />
                 <ActionsPopover />
                 {@render settingsPopover()}
+                <InfoPopup>
+                    <div class="flex flex-col gap-1">
+                        <h2 class="font-semibold">Info</h2>
+                        <Button.Root
+                            href="https://github.com/PaperMC/diff-viewer"
+                            class="flex items-center gap-2 hover:text-primary"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <span class="iconify size-4 shrink-0 text-em-med octicon--mark-github-16" aria-hidden="true"></span>
+                            GitHub Repository
+                        </Button.Root>
+                        <Button.Root
+                            href="https://chromewebstore.google.com/detail/patch-roulette/feaaoepdocmiibjilhoahgldkaajfnhb"
+                            class="flex items-center gap-2 hover:text-primary"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <span class="iconify size-4 shrink-0 text-em-med octicon--download-16" aria-hidden="true"></span>
+                            Chrome Extension
+                        </Button.Root>
+                        <Button.Root
+                            href="https://addons.mozilla.org/en-US/firefox/addon/patch-roulette/"
+                            class="flex items-center gap-2 hover:text-primary"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            <span class="iconify size-4 shrink-0 text-em-med octicon--download-16" aria-hidden="true"></span>
+                            Firefox Add-on
+                        </Button.Root>
+                    </div>
+                </InfoPopup>
             </div>
         </div>
         <div class="mb-1 flex flex-row items-center gap-2">
