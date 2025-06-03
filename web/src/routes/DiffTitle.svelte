@@ -15,7 +15,7 @@
             <span class="iconify size-6 shrink-0 octicon--mark-github-24"></span>
             <h1 class="text-base">{details.owner}<span class="mx-1.5 font-light text-em-med">/</span>{details.repo}</h1>
         </div>
-        <h2 class="text-sm text-em-med"><a href={details.backlink} target="_blank">{details.description}</a></h2>
+        <h2 class="text-sm text-em-med"><a href={details.backlink} target="_blank" class="hover:text-primary">{details.description}</a></h2>
     </div>
 {/snippet}
 
