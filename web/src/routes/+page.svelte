@@ -74,12 +74,12 @@
         if (viewer.diffMetadata) {
             const meta = viewer.diffMetadata;
             if (meta.type === "github" && meta.githubDetails) {
-                return `${meta.githubDetails.description} - GitHub/${meta.githubDetails.owner}/${meta.githubDetails.repo} - Patch Roulette Diff Viewer`;
+                return `${meta.githubDetails.description} - GitHub/${meta.githubDetails.owner}/${meta.githubDetails.repo} - diffs.dev`;
             } else if (meta.type === "file" && meta.fileName) {
-                return `${meta.fileName} - Patch Roulette Diff Viewer`;
+                return `${meta.fileName} - diffs.dev`;
             }
         }
-        return "Patch Roulette Diff Viewer";
+        return "diffs.dev";
     }
 
     let pageTitle = $derived(getPageTitle());
@@ -87,7 +87,10 @@
 
 <svelte:head>
     <title>{pageTitle}</title>
-    <meta name="description" content="Multi-file rich diff viewer for GitHub and diff/patch files" />
+    <meta
+        name="description"
+        content="Featureful and performant multi-file diff viewer. Compare files, directories, and images. View GitHub PRs, commits, and comparisons without lag, even for large diffs."
+    />
 </svelte:head>
 
 {#snippet sidebarToggle()}

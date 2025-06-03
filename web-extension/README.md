@@ -1,4 +1,4 @@
-# Patch Roulette Web Extension
+# diffs.dev Web Extension
 
 ## Building
 

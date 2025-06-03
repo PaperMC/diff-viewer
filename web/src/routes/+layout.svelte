@@ -8,10 +8,6 @@
     initThemeHooks();
 </script>
 
-<svelte:head>
-    <title>Patch Roulette</title>
-</svelte:head>
-
 <Tooltip.Provider delayDuration={100}>
     <div class="min-h-screen bg-neutral">
         {@render children()}
