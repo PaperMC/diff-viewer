@@ -4,8 +4,6 @@
     "": {
       "name": "web",
       "dependencies": {
-        "@octokit/openapi-types": "^25.1.0",
-        "ag-grid-svelte5-extended": "^0.0.13",
         "bits-ui": "^2.2.0",
         "chroma-js": "^3.1.2",
         "diff": "^8.0.2",
@@ -20,6 +18,7 @@
         "@eslint/js": "^9.27.0",
         "@iconify-json/octicon": "^1.2.6",
         "@iconify/tailwind4": "^1.0.6",
+        "@octokit/openapi-types": "^25.1.0",
         "@sveltejs/adapter-auto": "^6.0.1",
         "@sveltejs/adapter-static": "^3.0.8",
         "@sveltejs/kit": "^2.21.1",
@@ -46,12 +45,6 @@
     },
   },
   "packages": {
-    "@ag-grid-community/client-side-row-model": ["@ag-grid-community/client-side-row-model@32.3.5", "", { "dependencies": { "@ag-grid-community/core": "32.3.5", "tslib": "^2.3.0" } }, "sha512-dTAko9W0E914BMVfDBcresQfDZZPiVVmkbS2iRwDPX0erqYT2/nkuXXVh5If1LFnAqM1q5EQTZDZaLXDv2GO7Q=="],
-
-    "@ag-grid-community/core": ["@ag-grid-community/core@32.3.5", "", { "dependencies": { "ag-charts-types": "10.3.5", "tslib": "^2.3.0" } }, "sha512-RGL3RyPCKC4R2fcG1gXdk7rs+CXig23wufTFJfbE46aQDxg941ww07G0cDS5Z5u/6btM9GJkxlwcR0JVEI003A=="],
-
-    "@ag-grid-community/theming": ["@ag-grid-community/theming@32.3.5", "", { "dependencies": { "@ag-grid-community/core": "32.3.5", "tslib": "^2.6.3" } }, "sha512-SCToi2P2MMJ7Ce3x2/97oEN81Y6ffytvp1ngipZHvy15Jzlyzg8UHpQG/n5s7tbA71+EgaB88fHVLdM8ayf0hg=="],
-
     "@ampproject/remapping": ["@ampproject/remapping@2.3.0", "", { "dependencies": { "@jridgewell/gen-mapping": "^0.3.5", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw=="],
 
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
@@ -315,10 +308,6 @@
     "acorn": ["acorn@8.14.1", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-OvQ/2pUDKmgfCg++xsTX1wGxfTaszcHVcTctW4UJB4hibJx2HXxxO5UmVgyjMa+ZDsiaf5wWLXYpRWMmBI0QHg=="],
 
     "acorn-jsx": ["acorn-jsx@5.3.2", "", { "peerDependencies": { "acorn": "^6.0.0 || ^7.0.0 || ^8.0.0" } }, "sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ=="],
-
-    "ag-charts-types": ["ag-charts-types@10.3.5", "", {}, "sha512-DtvV+IS4RlocGV2IcaQOe/eM6eBGGCvkLnwxGkDxKa8ddxivv90fwlfPxK0O5XnVectiKtWFfOw35Cm0k+4vMw=="],
-
-    "ag-grid-svelte5-extended": ["ag-grid-svelte5-extended@0.0.13", "", { "dependencies": { "@ag-grid-community/client-side-row-model": "^32.3.3", "@ag-grid-community/core": "^32.3.3", "@ag-grid-community/theming": "^32.3.3", "svelte": "^5.0.0" } }, "sha512-koSuyeIJ06wF1Oz8hOBmRt3sOhNweUPKAjyMhjaYXyXI1rugSNNurEzIiVI+8GltBDf/gsRw41JHbOt6LQueXQ=="],
 
     "ajv": ["ajv@6.12.6", "", { "dependencies": { "fast-deep-equal": "^3.1.1", "fast-json-stable-stringify": "^2.0.0", "json-schema-traverse": "^0.4.1", "uri-js": "^4.2.2" } }, "sha512-j3fVLgvTo527anyYyJOGTYJbG+vnnQYvE0m5mmkc1TK+nxAppkCLMIL0aZ4dblVCNoGShhm+kzE4ZUykBoMg4g=="],
 

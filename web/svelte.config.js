@@ -1,12 +1,16 @@
 import bunAdapter from "svelte-adapter-bun";
+import cloudflareAdapter from "@sveltejs/adapter-cloudflare";
 import staticAdapter from "@sveltejs/adapter-static";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 
-let adapter = staticAdapter({
-    fallback: process.env.PREVIEW === "true" ? "index.html" : "frontend.html",
-});
+let adapter = cloudflareAdapter();
 if (process.env.NODE_ENV === "development") {
     adapter = bunAdapter();
+}
+if (process.env.PREVIEW === "true") {
+    adapter = staticAdapter({
+        fallback: "index.html",
+    });
 }
 
 /** @type {import('@sveltejs/kit').Config} */

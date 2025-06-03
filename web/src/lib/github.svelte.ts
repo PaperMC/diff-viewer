@@ -81,7 +81,7 @@ export type GithubTokenResponse = {
 };
 
 export async function fetchGithubUserToken(code: string): Promise<GithubTokenResponse> {
-    const response = await fetch(new URL(`${window.location.origin}/api/github/token?code=${code}`), {
+    const response = await fetch(new URL(`${window.location.origin}/github-token?code=${code}`), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

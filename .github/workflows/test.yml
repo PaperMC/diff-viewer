@@ -6,23 +6,13 @@ on:
   pull_request:
 
 jobs:
-  build:
+  test:
     # Only run on PRs if the source branch is on someone else's repo
     if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 21
-          check-latest: true
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-      - name: Build with Gradle
-        run: ./gradlew test --stacktrace
       - uses: oven-sh/setup-bun@v2
       - run: cd web && bun install
       - run: cd web && bun run lint

@@ -1,32 +1,15 @@
-# Patch Roulette
-
-REST API and web interface for managing Paper updates and dealing with patches.
-
-> [!NOTE]  
-> This project is intended for internal use and does not guarantee stability, compatibility, support, or follow semantic versioning. External users will likely only find the diff viewer useful.
+# [Diff Viewer](https://diffs.dev)
+Featureful and performant web-based diff viewer.
 
 ## Overview
 
-### REST API
+### Routes
 
-Powered by Spring Boot, backend for the web interface and `paperweight`. Routes are under `/api`.
+- [`/`](https://diffs.dev): Multi-file concise diff viewer
 
-### paperweight
+### Tech Stack
 
-`paperweight` has tasks to interface with the REST API during the update process.
-
-### Web Interface
-
-SvelteKit frontend using tailwindcss for styling. Hosted as static files by the Spring Boot server.
-
-#### Public Pages
-
-- [`/`](https://patch-roulette.papermc.io): Multi-file concise diff viewer
-
-#### Authenticated Pages
-
-- `/roulette/login`: Login page
-- `/roulette`: Management dashboard
+SvelteKit frontend using tailwindcss for styling, deployed to Cloudflare Pages via GitHub Actions.
 
 ### Web Extension
 
@@ -36,8 +19,6 @@ Web extension that streamlines opening diffs in the viewer.
 
 ## Development
 
-Note that Bun can be substituted with the package manager of your choice.
-
 ### Setup
 
 - Install [Bun](https://bun.sh/) and execute `bun install` in `/web` to install the required dependencies for the frontend.
@@ -45,14 +26,8 @@ Note that Bun can be substituted with the package manager of your choice.
 
 ### Testing
 
-- The frontend can be tested with `bun run devLocalServer` or `bun run devProdServer` in `/web`. `devLocalServer` will use localhost as the API, `devProdServer` will use the production API at https://patch-roulette.papermc.io/api.
-- The backend can be tested with `./gradlew bootRun` in the project root.
+- The frontend can be tested with `bun run dev` in `/web`.
 
 ### Code Style
 
 - The frontend uses ESLint and Prettier for code style. Run `bun run format` to reformat and `bun run lint` to check style.
-- The backend simply has a `.editorconfig` file for code style.
-
-### Deployment
-
-- Published to the GitHub Container Registry on each commit through the `publish` actions workflow.

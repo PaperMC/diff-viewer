@@ -5,6 +5,7 @@ import type { BundledLanguage, SpecialLanguage } from "shiki";
 import { onMount } from "svelte";
 import type { Action } from "svelte/action";
 import type { ReadableBox } from "svelte-toolbelt";
+import { on } from "svelte/events";
 
 export type Getter<T> = () => T;
 
@@ -406,12 +407,8 @@ export function watchLocalStorage(key: string, callback: (newValue: string | nul
             }
         }
 
-        window.addEventListener("storage", storageChanged);
-        return {
-            destroy() {
-                window.removeEventListener("storage", storageChanged);
-            },
-        };
+        const destroy = on(window, "storage", storageChanged);
+        return { destroy };
     });
 }
 

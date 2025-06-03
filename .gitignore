@@ -11,3 +11,7 @@ database.mv.db
 database.trace.db
 db/
 .DS_Store
+
+node_modules
+# TODO: figure out proper monorepo setup, installing / fixes intellij not recognizing the project for now
+/bun.lock

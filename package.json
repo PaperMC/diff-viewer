@@ -1,0 +1,7 @@
+{
+  "name": "diff-viewer",
+  "private": true,
+  "workspaces": [
+    "web*"
+  ]
+}
