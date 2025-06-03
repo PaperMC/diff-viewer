@@ -23,7 +23,7 @@ jobs:
             apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
             accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
             githubToken: ${{ secrets.GITHUB_TOKEN }}
-            projectName: "patch-roulette"
+            projectName: "diffs"
             directory: "web/.svelte-kit/cloudflare"
         env:
             VITE_GITHUB_CLIENT_ID: ${{ secrets.VITE_GITHUB_CLIENT_ID }}
