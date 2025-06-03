@@ -79,7 +79,7 @@
                 return `${meta.fileName} - diffs.dev`;
             }
         }
-        return "diffs.dev";
+        return "diffs.dev Diff Viewer";
     }
 
     let pageTitle = $derived(getPageTitle());
