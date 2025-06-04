@@ -17,6 +17,8 @@ jobs:
         run: bun install
       - name: Build frontend
         run: cd web && bun run build
+        env:
+            GITHUB_CLIENT_SECRET: ${{ secrets.VITE_GITHUB_CLIENT_SECRET }}
       - name: "Deploy to Cloudflare Pages"
         uses: "AdrianGonz97/refined-cf-pages-action@v1"
         with:
@@ -26,5 +28,3 @@ jobs:
             projectName: "diffs"
             directory: "web/.svelte-kit/cloudflare"
             deploymentName: Production
-        env:
-            GITHUB_CLIENT_SECRET: ${{ secrets.VITE_GITHUB_CLIENT_SECRET }}
