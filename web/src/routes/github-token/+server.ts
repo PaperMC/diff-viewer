@@ -1,4 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
+import { PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
+import { GITHUB_CLIENT_SECRET } from "$env/static/private";
 
 export const POST: RequestHandler = async ({ url }) => {
     const code = url.searchParams.get("code");
@@ -7,8 +9,8 @@ export const POST: RequestHandler = async ({ url }) => {
     }
     const state = url.searchParams.get("state");
     const body = {
-        client_id: import.meta.env.VITE_GITHUB_CLIENT_ID,
-        client_secret: import.meta.env.VITE_GITHUB_CLIENT_SECRET,
+        client_id: PUBLIC_GITHUB_CLIENT_ID,
+        client_secret: GITHUB_CLIENT_SECRET,
         code,
         state,
     };
