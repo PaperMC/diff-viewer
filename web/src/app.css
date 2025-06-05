@@ -70,6 +70,9 @@
     * {
         border-color: var(--color-edge);
     }
+    textarea {
+        vertical-align: bottom;
+    }
 }
 
 @utility btn-ghost-hover {
@@ -120,8 +123,4 @@
 
 .png-bg {
     background: url("/png.gif") right bottom var(--color-gray-300);
-}
-
-textarea {
-    vertical-align: bottom;
 }
