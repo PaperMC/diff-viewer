@@ -12,8 +12,9 @@
         <span aria-hidden="true" class="iconify size-4 bg-primary octicon--info-16"></span>
     </Popover.Trigger>
     <Popover.Portal>
-        <Popover.Content class="z-50 max-w-64 rounded-sm border bg-neutral px-2 py-1 text-sm">
+        <Popover.Content class="z-50 mx-2 max-w-64 rounded-sm border bg-neutral px-2 py-1 text-sm">
             {@render children?.()}
+            <Popover.Arrow class="text-edge" />
         </Popover.Content>
     </Popover.Portal>
 </Popover.Root>

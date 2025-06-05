@@ -71,7 +71,7 @@
             <span class="iconify size-4 bg-primary octicon--kebab-horizontal-16" aria-hidden="true"></span>
         </Popover.Trigger>
         <Popover.Portal>
-            <Popover.Content class="flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none" sideOffset={4}>
+            <Popover.Content class="flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none">
                 <Button.Root onclick={showInFileTree} class="btn-ghost px-2 py-1">Show in file tree</Button.Root>
                 <LabeledCheckbox
                     labelText="File viewed"
@@ -83,6 +83,7 @@
                         }
                     }
                 />
+                <Popover.Arrow class="text-edge" />
             </Popover.Content>
         </Popover.Portal>
     </Popover.Root>
