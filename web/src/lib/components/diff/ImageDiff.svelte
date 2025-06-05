@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Slider } from "bits-ui";
+    import { RadioGroup, Slider } from "bits-ui";
     import Spinner from "$lib/components/Spinner.svelte";
     import { getDimensions, type ImageDimensions } from "$lib/image";
     import AddedOrRemovedImageLabel from "$lib/components/diff/AddedOrRemovedImageLabel.svelte";
@@ -55,22 +55,21 @@
     });
 </script>
 
+{#snippet modeButton(forMode: Mode, iconClass: string)}
+    <RadioGroup.Item
+        value={forMode}
+        class="flex items-center justify-center rounded-sm btn-ghost px-2 py-1 text-primary data-[state=checked]:btn-ghost-visible"
+    >
+        <span class="iconify {iconClass} me-1 size-4" aria-hidden="true"></span>{forMode}
+    </RadioGroup.Item>
+{/snippet}
+
 {#snippet modeSelector()}
-    {#snippet modeButton(forMode: Mode, iconClass: string)}
-        <button
-            type="button"
-            class="flex items-center justify-center rounded-sm btn-ghost px-2 py-1 text-primary data-[active=true]:btn-ghost-visible"
-            onclick={() => (mode = forMode)}
-            data-active={mode === forMode}
-        >
-            <span class="iconify {iconClass} me-1 size-4" aria-hidden="true"></span>{forMode}
-        </button>
-    {/snippet}
-    <div class="mb-4 flex flex-row gap-1 rounded-lg bg-neutral p-1.5 shadow-sm">
+    <RadioGroup.Root title="Comparison Mode" bind:value={mode} class="mb-4 flex flex-row gap-1 rounded-lg bg-neutral p-1.5 shadow-sm">
         {@render modeButton("slide", "octicon--image-16")}
         {@render modeButton("side-by-side", "octicon--columns-16")}
         {@render modeButton("fade", "octicon--image-16")}
-    </div>
+    </RadioGroup.Root>
 {/snippet}
 
 {#snippet sideBySide(dims: DimensionData)}
