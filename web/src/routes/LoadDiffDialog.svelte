@@ -356,10 +356,10 @@
         </Button.Root>
     </div>
     <ul class="m-2 max-h-96 overflow-y-auto rounded-md border">
-        {#each dirBlacklist as entry (entry)}
-            <li class="flex">
-                <span class="grow border-b px-2 py-1">{entry}</span>
-                <div class="border-b p-1 ps-0">
+        {#each dirBlacklist as entry, index (entry)}
+            <li class="flex" class:border-b={index !== dirBlacklist.size - 1}>
+                <span class="grow px-2 py-1">{entry}</span>
+                <div class="p-1 ps-0">
                     <Button.Root
                         title="Delete blacklist entry"
                         class="flex rounded-md btn-danger p-1"
