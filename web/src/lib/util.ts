@@ -24,7 +24,7 @@ export function trimCommitHash(hash: string): string {
     return hash;
 }
 
-export async function isBinaryFile(file: File): Promise<boolean> {
+export async function isBinaryFile(file: Blob): Promise<boolean> {
     const sampleSize = Math.min(file.size, 1024);
     const buffer = await file.slice(0, sampleSize).arrayBuffer();
     const decoder = new TextDecoder("utf-8", { fatal: true });
@@ -37,8 +37,8 @@ export async function isBinaryFile(file: File): Promise<boolean> {
 }
 
 export async function bytesEqual(
-    a: File,
-    b: File,
+    a: Blob,
+    b: Blob,
     chunkingThreshold: number = 4 * 1024 * 1024, // 4MB
     chunkSize: number = chunkingThreshold,
 ): Promise<boolean> {

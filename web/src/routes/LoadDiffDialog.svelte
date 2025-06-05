@@ -7,23 +7,24 @@
     import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, splitMultiFilePatch } from "$lib/util";
     import { onMount } from "svelte";
-    import FileInput from "$lib/components/files/FileInput.svelte";
-    import SingleFileSelect from "$lib/components/files/SingleFileSelect.svelte";
     import { createTwoFilesPatch } from "diff";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
-    import { DirectoryEntry, FileEntry } from "$lib/components/files/index.svelte";
+    import { DirectoryEntry, FileEntry, MultimodalFileInputState } from "$lib/components/files/index.svelte";
     import { SvelteSet } from "svelte/reactivity";
+    import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
 
     const viewer = MultiFileDiffViewerState.get();
-
     let modalOpen = $state(false);
-    let githubUrl = $state("https://github.com/");
-    let dragActive = $state(false);
 
-    let fileA = $state<File | undefined>(undefined);
-    let fileB = $state<File | undefined>(undefined);
-    let dirA = $state<DirectoryEntry | undefined>(undefined);
-    let dirB = $state<DirectoryEntry | undefined>(undefined);
+    let githubUrl = $state("https://github.com/");
+
+    let patchFile = $state<MultimodalFileInputState | undefined>();
+
+    let fileA = $state<MultimodalFileInputState | undefined>();
+    let fileB = $state<MultimodalFileInputState | undefined>();
+
+    let dirA = $state<DirectoryEntry | undefined>();
+    let dirB = $state<DirectoryEntry | undefined>();
     let dirBlacklistInput = $state<string>("");
     const defaultDirBlacklist = [".git/"];
     let dirBlacklist = new SvelteSet(defaultDirBlacklist);
@@ -56,13 +57,20 @@
     });
 
     async function compareFiles() {
-        if (!fileA || !fileB) {
+        if (!fileA || !fileB || !fileA.metadata || !fileB.metadata) {
             alert("Both files must be selected to compare.");
             return;
         }
-
-        const isImageDiff = isImageFile(fileA.name) && isImageFile(fileB.name);
-        const [aBinary, bBinary] = await Promise.all([isBinaryFile(fileA), isBinaryFile(fileB)]);
+        const isImageDiff = isImageFile(fileA.metadata.name) && isImageFile(fileB.metadata.name);
+        let blobA: Blob, blobB: Blob;
+        try {
+            [blobA, blobB] = await Promise.all([fileA.resolve(), fileB.resolve()]);
+        } catch (e) {
+            console.log("Failed to resolve files:", e);
+            alert("Failed to resolve files: " + e);
+            return;
+        }
+        const [aBinary, bBinary] = await Promise.all([isBinaryFile(blobA), isBinaryFile(blobB)]);
         if (aBinary || bBinary) {
             if (!isImageDiff) {
                 alert("Cannot compare binary files.");
@@ -73,46 +81,46 @@
         const fileDetails: FileDetails[] = [];
 
         if (isImageDiff) {
-            if (await bytesEqual(fileA, fileB)) {
+            if (await bytesEqual(blobA, blobB)) {
                 alert("The files are identical.");
                 return;
             }
 
             let status: FileStatus = "modified";
-            if (fileA.name !== fileB.name) {
+            if (fileA.metadata.name !== fileB.metadata.name) {
                 status = "renamed_modified";
             }
 
             fileDetails.push({
                 content: "",
-                fromFile: fileA.name,
-                toFile: fileB.name,
-                fromBlob: fileA,
-                toBlob: fileB,
+                fromFile: fileA.metadata.name,
+                toFile: fileB.metadata.name,
+                fromBlob: blobA,
+                toBlob: blobB,
                 status,
             });
         } else {
-            const [textA, textB] = await Promise.all([fileA.text(), fileB.text()]);
+            const [textA, textB] = await Promise.all([blobA.text(), blobB.text()]);
             if (textA === textB) {
                 alert("The files are identical.");
                 return;
             }
 
-            const diff = createTwoFilesPatch(fileA.name, fileB.name, textA, textB);
+            const diff = createTwoFilesPatch(fileA.metadata.name, fileB.metadata.name, textA, textB);
             let status: FileStatus = "modified";
-            if (fileA.name !== fileB.name) {
+            if (fileA.metadata.name !== fileB.metadata.name) {
                 status = "renamed_modified";
             }
 
             fileDetails.push({
                 content: diff,
-                fromFile: fileA.name,
-                toFile: fileB.name,
+                fromFile: fileA.metadata.name,
+                toFile: fileB.metadata.name,
                 status,
             });
         }
 
-        viewer.loadPatches(fileDetails, { fileName: `${fileA.name}...${fileB.name}.patch` });
+        viewer.loadPatches(fileDetails, { fileName: `${fileA.metadata.name}...${fileB.metadata.name}.patch` });
         await updateUrlParams();
         modalOpen = false;
     }
@@ -257,48 +265,28 @@
         return into;
     }
 
-    async function loadFromPatchFile(fileName: string, patchContent: string) {
-        const files = splitMultiFilePatch(patchContent);
+    async function handlePatchFile() {
+        if (!patchFile || !patchFile.metadata) {
+            alert("No patch file selected.");
+            return;
+        }
+        let text: string;
+        try {
+            const blob = await patchFile.resolve();
+            text = await blob.text();
+        } catch (e) {
+            console.error("Failed to resolve patch file:", e);
+            alert("Failed to resolve patch file: " + e);
+            return;
+        }
+        const files = splitMultiFilePatch(text);
         if (files.length === 0) {
             alert("No valid patches found in the file.");
-            modalOpen = true;
             return;
         }
-        viewer.loadPatches(files, { fileName });
+        modalOpen = false;
+        viewer.loadPatches(files, { fileName: patchFile.metadata.name });
         await updateUrlParams();
-    }
-
-    async function handlePatchFile(file?: File) {
-        if (!file) {
-            return;
-        }
-        modalOpen = false;
-        await loadFromPatchFile(file.name, await file.text());
-    }
-
-    function handleDragOver(event: DragEvent) {
-        dragActive = true;
-        event.preventDefault();
-    }
-
-    function handleDragLeave(event: DragEvent) {
-        if (event.currentTarget === event.target) {
-            dragActive = false;
-        }
-        event.preventDefault();
-    }
-
-    async function handlePatchFileDrop(event: DragEvent) {
-        dragActive = false;
-        event.preventDefault();
-        const files = event.dataTransfer?.files;
-        if (!files || files.length !== 1) {
-            alert("Only one file can be dropped at a time.");
-            return;
-        }
-        modalOpen = false;
-        const file = files[0];
-        await loadFromPatchFile(file.name, await file.text());
     }
 
     async function handleGithubUrl() {
@@ -342,21 +330,18 @@
         <InfoPopup>Regex patterns for directories and files to ignore.</InfoPopup>
     </div>
     <div class="flex items-center gap-1 px-2">
-        <div class="flex">
-            <input
-                bind:value={dirBlacklistInput}
-                onkeydown={(e) => {
-                    if (e.key === "Enter") {
-                        addBlacklistEntry();
-                    }
-                }}
-                type="text"
-                class="w-full rounded-l-md border-t border-b border-l px-2 py-1"
-            />
-            <Button.Root title="Add blacklist entry" class="flex rounded-r-md btn-primary px-2 py-1" onclick={addBlacklistEntry}>
+        <form
+            class="flex"
+            onsubmit={(e) => {
+                e.preventDefault();
+                addBlacklistEntry();
+            }}
+        >
+            <input bind:value={dirBlacklistInput} type="text" class="w-full rounded-l-md border-t border-b border-l px-2 py-1" />
+            <Button.Root type="submit" title="Add blacklist entry" class="flex rounded-r-md btn-primary px-2 py-1">
                 <span class="iconify size-4 shrink-0 place-self-center octicon--plus-16" aria-hidden="true"></span>
             </Button.Root>
-        </div>
+        </form>
         <Button.Root
             title="Reset blacklist to defaults"
             class="flex rounded-md btn-danger p-1"
@@ -394,7 +379,7 @@
 {/snippet}
 
 <Dialog.Root bind:open={modalOpen}>
-    <Dialog.Trigger class="h-fit rounded-md btn-primary px-2 py-0.5" onclick={() => (dragActive = false)}>Load another diff</Dialog.Trigger>
+    <Dialog.Trigger class="h-fit rounded-md btn-primary px-2 py-0.5">Load another diff</Dialog.Trigger>
     <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-50 bg-black/50 dark:bg-white/20" />
         <Dialog.Content
@@ -413,7 +398,13 @@
                     From GitHub
                 </h3>
 
-                <div class="flex flex-row">
+                <form
+                    class="flex flex-row"
+                    onsubmit={(e) => {
+                        e.preventDefault();
+                        handleGithubUrl();
+                    }}
+                >
                     <input
                         id="githubUrl"
                         type="url"
@@ -421,14 +412,9 @@
                         placeholder="https://github.com/"
                         class="grow rounded-l-md border-t border-b border-l px-2 py-1 overflow-ellipsis"
                         bind:value={githubUrl}
-                        onkeyup={(event) => {
-                            if (event.key === "Enter") {
-                                handleGithubUrl();
-                            }
-                        }}
                     />
-                    <Button.Root onclick={handleGithubUrl} class="rounded-r-md btn-primary px-2 py-1">Go</Button.Root>
-                </div>
+                    <Button.Root type="submit" class="rounded-r-md btn-primary px-2 py-1">Go</Button.Root>
+                </form>
                 <span class="mb-2 text-sm text-em-med">Supports commit, PR, and comparison URLs</span>
 
                 <div class="mb-2 flex flex-row gap-1">
@@ -467,91 +453,95 @@
 
             <Separator.Root class="h-px w-full bg-neutral-2" />
 
-            <!-- svelte-ignore a11y_no_static_element_interactions -->
-            <section
-                class="file-drop-target p-4"
-                data-drag-active={dragActive}
-                ondragover={handleDragOver}
-                ondrop={handlePatchFileDrop}
-                ondragleavecapture={handleDragLeave}
+            <form
+                class="p-4"
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    handlePatchFile();
+                }}
             >
                 <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
-                    <span class="iconify size-6 shrink-0 octicon--file-directory-open-fill-24"></span>
+                    <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
+                    From Patch File
+                </h3>
+                <MultimodalFileInput bind:state={patchFile} label="Patch File" />
+                <Button.Root type="submit" class="mt-1 rounded-md btn-primary px-2 py-1">Go</Button.Root>
+            </form>
+
+            <Separator.Root class="h-px w-full bg-neutral-2" />
+
+            <form
+                class="p-4"
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    compareFiles();
+                }}
+            >
+                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                    <span class="iconify size-6 shrink-0 octicon--file-24"></span>
                     From Files
                 </h3>
-
-                <FileInput class="mb-2 flex w-fit items-center gap-2 rounded-md btn-primary px-2 py-1" onChange={handlePatchFile}>
-                    <span class="iconify size-4 shrink-0 octicon--file-diff-16"></span>
-                    Load Patch File
-                </FileInput>
-
-                <section class="mb-2">
-                    <h4 class="mb-2 font-semibold">Compare Files</h4>
-                    <div class="flex flex-wrap items-center gap-1">
-                        <SingleFileSelect bind:file={fileA} placeholder="File A" />
-                        <span class="iconify size-4 shrink-0 octicon--arrow-right-16"></span>
-                        <SingleFileSelect bind:file={fileB} placeholder="File B" />
-                        <Button.Root onclick={compareFiles} class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+                <div class="flex flex-wrap items-center gap-1">
+                    <MultimodalFileInput bind:state={fileA} label="File A" />
+                    <div class="flex w-full">
+                        <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
                     </div>
-                </section>
+                    <MultimodalFileInput bind:state={fileB} label="File B" />
+                    <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+                    <Button.Root
+                        title="Swap File A and File B"
+                        type="button"
+                        class="flex size-6 items-center justify-center rounded-md btn-primary"
+                        onclick={() => {
+                            if (!fileA || !fileB) return;
+                            fileA.swapState(fileB);
+                        }}
+                    >
+                        <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+                    </Button.Root>
+                </div>
+            </form>
 
-                <section>
-                    <div class="mb-2 flex items-center">
-                        <h4 class="me-1 font-semibold">Compare Directories</h4>
-                        <InfoPopup>
-                            Compares the entire contents of the directories, including subdirectories. Does not attempt to detect renames. When possible,
-                            preparing a unified diff (<code class="rounded-sm bg-neutral-2 px-1 py-0.5">.patch</code> file) using Git or another tool and loading
-                            it with the above button should be preferred.
-                        </InfoPopup>
+            <Separator.Root class="h-px w-full bg-neutral-2" />
+
+            <form
+                class="p-4"
+                onsubmit={(e) => {
+                    e.preventDefault();
+                    compareDirs();
+                }}
+            >
+                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                    <span class="iconify size-6 shrink-0 octicon--file-directory-24"></span>
+                    From Directories
+                    <InfoPopup>
+                        Compares the entire contents of the directories, including subdirectories. Does not attempt to detect renames. When possible, preparing
+                        a unified diff (<code class="rounded-sm bg-neutral-2 px-1 py-0.5">.patch</code> file) using Git or another tool and loading it with the above
+                        button should be preferred.
+                    </InfoPopup>
+                </h3>
+                <div class="flex flex-wrap items-center gap-1">
+                    <DirectorySelect bind:directory={dirA} placeholder="Directory A" />
+                    <span class="iconify size-4 shrink-0 octicon--arrow-right-16"></span>
+                    <DirectorySelect bind:directory={dirB} placeholder="Directory B" />
+                    <div class="flex">
+                        <Button.Root type="submit" class="relative rounded-l-md btn-primary">
+                            <div class="px-2 py-1">Go</div>
+                            <div class="absolute top-0 right-0 h-full w-px bg-neutral-3/20"></div>
+                        </Button.Root>
+                        <Popover.Root>
+                            <Popover.Trigger title="Edit filters" class="flex rounded-r-md btn-primary p-2 data-[state=open]:btn-primary-hover">
+                                <span class="iconify size-4 shrink-0 place-self-center octicon--filter-16" aria-hidden="true"></span>
+                            </Popover.Trigger>
+                            <Popover.Portal>
+                                <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
+                                    {@render blacklistPopoverContent()}
+                                </Popover.Content>
+                            </Popover.Portal>
+                        </Popover.Root>
                     </div>
-                    <div class="flex flex-wrap items-center gap-1">
-                        <DirectorySelect bind:directory={dirA} placeholder="Directory A" />
-                        <span class="iconify size-4 shrink-0 octicon--arrow-right-16"></span>
-                        <DirectorySelect bind:directory={dirB} placeholder="Directory B" />
-                        <div class="flex">
-                            <Button.Root onclick={compareDirs} class="relative rounded-l-md btn-primary">
-                                <div class="px-2 py-1">Go</div>
-                                <div class="absolute top-0 right-0 h-full w-px bg-neutral-3/20"></div>
-                            </Button.Root>
-                            <Popover.Root>
-                                <Popover.Trigger title="Edit filters" class="flex rounded-r-md btn-primary p-2 data-[state=open]:btn-primary-hover">
-                                    <span class="iconify size-4 shrink-0 place-self-center octicon--filter-16" aria-hidden="true"></span>
-                                </Popover.Trigger>
-                                <Popover.Portal>
-                                    <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
-                                        {@render blacklistPopoverContent()}
-                                    </Popover.Content>
-                                </Popover.Portal>
-                            </Popover.Root>
-                        </div>
-                    </div>
-                </section>
-            </section>
+                </div>
+            </form>
         </Dialog.Content>
     </Dialog.Portal>
 </Dialog.Root>
-
-<style>
-    .file-drop-target {
-        position: relative;
-    }
-    .file-drop-target[data-drag-active="true"]::before {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-
-        content: "Drop patch file here";
-        font-size: var(--text-3xl);
-        color: var(--color-black);
-
-        background-color: rgba(255, 255, 255, 0.7);
-
-        border: dashed var(--color-primary);
-        border-radius: inherit;
-    }
-</style>
