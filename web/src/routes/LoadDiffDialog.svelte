@@ -524,22 +524,21 @@
                     <DirectorySelect bind:directory={dirA} placeholder="Directory A" />
                     <span class="iconify size-4 shrink-0 octicon--arrow-right-16"></span>
                     <DirectorySelect bind:directory={dirB} placeholder="Directory B" />
-                    <div class="flex">
-                        <Button.Root type="submit" class="relative rounded-l-md btn-primary">
-                            <div class="px-2 py-1">Go</div>
-                            <div class="absolute top-0 right-0 h-full w-px bg-neutral-3/20"></div>
-                        </Button.Root>
-                        <Popover.Root>
-                            <Popover.Trigger title="Edit filters" class="flex rounded-r-md btn-primary p-2 data-[state=open]:btn-primary-hover">
-                                <span class="iconify size-4 shrink-0 place-self-center octicon--filter-16" aria-hidden="true"></span>
-                            </Popover.Trigger>
-                            <Popover.Portal>
-                                <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
-                                    {@render blacklistPopoverContent()}
-                                </Popover.Content>
-                            </Popover.Portal>
-                        </Popover.Root>
-                    </div>
+                    <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+                    <Popover.Root>
+                        <Popover.Trigger
+                            title="Edit filters"
+                            class="flex size-6 items-center justify-center rounded-md btn-primary data-[state=open]:btn-primary-hover"
+                        >
+                            <span class="iconify size-4 shrink-0 octicon--filter-16" aria-hidden="true"></span>
+                        </Popover.Trigger>
+                        <Popover.Portal>
+                            <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
+                                {@render blacklistPopoverContent()}
+                                <Popover.Arrow class="text-edge" />
+                            </Popover.Content>
+                        </Popover.Portal>
+                    </Popover.Root>
                 </div>
             </form>
         </Dialog.Content>

@@ -12,7 +12,7 @@
         <span aria-hidden="true" class="iconify size-4 bg-primary octicon--kebab-horizontal-16"></span>
     </Popover.Trigger>
     <Popover.Portal>
-        <Popover.Content class="flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none" sideOffset={4}>
+        <Popover.Content class="flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none">
             <Button.Root
                 class="btn-ghost px-2 py-1 text-left"
                 onclick={() => {
@@ -31,6 +31,7 @@
             >
                 Collapse All
             </Button.Root>
+            <Popover.Arrow class="text-edge" />
         </Popover.Content>
     </Popover.Portal>
 </Popover.Root>
