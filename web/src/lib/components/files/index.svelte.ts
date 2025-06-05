@@ -1,3 +1,6 @@
+import { type ReadableBoxedValues } from "svelte-toolbelt";
+import { lazyPromise } from "$lib/util";
+
 export interface FileSystemEntry {
     fileName: string;
 }
@@ -127,4 +130,119 @@ function filesToDirectory(files: FileList): DirectoryEntry {
     }
 
     return ret;
+}
+
+export type FileInputMode = "file" | "url" | "text";
+
+export type MultimodalFileInputValueMetadata = {
+    type: FileInputMode;
+    name: string;
+};
+
+export type MultimodalFileInputProps = {
+    state?: MultimodalFileInputState | undefined;
+
+    label?: string | undefined;
+};
+
+export type MultimodalFileInputStateProps = {
+    state: MultimodalFileInputState | undefined;
+} & ReadableBoxedValues<{
+    label: string;
+}>;
+
+export class MultimodalFileInputState {
+    private readonly opts: MultimodalFileInputStateProps;
+    mode: FileInputMode = $state("file");
+    text: string = $state("");
+    file: File | undefined = $state(undefined);
+    url: string = $state("");
+    private urlResolver = $derived.by(() => {
+        let url = this.url;
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            url = `https://${url}`;
+        }
+        return lazyPromise(async () => {
+            let threw = false;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    threw = true;
+                    throw new Error(`Failed to fetch from URL: ${url}\nStatus: ${response.status}\nBody:\n${await response.text()}`);
+                }
+                return await response.blob();
+            } catch (e) {
+                if (threw) {
+                    throw e;
+                }
+                throw new Error(`Failed to fetch from URL: ${url}\nSome errors, such as those caused by CORS, will only print in the console.\nCause: ${e}`);
+            }
+        });
+    });
+    dragActive = $state(false);
+
+    constructor(opts: MultimodalFileInputStateProps) {
+        this.opts = opts;
+        if (this.opts.state) {
+            this.mode = this.opts.state.mode;
+            this.text = this.opts.state.text;
+            this.file = this.opts.state.file;
+            this.url = this.opts.state.url;
+            this.urlResolver = this.opts.state.urlResolver;
+        }
+    }
+
+    get metadata(): MultimodalFileInputValueMetadata | null {
+        const mode = this.mode;
+        const label = this.opts.label.current;
+        if (mode === "file" && this.file !== undefined) {
+            const file = this.file;
+            return { type: "file", name: file.name };
+        } else if (mode === "url" && this.url !== "") {
+            return { type: "url", name: this.url };
+        } else if (mode === "text" && this.text !== "") {
+            return { type: "text", name: `${label} (Text Input)` };
+        } else {
+            return null;
+        }
+    }
+
+    async resolve(): Promise<Blob> {
+        const mode = this.mode;
+        if (mode === "file" && this.file !== undefined) {
+            return this.file;
+        } else if (mode === "url" && this.url !== "") {
+            return this.urlResolver.getValue();
+        } else if (mode === "text" && this.text !== "") {
+            return new Blob([this.text], { type: "text/plain" });
+        } else {
+            throw Error("No value present");
+        }
+    }
+
+    reset() {
+        this.text = "";
+        this.file = undefined;
+        this.url = "";
+    }
+
+    swapState(other: MultimodalFileInputState) {
+        const mode = this.mode;
+        const text = this.text;
+        const file = this.file;
+        const url = this.url;
+        const urlResolver = this.urlResolver;
+
+        this.mode = other.mode;
+        this.text = other.text;
+        this.file = other.file;
+        this.url = other.url;
+        this.urlResolver = other.urlResolver;
+
+        other.mode = mode;
+        other.text = text;
+        other.file = file;
+        other.url = url;
+        other.urlResolver = urlResolver;
+    }
 }

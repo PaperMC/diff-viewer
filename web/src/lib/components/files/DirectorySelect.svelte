@@ -16,7 +16,7 @@
         {#if directory}
             {directory.fileName}
         {:else}
-            {placeholder}
+            <span class="font-light">{placeholder}</span>
         {/if}
         <span class="iconify size-4 shrink-0 text-em-disabled octicon--triangle-down-16"></span>
     {/snippet}
