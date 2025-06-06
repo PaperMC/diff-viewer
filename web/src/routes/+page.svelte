@@ -29,9 +29,20 @@
     import LoadDiffDialog from "./LoadDiffDialog.svelte";
     import InfoPopup from "./InfoPopup.svelte";
     import { Button } from "bits-ui";
+    import { onClickOutside } from "runed";
 
     const globalOptions = GlobalOptions.init();
     const viewer = MultiFileDiffViewerState.init();
+    let sidebarElement: HTMLDivElement | undefined = $state();
+
+    onClickOutside(
+        () => sidebarElement,
+        () => {
+            if (!staticSidebar.current) {
+                viewer.sidebarCollapsed = true;
+            }
+        },
+    );
 
     function filterFileNode(file: TreeNode<FileTreeNodeData>): boolean {
         return file.data.type === "file" && viewer.filterFile(file.data.data as FileDetails);
@@ -126,6 +137,7 @@
 
 <div class="relative flex min-h-screen flex-row justify-center">
     <div
+        bind:this={sidebarElement}
         class="absolute top-0 left-0 z-10 flex h-full w-full flex-col border-e bg-neutral data-[collapsed=true]:hidden md:w-[350px] md:shadow-md lg:static lg:h-auto lg:shadow-none"
         data-collapsed={viewer.sidebarCollapsed}
     >
