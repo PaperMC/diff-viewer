@@ -73,7 +73,7 @@
         const [aBinary, bBinary] = await Promise.all([isBinaryFile(blobA), isBinaryFile(blobB)]);
         if (aBinary || bBinary) {
             if (!isImageDiff) {
-                alert("Cannot compare binary files.");
+                alert("Cannot compare binary files (except image-to-image comparisons).");
                 return;
             }
         }
@@ -290,7 +290,6 @@
     }
 
     async function handleGithubUrl() {
-        modalOpen = false;
         const url = new URL(githubUrl);
         // exclude hash + query params
         const test = url.protocol + "//" + url.hostname + url.pathname;
@@ -300,11 +299,11 @@
 
         if (!match) {
             alert("Invalid GitHub URL. Use: https://github.com/owner/repo/(commit|pull|compare)/(id|ref_a...ref_b)");
-            modalOpen = true;
             return;
         }
 
         githubUrl = match[0];
+        modalOpen = false;
         const success = await viewer.loadFromGithubApi(match);
         if (success) {
             await updateUrlParams({ githubUrl });
@@ -408,6 +407,7 @@
                     <input
                         id="githubUrl"
                         type="url"
+                        required
                         autocomplete="url"
                         placeholder="https://github.com/"
                         class="grow rounded-l-md border-t border-b border-l px-2 py-1 overflow-ellipsis"
@@ -464,7 +464,7 @@
                     <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
                     From Patch File
                 </h3>
-                <MultimodalFileInput bind:state={patchFile} label="Patch File" />
+                <MultimodalFileInput bind:state={patchFile} required label="Patch File" />
                 <Button.Root type="submit" class="mt-1 rounded-md btn-primary px-2 py-1">Go</Button.Root>
             </form>
 
@@ -482,11 +482,11 @@
                     From Files
                 </h3>
                 <div class="flex flex-wrap items-center gap-1">
-                    <MultimodalFileInput bind:state={fileA} label="File A" />
+                    <MultimodalFileInput bind:state={fileA} required label="File A" />
                     <div class="flex w-full">
                         <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
                     </div>
-                    <MultimodalFileInput bind:state={fileB} label="File B" />
+                    <MultimodalFileInput bind:state={fileB} required label="File B" />
                     <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
                     <Button.Root
                         title="Swap File A and File B"
