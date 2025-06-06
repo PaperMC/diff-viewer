@@ -4,11 +4,12 @@
     import { RadioGroup } from "bits-ui";
     import SingleFileInput from "$lib/components/files/SingleFileInput.svelte";
 
-    let { label = "File", state = $bindable() }: MultimodalFileInputProps = $props();
+    let { state = $bindable(), label = "File", required = false }: MultimodalFileInputProps = $props();
 
     const instance = new MultimodalFileInputState({
-        label: box.with(() => label),
         state,
+        label: box.with(() => label),
+        required: box.with(() => required),
     });
     state = instance;
 
@@ -24,16 +25,51 @@
         event.preventDefault();
     }
 
-    async function handleFileDrop(event: DragEvent) {
+    async function handleDrop(event: DragEvent) {
         instance.dragActive = false;
         event.preventDefault();
-        const files = event.dataTransfer?.files;
-        if (!files || files.length !== 1) {
-            alert("Only one file can be dropped at a time.");
+        if (!event.dataTransfer) {
             return;
         }
-        instance.file = files[0];
-        instance.mode = "file";
+
+        const types = event.dataTransfer.types;
+        const files = event.dataTransfer.files;
+
+        // Handle file drops
+        if (files.length > 1) {
+            alert("Only one file can be dropped at a time.");
+            return;
+        } else if (files.length === 1) {
+            instance.file = files[0];
+            instance.mode = "file";
+            return;
+        }
+
+        // Handle URL drops
+        if (types.includes("text/uri-list")) {
+            const urls = event.dataTransfer
+                .getData("text/uri-list")
+                .split("\n")
+                .filter((url) => url && !url.startsWith("#"));
+            if (urls.length > 1) {
+                alert("Only one URL can be dropped at a time.");
+                return;
+            } else if (urls.length === 1) {
+                instance.url = urls[0];
+                instance.mode = "url";
+                return;
+            }
+        }
+
+        // Handle plain text drops
+        if (types.includes("text/plain")) {
+            const text = event.dataTransfer.getData("text/plain");
+            if (text) {
+                instance.text = text;
+                instance.mode = "text";
+                return;
+            }
+        }
     }
 </script>
 
@@ -52,7 +88,7 @@
     class="file-drop-target w-full"
     data-drag-active={instance.dragActive}
     ondragover={handleDragOver}
-    ondrop={handleFileDrop}
+    ondrop={handleDrop}
     ondragleavecapture={handleDragLeave}
 >
     <RadioGroup.Root class="mb-1 flex w-full gap-1" bind:value={instance.mode}>
@@ -69,6 +105,7 @@
     {/if}
 </div>
 
+<!-- TODO: Implement required prop for SingleFileInput -->
 {#snippet fileInput()}
     <SingleFileInput bind:file={instance.file} class="flex w-fit items-center gap-2 rounded-md border btn-ghost px-2 py-1 has-focus-visible:outline-2">
         <span class="iconify size-4 shrink-0 text-em-disabled octicon--file-16"></span>
@@ -82,11 +119,11 @@
 {/snippet}
 
 {#snippet urlInput()}
-    <input title="{label} URL" placeholder="Enter file URL" bind:value={instance.url} type="url" class="w-full rounded-md border px-2 py-1" />
+    <input title="{label} URL" bind:value={instance.url} placeholder="Enter file URL" type="url" {required} class="w-full rounded-md border px-2 py-1" />
 {/snippet}
 
 {#snippet textInput()}
-    <textarea title="{label} Text" bind:value={instance.text} placeholder="Enter text here" class="w-full rounded-md border px-2 py-1"></textarea>
+    <textarea title="{label} Text" bind:value={instance.text} placeholder="Enter text here" {required} class="w-full rounded-md border px-2 py-1"></textarea>
 {/snippet}
 
 <style>
@@ -103,7 +140,7 @@
         align-items: center;
         justify-content: center;
 
-        content: "Drop file here";
+        content: "Drop here";
         font-size: var(--text-3xl);
         color: var(--color-black);
 

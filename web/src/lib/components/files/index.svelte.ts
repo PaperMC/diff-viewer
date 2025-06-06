@@ -143,12 +143,14 @@ export type MultimodalFileInputProps = {
     state?: MultimodalFileInputState | undefined;
 
     label?: string | undefined;
+    required?: boolean | undefined;
 };
 
 export type MultimodalFileInputStateProps = {
     state: MultimodalFileInputState | undefined;
 } & ReadableBoxedValues<{
     label: string;
+    required: boolean;
 }>;
 
 export class MultimodalFileInputState {
@@ -158,10 +160,7 @@ export class MultimodalFileInputState {
     file: File | undefined = $state(undefined);
     url: string = $state("");
     private urlResolver = $derived.by(() => {
-        let url = this.url;
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            url = `https://${url}`;
-        }
+        const url = this.url;
         return lazyPromise(async () => {
             let threw = false;
             try {
