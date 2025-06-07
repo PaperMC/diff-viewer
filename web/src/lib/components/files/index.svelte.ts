@@ -1,5 +1,6 @@
 import { type ReadableBoxedValues } from "svelte-toolbelt";
-import { lazyPromise } from "$lib/util";
+import { getExtensionForLanguage, lazyPromise } from "$lib/util";
+import type { BundledLanguage, SpecialLanguage } from "shiki";
 
 export interface FileSystemEntry {
     fileName: string;
@@ -132,6 +133,8 @@ function filesToDirectory(files: FileList): DirectoryEntry {
     return ret;
 }
 
+export type FileType = SpecialLanguage | BundledLanguage | "auto";
+
 export type FileInputMode = "file" | "url" | "text";
 
 export type MultimodalFileInputValueMetadata = {
@@ -144,6 +147,7 @@ export type MultimodalFileInputProps = {
 
     label?: string | undefined;
     required?: boolean | undefined;
+    fileTypeOverride?: boolean | undefined;
 };
 
 export type MultimodalFileInputStateProps = {
@@ -151,14 +155,18 @@ export type MultimodalFileInputStateProps = {
 } & ReadableBoxedValues<{
     label: string;
     required: boolean;
+    fileTypeOverride: boolean;
 }>;
 
 export class MultimodalFileInputState {
     private readonly opts: MultimodalFileInputStateProps;
     mode: FileInputMode = $state("file");
     text: string = $state("");
+    textType: FileType = $state("plaintext");
     file: File | undefined = $state(undefined);
+    fileType: FileType = $state("auto");
     url: string = $state("");
+    urlType: FileType = $state("auto");
     private urlResolver = $derived.by(() => {
         const url = this.url;
         return lazyPromise(async () => {
@@ -185,10 +193,44 @@ export class MultimodalFileInputState {
         if (this.opts.state) {
             this.mode = this.opts.state.mode;
             this.text = this.opts.state.text;
+            this.textType = this.opts.state.textType;
             this.file = this.opts.state.file;
+            this.fileType = this.opts.state.fileType;
             this.url = this.opts.state.url;
+            this.urlType = this.opts.state.urlType;
             this.urlResolver = this.opts.state.urlResolver;
         }
+    }
+
+    getFileType(): FileType {
+        if (this.mode === "file") {
+            return this.fileType;
+        } else if (this.mode === "url") {
+            return this.urlType;
+        } else if (this.mode === "text") {
+            return this.textType;
+        }
+        throw new Error("Invalid mode");
+    }
+
+    setFileType(fileType: FileType) {
+        if (this.mode === "file") {
+            this.fileType = fileType;
+        } else if (this.mode === "url") {
+            this.urlType = fileType;
+        } else if (this.mode === "text") {
+            this.textType = fileType;
+        } else {
+            throw new Error("Invalid mode");
+        }
+    }
+
+    private getExtensionOrBlank() {
+        const fileType = this.getFileType();
+        if (fileType === "auto") {
+            return "";
+        }
+        return getExtensionForLanguage(fileType);
     }
 
     get metadata(): MultimodalFileInputValueMetadata | null {
@@ -196,11 +238,11 @@ export class MultimodalFileInputState {
         const label = this.opts.label.current;
         if (mode === "file" && this.file !== undefined) {
             const file = this.file;
-            return { type: "file", name: file.name };
+            return { type: "file", name: `${file.name}${this.getExtensionOrBlank()}` };
         } else if (mode === "url" && this.url !== "") {
-            return { type: "url", name: this.url };
+            return { type: "url", name: `${this.url}${this.getExtensionOrBlank()}` };
         } else if (mode === "text" && this.text !== "") {
-            return { type: "text", name: `${label} (Text Input)` };
+            return { type: "text", name: `${label}${this.getExtensionOrBlank()}` };
         } else {
             return null;
         }
@@ -228,20 +270,29 @@ export class MultimodalFileInputState {
     swapState(other: MultimodalFileInputState) {
         const mode = this.mode;
         const text = this.text;
+        const textType = this.textType;
         const file = this.file;
+        const fileType = this.fileType;
         const url = this.url;
+        const urlType = this.urlType;
         const urlResolver = this.urlResolver;
 
         this.mode = other.mode;
         this.text = other.text;
+        this.textType = other.textType;
         this.file = other.file;
+        this.fileType = other.fileType;
         this.url = other.url;
+        this.urlType = other.urlType;
         this.urlResolver = other.urlResolver;
 
         other.mode = mode;
         other.text = text;
+        other.textType = textType;
         other.file = file;
+        other.fileType = fileType;
         other.url = url;
+        other.urlType = urlType;
         other.urlResolver = urlResolver;
     }
 }

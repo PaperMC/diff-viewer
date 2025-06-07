@@ -282,9 +282,7 @@ export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
 
     static init() {
-        const state = new MultiFileDiffViewerState();
-        MultiFileDiffViewerState.context.set(state);
-        return state;
+        return MultiFileDiffViewerState.context.set(new MultiFileDiffViewerState());
     }
 
     static get() {
