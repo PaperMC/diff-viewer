@@ -26,6 +26,6 @@
     const mergedProps = mergeProps({ onclick }, restProps);
 </script>
 
-<Button.Root {...mergedProps}>
+<Button.Root type="button" {...mergedProps}>
     {@render children?.({ directory })}
 </Button.Root>
