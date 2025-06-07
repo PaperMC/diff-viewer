@@ -373,6 +373,12 @@ const languageMap: { [key: string]: BundledLanguage | SpecialLanguage } = {
     ".yml": "yaml",
 };
 
+const reverseLanguageMap = Object.fromEntries(Object.entries(languageMap).map(([ext, lang]) => [lang, ext]));
+
+export function getExtensionForLanguage(language: BundledLanguage | SpecialLanguage): string {
+    return reverseLanguageMap[language] || ".txt";
+}
+
 export function guessLanguageFromExtension(fileName: string): BundledLanguage | SpecialLanguage {
     const lowerFileName = fileName.toLowerCase();
     const extensionIndex = lowerFileName.lastIndexOf(".");

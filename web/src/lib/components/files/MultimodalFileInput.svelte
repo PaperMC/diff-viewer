@@ -3,13 +3,15 @@
     import { box } from "svelte-toolbelt";
     import { RadioGroup } from "bits-ui";
     import SingleFileInput from "$lib/components/files/SingleFileInput.svelte";
+    import FileTypeSelect from "$lib/components/files/FileTypeSelect.svelte";
 
-    let { state = $bindable(), label = "File", required = false }: MultimodalFileInputProps = $props();
+    let { state = $bindable(), label = "File", required = false, fileTypeOverride = true }: MultimodalFileInputProps = $props();
 
     const instance = new MultimodalFileInputState({
         state,
         label: box.with(() => label),
         required: box.with(() => required),
+        fileTypeOverride: box.with(() => fileTypeOverride),
     });
     state = instance;
 
@@ -74,12 +76,11 @@
 </script>
 
 {#snippet radioItem(name: string)}
-    <RadioGroup.Item value={name.toLowerCase()}>
-        {#snippet children({ checked })}
-            <span class="rounded-sm px-1 py-0.5 text-sm" class:btn-ghost={!checked} class:border={!checked} class:btn-primary={checked}>
-                {name}
-            </span>
-        {/snippet}
+    <RadioGroup.Item
+        value={name.toLowerCase()}
+        class="rounded-sm px-2 text-sm data-[state=checked]:btn-primary data-[state=unchecked]:border data-[state=unchecked]:btn-ghost"
+    >
+        {name}
     </RadioGroup.Item>
 {/snippet}
 
@@ -91,11 +92,16 @@
     ondrop={handleDrop}
     ondragleavecapture={handleDragLeave}
 >
-    <RadioGroup.Root class="mb-1 flex w-full gap-1" bind:value={instance.mode}>
-        {@render radioItem("File")}
-        {@render radioItem("URL")}
-        {@render radioItem("Text")}
-    </RadioGroup.Root>
+    <div class="mb-1 flex w-full flex-wrap items-center gap-1">
+        <RadioGroup.Root class="me-2 flex gap-1" bind:value={instance.mode}>
+            {@render radioItem("File")}
+            {@render radioItem("URL")}
+            {@render radioItem("Text")}
+        </RadioGroup.Root>
+        {#if fileTypeOverride}
+            <FileTypeSelect allowAuto={instance.mode !== "text"} bind:value={() => instance.getFileType(), (v) => instance.setFileType(v)} />
+        {/if}
+    </div>
     {#if instance.mode === "file"}
         {@render fileInput()}
     {:else if instance.mode === "url"}

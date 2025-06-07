@@ -382,7 +382,7 @@
     <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-50 bg-black/50 dark:bg-white/20" />
         <Dialog.Content
-            class="fixed top-1/2 left-1/2 z-50 max-h-svh w-192 max-w-[95%] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md bg-neutral shadow-md"
+            class="fixed top-1/2 left-1/2 z-50 max-h-svh w-192 max-w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md bg-neutral shadow-md sm:max-w-[95%]"
         >
             <header class="sticky top-0 z-10 flex flex-row items-center justify-between rounded-t-md bg-neutral-2 p-4">
                 <Dialog.Title class="text-xl font-semibold">Load a diff</Dialog.Title>
@@ -464,7 +464,7 @@
                     <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
                     From Patch File
                 </h3>
-                <MultimodalFileInput bind:state={patchFile} required label="Patch File" />
+                <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} label="Patch File" />
                 <Button.Root type="submit" class="mt-1 rounded-md btn-primary px-2 py-1">Go</Button.Root>
             </form>
 
