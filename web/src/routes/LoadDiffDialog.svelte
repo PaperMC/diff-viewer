@@ -533,7 +533,7 @@
                             <span class="iconify size-4 shrink-0 octicon--filter-16" aria-hidden="true"></span>
                         </Popover.Trigger>
                         <Popover.Portal>
-                            <Popover.Content side="top" class="z-50 overflow-hidden rounded-md border bg-neutral">
+                            <Popover.Content side="top" class="z-50 mx-2 overflow-hidden rounded-md border bg-neutral">
                                 {@render blacklistPopoverContent()}
                                 <Popover.Arrow class="text-edge" />
                             </Popover.Content>
