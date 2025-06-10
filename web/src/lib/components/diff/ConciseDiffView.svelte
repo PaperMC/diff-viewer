@@ -157,7 +157,9 @@
             {#each line.content as segment, index (index)}
                 {@const iconClass = segment.iconClass}
                 {#if iconClass}
-                    <span class="ms-0.5 iconify inline-block size-4 align-middle {segment.classes ?? ''} {iconClass}" aria-label={segment.caption}></span>
+                    <span class="inline-block ps-0.5 {segment.classes ?? ''}" aria-label={segment.caption}>
+                        <span class="iconify size-4 align-middle {iconClass}" aria-hidden="true"></span>
+                    </span>
                 {:else}<span class="inline {segment.classes ?? ''}" style={segment.style ?? ""}>{segment.text}</span>{/if}
             {/each}
         {/if}
