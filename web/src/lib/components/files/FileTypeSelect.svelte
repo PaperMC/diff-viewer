@@ -20,6 +20,7 @@
 </script>
 
 <div class="flex items-center gap-1">
+    <!-- TODO Label gets active & hover styles, but doesn't open selector -->
     <Label.Root id={fileTypeLabelId} for={fileTypeId} class="text-sm">File Type</Label.Root>
     <Select.Root type="single" bind:value scrollAlignment="center">
         <Select.Trigger id={fileTypeId} aria-labelledby={fileTypeLabelId} class="flex items-center gap-1 rounded-sm border btn-ghost px-2 text-sm">
