@@ -20,6 +20,7 @@
     import SettingsPopoverGroup from "$lib/components/settings-popover/SettingsPopoverGroup.svelte";
     import LabeledCheckbox from "$lib/components/LabeledCheckbox.svelte";
     import ShikiThemeSelector from "$lib/components/settings-popover/ShikiThemeSelector.svelte";
+    import SimpleRadioGroup from "$lib/components/settings-popover/SimpleRadioGroup.svelte";
     import DiffSearch from "./DiffSearch.svelte";
     import FileHeader from "./FileHeader.svelte";
     import DiffTitle from "./DiffTitle.svelte";
@@ -28,8 +29,9 @@
     import ActionsPopover from "./ActionsPopover.svelte";
     import LoadDiffDialog from "./LoadDiffDialog.svelte";
     import InfoPopup from "./InfoPopup.svelte";
-    import { Button } from "bits-ui";
+    import { Button, Label } from "bits-ui";
     import { onClickOutside } from "runed";
+    import SidebarToggle from "./SidebarToggle.svelte";
 
     const globalOptions = GlobalOptions.init();
     const viewer = MultiFileDiffViewerState.init();
@@ -37,7 +39,11 @@
 
     onClickOutside(
         () => sidebarElement,
-        () => {
+        (e) => {
+            if (e.target instanceof HTMLElement && e.target.closest("[data-sidebar-toggle]")) {
+                // Ignore toggle button clicks
+                return;
+            }
             if (!staticSidebar.current) {
                 viewer.sidebarCollapsed = true;
             }
@@ -104,21 +110,6 @@
     />
 </svelte:head>
 
-{#snippet sidebarToggle()}
-    <button
-        title={viewer.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        type="button"
-        class="flex size-6 items-center justify-center rounded-md btn-ghost text-primary"
-        onclick={() => (viewer.sidebarCollapsed = !viewer.sidebarCollapsed)}
-    >
-        {#if viewer.sidebarCollapsed}
-            <span class="iconify size-4 shrink-0 octicon--sidebar-collapse-16" aria-hidden="true"></span>
-        {:else}
-            <span class="iconify size-4 shrink-0 octicon--sidebar-expand-16" aria-hidden="true"></span>
-        {/if}
-    </button>
-{/snippet}
-
 {#snippet settingsPopover()}
     <SettingsPopover class="self-center">
         {@render globalThemeSetting()}
@@ -131,6 +122,15 @@
             <LabeledCheckbox labelText="Concise nested diffs" bind:checked={globalOptions.omitPatchHeaderOnlyHunks} />
             <LabeledCheckbox labelText="Word diffs" bind:checked={globalOptions.wordDiffs} />
             <LabeledCheckbox labelText="Line wrapping" bind:checked={globalOptions.lineWrap} />
+            <div class="flex justify-between px-2 py-1">
+                <Label.Root id="sidebarLocationLabel" for="sidebarLocation">Sidebar location</Label.Root>
+                <SimpleRadioGroup
+                    id="sidebarLocation"
+                    aria-labelledby="sidebarLocationLabel"
+                    values={["left", "right"]}
+                    bind:value={globalOptions.sidebarLocation}
+                />
+            </div>
         </SettingsPopoverGroup>
     </SettingsPopover>
 {/snippet}
@@ -138,7 +138,12 @@
 <div class="relative flex min-h-screen flex-row justify-center">
     <div
         bind:this={sidebarElement}
-        class="absolute top-0 left-0 z-10 flex h-full w-full flex-col border-e bg-neutral data-[collapsed=true]:hidden md:w-[350px] md:shadow-md lg:static lg:h-auto lg:shadow-none"
+        class="absolute top-0 z-10 flex h-full w-full flex-col bg-neutral
+               data-[collapsed=true]:hidden
+               data-[side=left]:left-0 data-[side=left]:border-e data-[side=right]:right-0 data-[side=right]:order-10 data-[side=right]:border-s
+               md:w-[350px] md:shadow-md lg:static
+               lg:h-auto lg:shadow-none"
+        data-side={globalOptions.sidebarLocation}
         data-collapsed={viewer.sidebarCollapsed}
     >
         <div class="m-2 flex flex-row items-center gap-2">
@@ -159,9 +164,7 @@
                     ></button>
                 {/if}
             </div>
-            <div class="flex items-center lg:hidden">
-                {@render sidebarToggle()}
-            </div>
+            <SidebarToggle class="lg:hidden" />
         </div>
         {#if viewer.filteredFileDetails.length !== viewer.fileDetails.length}
             <div class="ms-2 mb-2 text-sm text-gray-600">
@@ -233,8 +236,8 @@
             </div>
         </div>
     </div>
-    <div class="flex grow flex-col p-3">
-        <div class="mb-2 flex flex-wrap items-center gap-2">
+    <div class="flex grow flex-col">
+        <div class="flex flex-wrap items-center gap-2 px-3 py-2">
             {#if viewer.diffMetadata !== null}
                 <DiffTitle meta={viewer.diffMetadata} />
             {/if}
@@ -276,8 +279,8 @@
                 </InfoPopup>
             </div>
         </div>
-        <div class="mb-1 flex flex-row items-center gap-2">
-            {@render sidebarToggle()}
+        <div class="flex flex-row items-center gap-2 px-3 pb-2">
+            <SidebarToggle class="data-[side=right]:order-10" />
             {#await viewer.stats}
                 <DiffStats />
             {:then stats}
@@ -285,7 +288,7 @@
             {/await}
             <DiffSearch />
         </div>
-        <div class="flex flex-1 flex-col border">
+        <div class="flex flex-1 flex-col border-t">
             <VList data={viewer.fileDetails} style="height: 100%;" getKey={(_, i) => i} bind:this={viewer.vlist} overscan={3}>
                 {#snippet children(value, index)}
                     {@const lines = viewer.diffText[index] !== undefined ? viewer.diffText[index] : null}
