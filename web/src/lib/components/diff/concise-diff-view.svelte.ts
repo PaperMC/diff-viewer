@@ -108,7 +108,8 @@ export type PatchLine = {
     newLineNo?: number;
 };
 
-const noTrailingNewlineMarker: string = "%%" + ["PATCH", "ROULETTE", "NO", "TRAILING", "NEWLINE", "MARKER"].join("%") + "%%";
+const joiner = "\uE000";
+const noTrailingNewlineMarker: string = joiner + joiner + ["PATCH", "ROULETTE", "NO", "TRAILING", "NEWLINE", "MARKER"].join(joiner) + joiner + joiner;
 
 enum LineProcessorState {
     CONTEXT,
