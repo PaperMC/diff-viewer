@@ -1,6 +1,4 @@
 <script lang="ts">
-    import { watch } from "runed";
-
     type Props = {
         label?: string;
         required?: boolean;
@@ -9,16 +7,22 @@
 
     let { label = "File", required = false, file = $bindable<File | undefined>(undefined) }: Props = $props();
 
-    let files = $state<FileList | undefined>();
+    function getFiles() {
+        if (file) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            return dataTransfer.files;
+        }
+        return new DataTransfer().files;
+    }
 
-    watch(
-        () => files,
-        (newFiles) => {
-            if (newFiles && newFiles.length > 0) {
-                file = newFiles[0];
-            }
-        },
-    );
+    function setFiles(files: FileList | null) {
+        if (files && files.length > 0) {
+            file = files[0];
+        } else {
+            file = undefined;
+        }
+    }
 
     const uid = $props.id();
     const labelId = `${uid}-label`;
@@ -33,5 +37,5 @@
         <span class="font-light">{label}</span>
     {/if}
     <span class="iconify size-4 shrink-0 text-em-disabled octicon--triangle-down-16"></span>
-    <input id={inputId} aria-labelledby={labelId} type="file" {required} bind:files class="absolute top-0 left-0 size-full opacity-0" />
+    <input id={inputId} aria-labelledby={labelId} type="file" {required} bind:files={getFiles, setFiles} class="absolute top-0 left-0 size-full opacity-0" />
 </label>
