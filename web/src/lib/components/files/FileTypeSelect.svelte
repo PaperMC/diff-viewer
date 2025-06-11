@@ -1,7 +1,23 @@
 <script lang="ts" module>
-    import { type BundledLanguage, bundledLanguages, type SpecialLanguage } from "shiki";
+    import { type BundledLanguage, bundledLanguagesInfo, type SpecialLanguage } from "shiki";
 
-    const languageKeys = [...Object.keys(bundledLanguages), "text", "ansi", "plaintext", "txt"] as BundledLanguage | SpecialLanguage[];
+    type LanguageOption = {
+        id: string;
+        name: string;
+        aliases: string[];
+    };
+
+    const languages: LanguageOption[] = [
+        { id: "plaintext", name: "Plain Text", aliases: ["txt"] },
+        ...bundledLanguagesInfo.map((info) => {
+            return {
+                id: info.id,
+                name: info.name,
+                aliases: info.aliases || [],
+            };
+        }),
+    ];
+    languages.sort((a, b) => a.name.localeCompare(b.name));
 </script>
 
 <script lang="ts">
@@ -44,12 +60,13 @@
                     </Select.Group>
                 {/if}
                 <Select.Group class="flex grow flex-col gap-1 overflow-y-auto">
-                    {#each languageKeys as langKey (langKey)}
+                    {#each languages as lang (lang.id)}
                         <Select.Item
-                            value={langKey}
-                            class="cursor-default rounded-sm px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-primary data-selected:text-white"
+                            value={lang.id}
+                            class="group flex cursor-default flex-col rounded-sm px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-primary data-selected:text-white"
                         >
-                            {langKey}
+                            {lang.name}
+                            <span class="text-sm font-light text-em-med group-data-selected:text-white/80">{lang.aliases.join(", ")}</span>
                         </Select.Item>
                     {/each}
                 </Select.Group>
