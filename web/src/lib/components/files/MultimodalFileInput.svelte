@@ -112,7 +112,7 @@
 </div>
 
 {#snippet fileInput()}
-    <SingleFileInput required bind:file={instance.file} />
+    <SingleFileInput required {label} bind:file={instance.file} />
 {/snippet}
 
 {#snippet urlInput()}
