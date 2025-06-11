@@ -26,6 +26,11 @@
         }),
     ];
     languages.sort((a, b) => a.name.localeCompare(b.name));
+
+    const languagesMap = new Map<string, LanguageOption>();
+    for (const lang of languages) {
+        languagesMap.set(lang.id, lang);
+    }
 </script>
 
 <script lang="ts">
@@ -51,7 +56,7 @@
             {#if value === "auto"}
                 Infer Type
             {:else}
-                {value}
+                {languagesMap.get(value)?.name ?? "Unknown Type (Error?)"}
             {/if}
             <span aria-hidden="true" class="iconify size-4 shrink-0 text-base text-em-disabled octicon--triangle-down-16"></span>
         </Select.Trigger>
