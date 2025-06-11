@@ -10,10 +10,18 @@
     const languages: LanguageOption[] = [
         { id: "plaintext", name: "Plain Text", aliases: ["txt"] },
         ...bundledLanguagesInfo.map((info) => {
+            const aliases = [info.id];
+            if (info.aliases) {
+                for (const alias of info.aliases) {
+                    if (alias !== info.id) {
+                        aliases.push(alias);
+                    }
+                }
+            }
             return {
                 id: info.id,
                 name: info.name,
-                aliases: info.aliases || [],
+                aliases,
             };
         }),
     ];
