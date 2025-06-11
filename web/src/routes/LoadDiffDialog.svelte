@@ -465,7 +465,7 @@
                     From Patch File
                 </h3>
                 <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} label="Patch File" />
-                <Button.Root type="submit" class="mt-1 rounded-md btn-primary px-2 py-1">Go</Button.Root>
+                <Button.Root type="submit" class="mt-2 rounded-md btn-primary px-2 py-1">Go</Button.Root>
             </form>
 
             <Separator.Root class="h-px w-full bg-neutral-2" />
@@ -481,12 +481,14 @@
                     <span class="iconify size-6 shrink-0 octicon--file-24"></span>
                     From Files
                 </h3>
-                <div class="flex flex-wrap items-center gap-1">
+                <div class="mb-2 flex flex-wrap items-center gap-1">
                     <MultimodalFileInput bind:state={fileA} required label="File A" />
                     <div class="flex w-full">
                         <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
                     </div>
                     <MultimodalFileInput bind:state={fileB} required label="File B" />
+                </div>
+                <div class="flex items-center gap-1">
                     <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
                     <Button.Root
                         title="Swap File A and File B"
