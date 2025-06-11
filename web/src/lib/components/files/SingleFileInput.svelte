@@ -29,10 +29,10 @@
     const inputId = `${uid}-input`;
 </script>
 
-<label id={labelId} for={inputId} class="relative flex w-fit items-center gap-2 rounded-md border btn-ghost px-2 py-1 has-focus-visible:outline-2">
+<label id={labelId} for={inputId} class="relative flex w-fit max-w-full items-center gap-2 rounded-md border btn-ghost px-2 py-1 has-focus-visible:outline-2">
     <span class="iconify size-4 shrink-0 text-em-disabled octicon--file-16"></span>
     {#if file}
-        {file.name}
+        <span class="truncate">{file.name}</span>
     {:else}
         <span class="font-light">{label}</span>
     {/if}
