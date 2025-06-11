@@ -26,6 +26,8 @@ import { VList } from "virtua/svelte";
 import { Context, Debounced } from "runed";
 import { MediaQuery } from "svelte/reactivity";
 
+export type SidebarLocation = "left" | "right";
+
 export class GlobalOptions {
     private static readonly localStorageKey = "diff-viewer-global-options";
     private static readonly context = new Context<GlobalOptions>(GlobalOptions.localStorageKey);
@@ -54,6 +56,8 @@ export class GlobalOptions {
     wordDiffs = $state(true);
     lineWrap = $state(true);
     omitPatchHeaderOnlyHunks = $state(true);
+    // TODO: send to server (use cookie?) to that the initial position is correct
+    sidebarLocation: SidebarLocation = $state("left");
 
     private constructor() {
         $effect(() => {
@@ -90,6 +94,7 @@ export class GlobalOptions {
             omitPatchHeaderOnlyHunks: this.omitPatchHeaderOnlyHunks,
             wordDiff: this.wordDiffs,
             lineWrap: this.lineWrap,
+            sidebarLocation: this.sidebarLocation,
         };
         if (this.syntaxHighlightingThemeLight !== DEFAULT_THEME_LIGHT) {
             cereal.syntaxHighlightingThemeLight = this.syntaxHighlightingThemeLight;
@@ -123,6 +128,9 @@ export class GlobalOptions {
         }
         if (jsonObject.lineWrap !== undefined) {
             this.lineWrap = jsonObject.lineWrap;
+        }
+        if (jsonObject.sidebarLocation !== undefined) {
+            this.sidebarLocation = jsonObject.sidebarLocation;
         }
     }
 }

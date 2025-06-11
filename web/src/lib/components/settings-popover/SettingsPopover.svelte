@@ -3,10 +3,11 @@
 </script>
 
 <script lang="ts">
-    import GlobalThemeRadio from "./GlobalThemeRadio.svelte";
     import SettingsPopoverGroup from "./SettingsPopoverGroup.svelte";
     import type { RestProps } from "$lib/types";
     import { mergeProps, Popover, type WithChildren } from "bits-ui";
+    import SimpleRadioGroup from "$lib/components/settings-popover/SimpleRadioGroup.svelte";
+    import { getGlobalTheme, setGlobalTheme } from "$lib/theme.svelte";
 
     let { children, ...restProps }: WithChildren<RestProps> = $props();
 
@@ -25,7 +26,7 @@
 {#snippet globalThemeSetting()}
     <SettingsPopoverGroup title="Theme">
         <div class="px-2 py-1">
-            <GlobalThemeRadio aria-label="Select theme" />
+            <SimpleRadioGroup values={["light", "dark", "auto"]} bind:value={getGlobalTheme, setGlobalTheme} aria-label="Select theme" />
         </div>
     </SettingsPopoverGroup>
 {/snippet}
