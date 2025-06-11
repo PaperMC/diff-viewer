@@ -111,17 +111,8 @@
     {/if}
 </div>
 
-<!-- TODO: Implement required prop for SingleFileInput -->
 {#snippet fileInput()}
-    <SingleFileInput bind:file={instance.file} class="flex w-fit items-center gap-2 rounded-md border btn-ghost px-2 py-1 has-focus-visible:outline-2">
-        <span class="iconify size-4 shrink-0 text-em-disabled octicon--file-16"></span>
-        {#if instance.file}
-            {instance.file.name}
-        {:else}
-            <span class="font-light">{label}</span>
-        {/if}
-        <span class="iconify size-4 shrink-0 text-em-disabled octicon--triangle-down-16"></span>
-    </SingleFileInput>
+    <SingleFileInput required bind:file={instance.file} />
 {/snippet}
 
 {#snippet urlInput()}
