@@ -29,16 +29,19 @@ import { MediaQuery } from "svelte/reactivity";
 export type SidebarLocation = "left" | "right";
 
 export class GlobalOptions {
-    private static readonly localStorageKey = "diff-viewer-global-options";
-    private static readonly context = new Context<GlobalOptions>(GlobalOptions.localStorageKey);
+    static readonly key = "diff-viewer-global-options";
+    private static readonly context = new Context<GlobalOptions>(GlobalOptions.key);
 
-    static init() {
+    static init(cookie?: string) {
         const opts = new GlobalOptions();
         if (!browser) {
             GlobalOptions.context.set(opts);
+            if (cookie) {
+                opts.deserialize(cookie);
+            }
             return opts;
         }
-        const serialized = localStorage.getItem(GlobalOptions.localStorageKey);
+        const serialized = localStorage.getItem(GlobalOptions.key);
         if (serialized !== null) {
             opts.deserialize(serialized);
         }
@@ -56,7 +59,6 @@ export class GlobalOptions {
     wordDiffs = $state(true);
     lineWrap = $state(true);
     omitPatchHeaderOnlyHunks = $state(true);
-    // TODO: send to server (use cookie?) to that the initial position is correct
     sidebarLocation: SidebarLocation = $state("left");
 
     private constructor() {
@@ -64,7 +66,7 @@ export class GlobalOptions {
             this.save();
         });
 
-        watchLocalStorage(GlobalOptions.localStorageKey, (newValue) => {
+        watchLocalStorage(GlobalOptions.key, (newValue) => {
             if (newValue) {
                 this.deserialize(newValue);
             }
@@ -84,7 +86,8 @@ export class GlobalOptions {
         if (!browser) {
             return;
         }
-        localStorage.setItem(GlobalOptions.localStorageKey, this.serialize());
+        localStorage.setItem(GlobalOptions.key, this.serialize());
+        document.cookie = `${GlobalOptions.key}=${encodeURIComponent(this.serializeCookie())}; path=/; max-age=31536000; SameSite=Lax`;
     }
 
     private serialize() {
@@ -102,6 +105,14 @@ export class GlobalOptions {
         if (this.syntaxHighlightingThemeDark !== DEFAULT_THEME_DARK) {
             cereal.syntaxHighlightingThemeDark = this.syntaxHighlightingThemeDark;
         }
+        return JSON.stringify(cereal);
+    }
+
+    private serializeCookie() {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cereal: any = {
+            sidebarLocation: this.sidebarLocation,
+        };
         return JSON.stringify(cereal);
     }
 

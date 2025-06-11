@@ -32,8 +32,10 @@
     import { Button, Label } from "bits-ui";
     import { onClickOutside } from "runed";
     import SidebarToggle from "./SidebarToggle.svelte";
+    import type { PageProps } from "./$types";
 
-    const globalOptions = GlobalOptions.init();
+    let { data }: PageProps = $props();
+    const globalOptions = GlobalOptions.init(data.globalOptions);
     const viewer = MultiFileDiffViewerState.init();
     let sidebarElement: HTMLDivElement | undefined = $state();
 
