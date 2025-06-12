@@ -5,13 +5,14 @@
     import SingleFileInput from "$lib/components/files/SingleFileInput.svelte";
     import FileTypeSelect from "$lib/components/files/FileTypeSelect.svelte";
 
-    let { state = $bindable(), label = "File", required = false, fileTypeOverride = true }: MultimodalFileInputProps = $props();
+    let { state = $bindable(), label = "File", required = false, fileTypeOverride = true, defaultMode = "text" }: MultimodalFileInputProps = $props();
 
     const instance = new MultimodalFileInputState({
         state,
         label: box.with(() => label),
         required: box.with(() => required),
         fileTypeOverride: box.with(() => fileTypeOverride),
+        defaultMode: box.with(() => defaultMode),
     });
     state = instance;
 
@@ -76,10 +77,7 @@
 </script>
 
 {#snippet radioItem(name: string)}
-    <RadioGroup.Item
-        value={name.toLowerCase()}
-        class="rounded-sm px-2 text-sm data-[state=checked]:btn-primary data-[state=unchecked]:border data-[state=unchecked]:btn-ghost"
-    >
+    <RadioGroup.Item value={name.toLowerCase()} class="rounded-sm px-2 text-sm data-[state=checked]:btn-primary data-[state=unchecked]:btn-ghost">
         {name}
     </RadioGroup.Item>
 {/snippet}
@@ -93,10 +91,10 @@
     ondragleavecapture={handleDragLeave}
 >
     <div class="mb-1 flex w-full flex-wrap items-center gap-1">
-        <RadioGroup.Root class="me-2 flex gap-1" bind:value={instance.mode}>
+        <RadioGroup.Root class="me-2 flex overflow-hidden rounded-sm border" bind:value={instance.mode}>
             {@render radioItem("File")}
-            {@render radioItem("URL")}
             {@render radioItem("Text")}
+            {@render radioItem("URL")}
         </RadioGroup.Root>
         {#if fileTypeOverride}
             <FileTypeSelect allowAuto={instance.mode !== "text"} bind:value={() => instance.getFileType(), (v) => instance.setFileType(v)} />

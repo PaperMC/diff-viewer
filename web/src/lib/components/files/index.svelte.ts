@@ -148,6 +148,7 @@ export type MultimodalFileInputProps = {
     label?: string | undefined;
     required?: boolean | undefined;
     fileTypeOverride?: boolean | undefined;
+    defaultMode?: FileInputMode | undefined;
 };
 
 export type MultimodalFileInputStateProps = {
@@ -156,11 +157,12 @@ export type MultimodalFileInputStateProps = {
     label: string;
     required: boolean;
     fileTypeOverride: boolean;
+    defaultMode: FileInputMode;
 }>;
 
 export class MultimodalFileInputState {
     private readonly opts: MultimodalFileInputStateProps;
-    mode: FileInputMode = $state("file");
+    mode: FileInputMode = $state("text");
     text: string = $state("");
     textType: FileType = $state("plaintext");
     file: File | undefined = $state(undefined);
@@ -199,26 +201,30 @@ export class MultimodalFileInputState {
             this.url = this.opts.state.url;
             this.urlType = this.opts.state.urlType;
             this.urlResolver = this.opts.state.urlResolver;
+        } else {
+            this.mode = this.opts.defaultMode.current ?? "text";
         }
     }
 
     getFileType(): FileType {
-        if (this.mode === "file") {
+        const mode = this.mode;
+        if (mode === "file") {
             return this.fileType;
-        } else if (this.mode === "url") {
+        } else if (mode === "url") {
             return this.urlType;
-        } else if (this.mode === "text") {
+        } else if (mode === "text") {
             return this.textType;
         }
         throw new Error("Invalid mode");
     }
 
     setFileType(fileType: FileType) {
-        if (this.mode === "file") {
+        const mode = this.mode;
+        if (mode === "file") {
             this.fileType = fileType;
-        } else if (this.mode === "url") {
+        } else if (mode === "url") {
             this.urlType = fileType;
-        } else if (this.mode === "text") {
+        } else if (mode === "text") {
             this.textType = fileType;
         } else {
             throw new Error("Invalid mode");
@@ -265,34 +271,5 @@ export class MultimodalFileInputState {
         this.text = "";
         this.file = undefined;
         this.url = "";
-    }
-
-    swapState(other: MultimodalFileInputState) {
-        const mode = this.mode;
-        const text = this.text;
-        const textType = this.textType;
-        const file = this.file;
-        const fileType = this.fileType;
-        const url = this.url;
-        const urlType = this.urlType;
-        const urlResolver = this.urlResolver;
-
-        this.mode = other.mode;
-        this.text = other.text;
-        this.textType = other.textType;
-        this.file = other.file;
-        this.fileType = other.fileType;
-        this.url = other.url;
-        this.urlType = other.urlType;
-        this.urlResolver = other.urlResolver;
-
-        other.mode = mode;
-        other.text = text;
-        other.textType = textType;
-        other.file = file;
-        other.fileType = fileType;
-        other.url = url;
-        other.urlType = urlType;
-        other.urlResolver = urlResolver;
     }
 }

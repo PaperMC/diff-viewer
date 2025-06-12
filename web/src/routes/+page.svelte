@@ -27,7 +27,7 @@
     import { type Action } from "svelte/action";
     import { on } from "svelte/events";
     import ActionsPopover from "./ActionsPopover.svelte";
-    import LoadDiffDialog from "./LoadDiffDialog.svelte";
+    import OpenDiffDialog from "./OpenDiffDialog.svelte";
     import InfoPopup from "./InfoPopup.svelte";
     import { Button, Label } from "bits-ui";
     import { onClickOutside } from "runed";
@@ -244,7 +244,7 @@
                 <DiffTitle meta={viewer.diffMetadata} />
             {/if}
             <div class="ml-auto flex h-fit flex-row gap-2">
-                <LoadDiffDialog />
+                <OpenDiffDialog />
                 <ActionsPopover />
                 {@render settingsPopover()}
                 <InfoPopup>

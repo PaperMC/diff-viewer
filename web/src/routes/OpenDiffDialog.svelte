@@ -12,6 +12,7 @@
     import { DirectoryEntry, FileEntry, MultimodalFileInputState } from "$lib/components/files/index.svelte";
     import { SvelteSet } from "svelte/reactivity";
     import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
+    import { flip } from "svelte/animate";
 
     const viewer = MultiFileDiffViewerState.get();
     let modalOpen = $state(false);
@@ -20,11 +21,13 @@
 
     let patchFile = $state<MultimodalFileInputState | undefined>();
 
-    let fileA = $state<MultimodalFileInputState | undefined>();
-    let fileB = $state<MultimodalFileInputState | undefined>();
+    let fileOne = $state<MultimodalFileInputState | undefined>();
+    let fileTwo = $state<MultimodalFileInputState | undefined>();
+    let flipFiles = $state(["1", "arrow", "2"]);
 
-    let dirA = $state<DirectoryEntry | undefined>();
-    let dirB = $state<DirectoryEntry | undefined>();
+    let dirOne = $state<DirectoryEntry | undefined>();
+    let dirTwo = $state<DirectoryEntry | undefined>();
+    let flipDirs = $state(["1", "arrow", "2"]);
     let dirBlacklistInput = $state<string>("");
     const defaultDirBlacklist = [".git/"];
     let dirBlacklist = new SvelteSet(defaultDirBlacklist);
@@ -57,6 +60,8 @@
     });
 
     async function compareFiles() {
+        const fileA = flipFiles[0] === "1" ? fileOne : fileTwo;
+        const fileB = flipFiles[0] === "1" ? fileTwo : fileOne;
         if (!fileA || !fileB || !fileA.metadata || !fileB.metadata) {
             alert("Both files must be selected to compare.");
             return;
@@ -131,6 +136,8 @@
     };
 
     async function compareDirs() {
+        const dirA = flipDirs[0] === "1" ? dirOne : dirTwo;
+        const dirB = flipDirs[0] === "1" ? dirTwo : dirOne;
         if (!dirA || !dirB) {
             alert("Both directories must be selected to compare.");
             return;
@@ -378,21 +385,21 @@
 {/snippet}
 
 <Dialog.Root bind:open={modalOpen}>
-    <Dialog.Trigger class="h-fit rounded-md btn-primary px-2 py-0.5">Load another diff</Dialog.Trigger>
+    <Dialog.Trigger class="h-fit rounded-md btn-primary px-2 py-0.5">Open new diff</Dialog.Trigger>
     <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-50 bg-black/50 dark:bg-white/20" />
         <Dialog.Content
             class="fixed top-1/2 left-1/2 z-50 max-h-svh w-192 max-w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md bg-neutral shadow-md sm:max-w-[95%]"
         >
             <header class="sticky top-0 z-10 flex flex-row items-center justify-between rounded-t-md bg-neutral-2 p-4">
-                <Dialog.Title class="text-xl font-semibold">Load a diff</Dialog.Title>
+                <Dialog.Title class="text-xl font-semibold">Open New Diff</Dialog.Title>
                 <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-md btn-ghost text-primary">
                     <span class="iconify octicon--x-16" aria-hidden="true"></span>
                 </Dialog.Close>
             </header>
 
             <section class="flex flex-col p-4">
-                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
                     <span class="iconify size-6 shrink-0 octicon--mark-github-24"></span>
                     From GitHub
                 </h3>
@@ -460,11 +467,11 @@
                     handlePatchFile();
                 }}
             >
-                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
                     <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
                     From Patch File
                 </h3>
-                <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} label="Patch File" />
+                <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} defaultMode="file" label="Patch File" />
                 <Button.Root type="submit" class="mt-2 rounded-md btn-primary px-2 py-1">Go</Button.Root>
             </form>
 
@@ -477,16 +484,24 @@
                     compareFiles();
                 }}
             >
-                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
                     <span class="iconify size-6 shrink-0 octicon--file-24"></span>
                     From Files
                 </h3>
-                <div class="mb-2 flex flex-wrap items-center gap-1">
-                    <MultimodalFileInput bind:state={fileA} required label="File A" />
-                    <div class="flex w-full">
-                        <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
-                    </div>
-                    <MultimodalFileInput bind:state={fileB} required label="File B" />
+                <div class="mb-2 flex flex-col gap-1">
+                    {#each flipFiles as id, index (id)}
+                        <div animate:flip={{ duration: 250 }}>
+                            {#if id === "1"}
+                                <MultimodalFileInput bind:state={fileOne} required label={index === 0 ? "File A" : "File B"} />
+                            {:else if id === "arrow"}
+                                <div class="flex w-full">
+                                    <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
+                                </div>
+                            {:else if id === "2"}
+                                <MultimodalFileInput bind:state={fileTwo} required label={index === 2 ? "File B" : "File A"} />
+                            {/if}
+                        </div>
+                    {/each}
                 </div>
                 <div class="flex items-center gap-1">
                     <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
@@ -495,8 +510,9 @@
                         type="button"
                         class="flex size-6 items-center justify-center rounded-md btn-primary"
                         onclick={() => {
-                            if (!fileA || !fileB) return;
-                            fileA.swapState(fileB);
+                            const a = flipFiles[0];
+                            flipFiles[0] = flipFiles[2];
+                            flipFiles[2] = a;
                         }}
                     >
                         <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
@@ -513,7 +529,7 @@
                     compareDirs();
                 }}
             >
-                <h3 class="mb-2 flex items-center gap-1 text-lg font-semibold">
+                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
                     <span class="iconify size-6 shrink-0 octicon--file-directory-24"></span>
                     From Directories
                     <InfoPopup>
@@ -522,10 +538,20 @@
                         button should be preferred.
                     </InfoPopup>
                 </h3>
-                <div class="flex flex-wrap items-center gap-1">
-                    <DirectorySelect bind:directory={dirA} placeholder="Directory A" />
-                    <span class="iconify size-4 shrink-0 octicon--arrow-right-16"></span>
-                    <DirectorySelect bind:directory={dirB} placeholder="Directory B" />
+                <div class="mb-2 flex w-full flex-col gap-1">
+                    {#each flipDirs as id, index (id)}
+                        <div animate:flip={{ duration: 250 }} class="flex">
+                            {#if id === "1"}
+                                <DirectorySelect bind:directory={dirOne} placeholder={index === 0 ? "Directory A" : "Directory B"} />
+                            {:else if id === "arrow"}
+                                <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
+                            {:else if id === "2"}
+                                <DirectorySelect bind:directory={dirTwo} placeholder={index === 2 ? "Directory B" : "Directory A"} />
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+                <div class="flex items-center gap-1">
                     <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
                     <Popover.Root>
                         <Popover.Trigger
@@ -541,6 +567,18 @@
                             </Popover.Content>
                         </Popover.Portal>
                     </Popover.Root>
+                    <Button.Root
+                        title="Swap Directory A and Directory B"
+                        type="button"
+                        class="flex size-6 items-center justify-center rounded-md btn-primary"
+                        onclick={() => {
+                            const a = flipDirs[0];
+                            flipDirs[0] = flipDirs[2];
+                            flipDirs[2] = a;
+                        }}
+                    >
+                        <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+                    </Button.Root>
                 </div>
             </form>
         </Dialog.Content>
