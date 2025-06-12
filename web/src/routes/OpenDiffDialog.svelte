@@ -1,7 +1,7 @@
 <script lang="ts">
     import { type FileStatus, getGithubUsername, GITHUB_URL_PARAM, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
     import { Button, Dialog, Separator, Popover } from "bits-ui";
-    import InfoPopup from "./InfoPopup.svelte";
+    import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
@@ -384,203 +384,215 @@
     </ul>
 {/snippet}
 
+{#snippet githubSection()}
+    <section class="flex flex-col p-4">
+        <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
+            <span class="iconify size-6 shrink-0 octicon--mark-github-24"></span>
+            From GitHub
+        </h3>
+
+        <form
+            class="flex flex-row"
+            onsubmit={(e) => {
+                e.preventDefault();
+                handleGithubUrl();
+            }}
+        >
+            <input
+                id="githubUrl"
+                type="url"
+                required
+                autocomplete="url"
+                placeholder="https://github.com/"
+                class="grow rounded-l-md border-t border-b border-l px-2 py-1 overflow-ellipsis"
+                bind:value={githubUrl}
+            />
+            <Button.Root type="submit" class="rounded-r-md btn-primary px-2 py-1">Go</Button.Root>
+        </form>
+        <span class="mb-2 text-sm text-em-med">Supports commit, PR, and comparison URLs</span>
+
+        <div class="mb-2 flex flex-row gap-1">
+            {#if getGithubUsername()}
+                <div class="flex w-fit flex-row items-center justify-between gap-2 px-2 py-1">
+                    <span class="iconify shrink-0 octicon--person-16"></span>
+                    {getGithubUsername()}
+                </div>
+                <Button.Root class="flex items-center gap-2 rounded-md btn-danger px-2 py-1" onclick={logoutGithub}>
+                    <span class="iconify shrink-0 octicon--sign-out-16"></span>
+                    Sign out
+                </Button.Root>
+            {:else}
+                <Button.Root class="flex w-fit flex-row items-center justify-between gap-2 rounded-md btn-primary px-2 py-1" onclick={loginWithGithub}>
+                    <span class="iconify shrink-0 octicon--sign-in-16"></span>
+                    Sign in to GitHub
+                </Button.Root>
+                <InfoPopup>
+                    Sign in to GitHub for higher rate limits and private repository access. Only private repositories configured for the GitHub app will be
+                    accessible.
+                </InfoPopup>
+            {/if}
+        </div>
+
+        <div class="flex flex-row gap-1">
+            <Button.Root class="flex w-fit flex-row items-center gap-2 rounded-md btn-primary px-2 py-1" onclick={installGithubApp}>
+                <span class="iconify shrink-0 octicon--gear-16"></span>
+                Configure GitHub App
+            </Button.Root>
+            <InfoPopup>
+                In order to view a private repository, the repository owner must have installed the GitHub app and granted it access to the repository. Then,
+                authenticated users will be able to load diffs they have read access to.
+            </InfoPopup>
+        </div>
+    </section>
+{/snippet}
+
+{#snippet patchSection()}
+    <form
+        class="p-4"
+        onsubmit={(e) => {
+            e.preventDefault();
+            handlePatchFile();
+        }}
+    >
+        <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
+            <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
+            From Patch File
+        </h3>
+        <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} defaultMode="file" label="Patch File" />
+        <Button.Root type="submit" class="mt-2 rounded-md btn-primary px-2 py-1">Go</Button.Root>
+    </form>
+{/snippet}
+
+{#snippet filesSection()}
+    <form
+        class="p-4"
+        onsubmit={(e) => {
+            e.preventDefault();
+            compareFiles();
+        }}
+    >
+        <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
+            <span class="iconify size-6 shrink-0 octicon--file-24"></span>
+            From Files
+        </h3>
+        <div class="mb-2 flex flex-col gap-1">
+            {#each flipFiles as id, index (id)}
+                <div animate:flip={{ duration: 250 }}>
+                    {#if id === "1"}
+                        <MultimodalFileInput bind:state={fileOne} required label={index === 0 ? "File A" : "File B"} />
+                    {:else if id === "arrow"}
+                        <div class="flex w-full">
+                            <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
+                        </div>
+                    {:else if id === "2"}
+                        <MultimodalFileInput bind:state={fileTwo} required label={index === 2 ? "File B" : "File A"} />
+                    {/if}
+                </div>
+            {/each}
+        </div>
+        <div class="flex items-center gap-1">
+            <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+            <Button.Root
+                title="Swap File A and File B"
+                type="button"
+                class="flex size-6 items-center justify-center rounded-md btn-primary"
+                onclick={() => {
+                    const a = flipFiles[0];
+                    flipFiles[0] = flipFiles[2];
+                    flipFiles[2] = a;
+                }}
+            >
+                <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+            </Button.Root>
+        </div>
+    </form>
+{/snippet}
+
+{#snippet directoriesSection()}
+    <form
+        class="p-4"
+        onsubmit={(e) => {
+            e.preventDefault();
+            compareDirs();
+        }}
+    >
+        <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
+            <span class="iconify size-6 shrink-0 octicon--file-directory-24"></span>
+            From Directories
+            <InfoPopup>
+                Compares the entire contents of the directories, including subdirectories. Does not attempt to detect renames. When possible, preparing a
+                unified diff (<code class="rounded-sm bg-neutral-2 px-1 py-0.5">.patch</code> file) using Git or another tool and loading it with the above button
+                should be preferred.
+            </InfoPopup>
+        </h3>
+        <div class="mb-2 flex w-full flex-col gap-1">
+            {#each flipDirs as id, index (id)}
+                <div animate:flip={{ duration: 250 }} class="flex">
+                    {#if id === "1"}
+                        <DirectorySelect bind:directory={dirOne} placeholder={index === 0 ? "Directory A" : "Directory B"} />
+                    {:else if id === "arrow"}
+                        <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
+                    {:else if id === "2"}
+                        <DirectorySelect bind:directory={dirTwo} placeholder={index === 2 ? "Directory B" : "Directory A"} />
+                    {/if}
+                </div>
+            {/each}
+        </div>
+        <div class="flex items-center gap-1">
+            <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+            <Popover.Root>
+                <Popover.Trigger
+                    title="Edit filters"
+                    class="flex size-6 items-center justify-center rounded-md btn-primary data-[state=open]:btn-primary-hover"
+                >
+                    <span class="iconify size-4 shrink-0 octicon--filter-16" aria-hidden="true"></span>
+                </Popover.Trigger>
+                <Popover.Portal>
+                    <Popover.Content side="top" class="z-50 mx-2 overflow-hidden rounded-md border bg-neutral">
+                        {@render blacklistPopoverContent()}
+                        <Popover.Arrow class="text-edge" />
+                    </Popover.Content>
+                </Popover.Portal>
+            </Popover.Root>
+            <Button.Root
+                title="Swap Directory A and Directory B"
+                type="button"
+                class="flex size-6 items-center justify-center rounded-md btn-primary"
+                onclick={() => {
+                    const a = flipDirs[0];
+                    flipDirs[0] = flipDirs[2];
+                    flipDirs[2] = a;
+                }}
+            >
+                <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+            </Button.Root>
+        </div>
+    </form>
+{/snippet}
+
 <Dialog.Root bind:open={modalOpen}>
     <Dialog.Trigger class="h-fit rounded-md btn-primary px-2 py-0.5">Open new diff</Dialog.Trigger>
     <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-50 bg-black/50 dark:bg-white/20" />
         <Dialog.Content
-            class="fixed top-1/2 left-1/2 z-50 max-h-svh w-192 max-w-full -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md bg-neutral shadow-md sm:max-w-[95%]"
+            class="fixed top-1/2 left-1/2 z-50 flex max-h-svh w-192 max-w-full -translate-x-1/2 -translate-y-1/2 flex-col rounded-md bg-neutral shadow-md sm:max-w-[95%]"
         >
-            <header class="sticky top-0 z-10 flex flex-row items-center justify-between rounded-t-md bg-neutral-2 p-4">
+            <header class="flex shrink-0 flex-row items-center justify-between rounded-t-md bg-neutral-2 p-4">
                 <Dialog.Title class="text-xl font-semibold">Open New Diff</Dialog.Title>
                 <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-md btn-ghost text-primary">
                     <span class="iconify octicon--x-16" aria-hidden="true"></span>
                 </Dialog.Close>
             </header>
 
-            <section class="flex flex-col p-4">
-                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
-                    <span class="iconify size-6 shrink-0 octicon--mark-github-24"></span>
-                    From GitHub
-                </h3>
-
-                <form
-                    class="flex flex-row"
-                    onsubmit={(e) => {
-                        e.preventDefault();
-                        handleGithubUrl();
-                    }}
-                >
-                    <input
-                        id="githubUrl"
-                        type="url"
-                        required
-                        autocomplete="url"
-                        placeholder="https://github.com/"
-                        class="grow rounded-l-md border-t border-b border-l px-2 py-1 overflow-ellipsis"
-                        bind:value={githubUrl}
-                    />
-                    <Button.Root type="submit" class="rounded-r-md btn-primary px-2 py-1">Go</Button.Root>
-                </form>
-                <span class="mb-2 text-sm text-em-med">Supports commit, PR, and comparison URLs</span>
-
-                <div class="mb-2 flex flex-row gap-1">
-                    {#if getGithubUsername()}
-                        <div class="flex w-fit flex-row items-center justify-between gap-2 px-2 py-1">
-                            <span class="iconify shrink-0 octicon--person-16"></span>
-                            {getGithubUsername()}
-                        </div>
-                        <Button.Root class="flex items-center gap-2 rounded-md btn-danger px-2 py-1" onclick={logoutGithub}>
-                            <span class="iconify shrink-0 octicon--sign-out-16"></span>
-                            Sign out
-                        </Button.Root>
-                    {:else}
-                        <Button.Root class="flex w-fit flex-row items-center justify-between gap-2 rounded-md btn-primary px-2 py-1" onclick={loginWithGithub}>
-                            <span class="iconify shrink-0 octicon--sign-in-16"></span>
-                            Sign in to GitHub
-                        </Button.Root>
-                        <InfoPopup>
-                            Sign in to GitHub for higher rate limits and private repository access. Only private repositories configured for the GitHub app will
-                            be accessible.
-                        </InfoPopup>
-                    {/if}
-                </div>
-
-                <div class="flex flex-row gap-1">
-                    <Button.Root class="flex w-fit flex-row items-center gap-2 rounded-md btn-primary px-2 py-1" onclick={installGithubApp}>
-                        <span class="iconify shrink-0 octicon--gear-16"></span>
-                        Configure GitHub App
-                    </Button.Root>
-                    <InfoPopup>
-                        In order to view a private repository, the repository owner must have installed the GitHub app and granted it access to the repository.
-                        Then, authenticated users will be able to load diffs they have read access to.
-                    </InfoPopup>
-                </div>
-            </section>
-
-            <Separator.Root class="h-px w-full bg-neutral-2" />
-
-            <form
-                class="p-4"
-                onsubmit={(e) => {
-                    e.preventDefault();
-                    handlePatchFile();
-                }}
-            >
-                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
-                    <span class="iconify size-6 shrink-0 octicon--file-diff-24"></span>
-                    From Patch File
-                </h3>
-                <MultimodalFileInput bind:state={patchFile} required fileTypeOverride={false} defaultMode="file" label="Patch File" />
-                <Button.Root type="submit" class="mt-2 rounded-md btn-primary px-2 py-1">Go</Button.Root>
-            </form>
-
-            <Separator.Root class="h-px w-full bg-neutral-2" />
-
-            <form
-                class="p-4"
-                onsubmit={(e) => {
-                    e.preventDefault();
-                    compareFiles();
-                }}
-            >
-                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
-                    <span class="iconify size-6 shrink-0 octicon--file-24"></span>
-                    From Files
-                </h3>
-                <div class="mb-2 flex flex-col gap-1">
-                    {#each flipFiles as id, index (id)}
-                        <div animate:flip={{ duration: 250 }}>
-                            {#if id === "1"}
-                                <MultimodalFileInput bind:state={fileOne} required label={index === 0 ? "File A" : "File B"} />
-                            {:else if id === "arrow"}
-                                <div class="flex w-full">
-                                    <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
-                                </div>
-                            {:else if id === "2"}
-                                <MultimodalFileInput bind:state={fileTwo} required label={index === 2 ? "File B" : "File A"} />
-                            {/if}
-                        </div>
-                    {/each}
-                </div>
-                <div class="flex items-center gap-1">
-                    <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
-                    <Button.Root
-                        title="Swap File A and File B"
-                        type="button"
-                        class="flex size-6 items-center justify-center rounded-md btn-primary"
-                        onclick={() => {
-                            const a = flipFiles[0];
-                            flipFiles[0] = flipFiles[2];
-                            flipFiles[2] = a;
-                        }}
-                    >
-                        <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
-                    </Button.Root>
-                </div>
-            </form>
-
-            <Separator.Root class="h-px w-full bg-neutral-2" />
-
-            <form
-                class="p-4"
-                onsubmit={(e) => {
-                    e.preventDefault();
-                    compareDirs();
-                }}
-            >
-                <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
-                    <span class="iconify size-6 shrink-0 octicon--file-directory-24"></span>
-                    From Directories
-                    <InfoPopup>
-                        Compares the entire contents of the directories, including subdirectories. Does not attempt to detect renames. When possible, preparing
-                        a unified diff (<code class="rounded-sm bg-neutral-2 px-1 py-0.5">.patch</code> file) using Git or another tool and loading it with the above
-                        button should be preferred.
-                    </InfoPopup>
-                </h3>
-                <div class="mb-2 flex w-full flex-col gap-1">
-                    {#each flipDirs as id, index (id)}
-                        <div animate:flip={{ duration: 250 }} class="flex">
-                            {#if id === "1"}
-                                <DirectorySelect bind:directory={dirOne} placeholder={index === 0 ? "Directory A" : "Directory B"} />
-                            {:else if id === "arrow"}
-                                <span class="iconify size-4 shrink-0 octicon--arrow-down-16"></span>
-                            {:else if id === "2"}
-                                <DirectorySelect bind:directory={dirTwo} placeholder={index === 2 ? "Directory B" : "Directory A"} />
-                            {/if}
-                        </div>
-                    {/each}
-                </div>
-                <div class="flex items-center gap-1">
-                    <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
-                    <Popover.Root>
-                        <Popover.Trigger
-                            title="Edit filters"
-                            class="flex size-6 items-center justify-center rounded-md btn-primary data-[state=open]:btn-primary-hover"
-                        >
-                            <span class="iconify size-4 shrink-0 octicon--filter-16" aria-hidden="true"></span>
-                        </Popover.Trigger>
-                        <Popover.Portal>
-                            <Popover.Content side="top" class="z-50 mx-2 overflow-hidden rounded-md border bg-neutral">
-                                {@render blacklistPopoverContent()}
-                                <Popover.Arrow class="text-edge" />
-                            </Popover.Content>
-                        </Popover.Portal>
-                    </Popover.Root>
-                    <Button.Root
-                        title="Swap Directory A and Directory B"
-                        type="button"
-                        class="flex size-6 items-center justify-center rounded-md btn-primary"
-                        onclick={() => {
-                            const a = flipDirs[0];
-                            flipDirs[0] = flipDirs[2];
-                            flipDirs[2] = a;
-                        }}
-                    >
-                        <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
-                    </Button.Root>
-                </div>
-            </form>
+            <div class="grow overflow-y-auto">
+                {@render githubSection()}
+                <Separator.Root class="h-px w-full bg-neutral-2" />
+                {@render patchSection()}
+                <Separator.Root class="h-px w-full bg-neutral-2" />
+                {@render filesSection()}
+                <Separator.Root class="h-px w-full bg-neutral-2" />
+                {@render directoriesSection()}
+            </div>
         </Dialog.Content>
     </Dialog.Portal>
 </Dialog.Root>

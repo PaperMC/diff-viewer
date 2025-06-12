@@ -28,7 +28,7 @@
     import { on } from "svelte/events";
     import ActionsPopover from "./ActionsPopover.svelte";
     import OpenDiffDialog from "./OpenDiffDialog.svelte";
-    import InfoPopup from "./InfoPopup.svelte";
+    import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { Button, Label } from "bits-ui";
     import { onClickOutside } from "runed";
     import SidebarToggle from "./SidebarToggle.svelte";
