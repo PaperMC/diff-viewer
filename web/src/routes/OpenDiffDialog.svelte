@@ -474,6 +474,10 @@
         <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
             <span class="iconify size-6 shrink-0 octicon--file-24"></span>
             From Files
+            <InfoPopup>
+                Compares any two texts or images. For files, the file type (text or image, and language) is inferred from the file extension and content. The
+                file type can be overridden for text to control syntax highlighting.
+            </InfoPopup>
         </h3>
         <div class="mb-2 flex flex-col gap-1">
             {#each flipFiles as id, index (id)}
@@ -585,13 +589,13 @@
             </header>
 
             <div class="grow overflow-y-auto">
-                {@render githubSection()}
-                <Separator.Root class="h-px w-full bg-neutral-2" />
-                {@render patchSection()}
-                <Separator.Root class="h-px w-full bg-neutral-2" />
                 {@render filesSection()}
                 <Separator.Root class="h-px w-full bg-neutral-2" />
+                {@render githubSection()}
+                <Separator.Root class="h-px w-full bg-neutral-2" />
                 {@render directoriesSection()}
+                <Separator.Root class="h-px w-full bg-neutral-2" />
+                {@render patchSection()}
             </div>
         </Dialog.Content>
     </Dialog.Portal>
