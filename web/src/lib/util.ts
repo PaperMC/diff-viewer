@@ -101,7 +101,7 @@ export function binaryFileDummyDetails(fromFile: string, toFile: string, status:
     };
 }
 
-const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=diff --git|$)/g;
+const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- *\r?\n|diff --git|$)/g;
 
 export function splitMultiFilePatch(patchContent: string): FileDetails[] {
     const patches: FileDetails[] = [];
