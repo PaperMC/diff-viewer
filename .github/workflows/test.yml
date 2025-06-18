@@ -17,4 +17,5 @@ jobs:
       - run: bun install
       - run: cd web && bun run lint
       - run: cd web && bun run check
+      - run: cd web && bun run test
       - run: cd web-extension && bun run lint
