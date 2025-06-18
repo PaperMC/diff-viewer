@@ -1,0 +1,36 @@
+From 3515151127e2cc0ac72f30a7c178a4ed73f31f90 Mon Sep 17 00:00:00 2001
+From: "github-actions[bot]" <github-actions[bot]@users.noreply.github.com>
+Date: Wed, 18 Jun 2025 19:30:57 +0000
+Subject: [PATCH] Import directory diff for patch generation
+
+---
+ net/minecraft/network/chat/Component.java                  | 2 +-
+ net/minecraft/server/network/ServerConnectionListener.java | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/net/minecraft/network/chat/Component.java b/net/minecraft/network/chat/Component.java
+index c6e4f72..4cebf32 100644
+--- a/net/minecraft/network/chat/Component.java
++++ b/net/minecraft/network/chat/Component.java
+@@ -39,7 +39,7 @@ import net.minecraft.world.level.ChunkPos;
+ 
+ public interface Component extends Message, FormattedText, Iterable<Component> { // CraftBukkit
+ 
+-    // CraftBukkit start
++    // CraftBukkit start - SUPER complicated change
+     default java.util.stream.Stream<Component> stream() {
+         return com.google.common.collect.Streams.concat(java.util.stream.Stream.of(this), this.getSiblings().stream().flatMap(Component::stream));
+     }
+diff --git a/net/minecraft/server/network/ServerConnectionListener.java b/net/minecraft/server/network/ServerConnectionListener.java
+index bd07e6a..cd7a5e4 100644
+--- a/net/minecraft/server/network/ServerConnectionListener.java
++++ b/net/minecraft/server/network/ServerConnectionListener.java
+@@ -108,7 +108,7 @@ public class ServerConnectionListener {
+                 LOGGER.warn("Using HAProxy, please ensure the server port is adequately firewalled.");
+             }
+             // Paper end - Warn people with console access that HAProxy is in use.
+-            // Paper start - Use Velocity cipher
++            // Paper start - Use Velocity cipher huge diff
+             ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
+             ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
+             // Paper end - Use Velocity cipher
