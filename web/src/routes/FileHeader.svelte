@@ -8,12 +8,11 @@
     interface Props {
         index: number;
         value: FileDetails;
-        isImage: boolean;
     }
 
     const viewer = MultiFileDiffViewerState.get();
     const globalOptions = GlobalOptions.get();
-    let { index, value, isImage }: Props = $props();
+    let { index, value }: Props = $props();
 
     let popoverOpen = $state(false);
 
@@ -97,8 +96,7 @@
     onclick={() => viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
     onkeyup={(event) => event.key === "Enter" && viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
 >
-    <!-- Only show stats for text diffs -->
-    {#if viewer.diffs[index] !== undefined}
+    {#if value.type === "text"}
         {#await viewer.stats}
             <DiffStats brief />
         {:then stats}
@@ -111,7 +109,7 @@
             <span class="rounded-sm bg-neutral-3 px-1.5">Patch-header-only diff</span>
         {/if}
         {@render actionsPopover()}
-        {#if !viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks || isImage}
+        {#if !viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
             {@render collapseToggle()}
         {/if}
     </div>

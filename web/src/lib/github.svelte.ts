@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import type { components } from "@octokit/openapi-types";
 import { splitMultiFilePatch, trimCommitHash } from "$lib/util";
-import type { FileDetails } from "$lib/diff-viewer-multi-file.svelte";
+import { type FileDetails, makeImageDetails } from "$lib/diff-viewer-multi-file.svelte";
 import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
 
 export const GITHUB_USERNAME_KEY = "github_username";
@@ -139,6 +139,19 @@ export async function fetchGithubPRInfo(token: string | null, owner: string, rep
     }
 }
 
+function splitMultiFilePatchGithub(details: GithubDiff, patch: string) {
+    return splitMultiFilePatch(patch, (from, to, status) => {
+        const token = getGithubToken();
+        return makeImageDetails(
+            from,
+            to,
+            status,
+            status != "added" ? fetchGithubFile(token, details.owner, details.repo, from, details.base) : undefined,
+            status != "removed" ? fetchGithubFile(token, details.owner, details.repo, to, details.head) : undefined,
+        );
+    });
+}
+
 export async function fetchGithubComparison(
     token: string | null,
     owner: string,
@@ -162,7 +175,8 @@ export async function fetchGithubComparison(
         if (!url) {
             url = `https://github.com/${owner}/${repo}/compare/${base}...${head}`;
         }
-        return { files: splitMultiFilePatch(await response.text()), info: { owner, repo, base, head, description, backlink: url } };
+        const info = { owner, repo, base, head, description, backlink: url };
+        return { files: splitMultiFilePatchGithub(info, await response.text()), info };
     } else {
         throw Error(`Failed to retrieve comparison (${response.status}): ${await response.text()}`);
     }
@@ -191,9 +205,10 @@ export async function fetchGithubCommitDiff(token: string | null, owner: string,
         const meta: GithubCommitDetails = await metaResponse.json();
         const firstParent = meta.parents[0].sha;
         const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
+        const info = { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
         return {
-            files: splitMultiFilePatch(await response.text()),
-            info: { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url },
+            files: splitMultiFilePatchGithub(info, await response.text()),
+            info,
         };
     } else {
         throw Error(`Failed to retrieve commit diff (${response.status}): ${await response.text()}`);
