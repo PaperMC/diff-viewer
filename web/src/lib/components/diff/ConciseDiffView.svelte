@@ -2,7 +2,6 @@
     import {
         type ConciseDiffViewProps,
         ConciseDiffViewState,
-        getBaseColors,
         innerPatchLineTypeProps,
         type InnerPatchLineTypeProps,
         makeSearchSegments,
@@ -54,20 +53,6 @@
         cacheKey: box.with(() => cacheKey),
     });
 
-    let baseColors: Promise<string> = $state(new Promise<string>(() => []));
-    $effect(() => {
-        const promise = getBaseColors(syntaxHighlightingTheme, syntaxHighlighting);
-        // Same idea as above
-        promise.then(
-            () => {
-                baseColors = promise;
-            },
-            () => {
-                baseColors = promise;
-            },
-        );
-    });
-
     function getDisplayLineNo(line: PatchLine, num: number | undefined) {
         if (line.type == PatchLineType.HEADER) {
             return "...";
@@ -117,10 +102,11 @@
         if (!matchingLines || matchingLines.length === 0) {
             return [];
         }
-        const lines = await view.patchLines;
+        const diffViewerPatch = await view.diffViewerPatch;
+        const hunks = diffViewerPatch.hunks;
         const segments: SearchSegment[][][] = [];
         const count: MutableValue<number> = { value: 0 };
-        for (let i = 0; i < lines.length; i++) {
+        for (let i = 0; i < hunks.length; i++) {
             const hunkMatchingLines = matchingLines[i];
             if (!hunkMatchingLines || hunkMatchingLines.length === 0) {
                 continue;
@@ -129,7 +115,7 @@
             const hunkSegments: SearchSegment[][] = [];
             segments[i] = hunkSegments;
 
-            const hunkLines = lines[i];
+            const hunkLines = hunks[i].lines;
             for (let j = 0; j < hunkLines.length; j++) {
                 const line = hunkLines[j];
 
@@ -170,24 +156,24 @@
     {#await searchSegments}
         {@render lineContent(line, lineType, innerLineType)}
     {:then completedSearchSegments}
-        {@const hunkSegments = completedSearchSegments[hunkIndex]}
-        {#if hunkSegments !== undefined && hunkSegments.length > 0}
-            {@const lineSegments = hunkSegments[lineIndex]}
-            {#if lineSegments !== undefined && lineSegments.length > 0}
+        {@const hunkSearchSegments = completedSearchSegments[hunkIndex]}
+        {#if hunkSearchSegments !== undefined && hunkSearchSegments.length > 0}
+            {@const lineSearchSegments = hunkSearchSegments[lineIndex]}
+            {#if lineSearchSegments !== undefined && lineSearchSegments.length > 0}
                 <div class="relative">
                     {@render lineContent(line, lineType, innerLineType)}
                     <span class="pointer-events-none absolute top-0 left-0 text-transparent select-none">
                         <span class="inline leading-[0.875rem]">
-                            {#each lineSegments as segment, index (index)}
-                                {#if segment.highlighted}<span
-                                        bind:this={searchResultElements[segment.id ?? -1]}
+                            {#each lineSearchSegments as searchSegment, index (index)}
+                                {#if searchSegment.highlighted}<span
+                                        bind:this={searchResultElements[searchSegment.id ?? -1]}
                                         class={{
-                                            "bg-[#d4a72c66]": segment.id !== activeSearchResult,
-                                            "bg-[#ff9632]": segment.id === activeSearchResult,
-                                            "text-em-high-light": segment.id === activeSearchResult,
+                                            "bg-[#d4a72c66]": searchSegment.id !== activeSearchResult,
+                                            "bg-[#ff9632]": searchSegment.id === activeSearchResult,
+                                            "text-em-high-light": searchSegment.id === activeSearchResult,
                                         }}
-                                        data-match-id={segment.id}>{segment.text}</span
-                                    >{:else}{segment.text}{/if}
+                                        data-match-id={searchSegment.id}>{searchSegment.text}</span
+                                    >{:else}{searchSegment.text}{/if}
                             {/each}
                         </span>
                     </span>
@@ -214,16 +200,16 @@
     </div>
 {/snippet}
 
-{#await Promise.all([baseColors, view.patchLines])}
+{#await Promise.all([view.rootStyle, view.diffViewerPatch])}
     <div class="flex items-center justify-center bg-neutral-2 p-4"><Spinner /></div>
-{:then [baseColors, lines]}
+{:then [rootStyle, diffViewerPatch]}
     <div
-        style={baseColors}
+        style={rootStyle}
         class="diff-content text-patch-line w-full bg-[var(--editor-bg)] font-mono text-xs leading-[1.25rem] text-[var(--editor-fg)] selection:bg-[var(--select-bg)]"
         data-wrap={lineWrap}
     >
-        {#each lines as hunkLines, hunkIndex (hunkIndex)}
-            {#each hunkLines as line, lineIndex (lineIndex)}
+        {#each diffViewerPatch.hunks as hunk, hunkIndex (hunkIndex)}
+            {#each hunk.lines as line, lineIndex (lineIndex)}
                 {@render renderLine(line, hunkIndex, lineIndex)}
             {/each}
         {/each}

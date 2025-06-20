@@ -92,9 +92,9 @@
     function getPageTitle() {
         if (viewer.diffMetadata) {
             const meta = viewer.diffMetadata;
-            if (meta.type === "github" && meta.githubDetails) {
-                return `${meta.githubDetails.description} - GitHub/${meta.githubDetails.owner}/${meta.githubDetails.repo} - diffs.dev`;
-            } else if (meta.type === "file" && meta.fileName) {
+            if (meta.type === "github") {
+                return `${meta.details.description} - GitHub/${meta.details.owner}/${meta.details.repo} - diffs.dev`;
+            } else if (meta.type === "file") {
                 return `${meta.fileName} - diffs.dev`;
             }
         }
@@ -293,13 +293,10 @@
         <div class="flex flex-1 flex-col border-t">
             <VList data={viewer.fileDetails} style="height: 100%;" getKey={(_, i) => i} bind:this={viewer.vlist} overscan={3}>
                 {#snippet children(value, index)}
-                    {@const lines = viewer.diffText[index] !== undefined ? viewer.diffText[index] : null}
-                    {@const image = viewer.images[index] !== undefined ? viewer.images[index] : null}
-                    {@const patch = viewer.diffs[index]}
-
                     <div id={`file-${index}`}>
-                        <FileHeader {index} {value} isImage={image !== null && image !== undefined} />
-                        {#if !viewer.collapsed[index] && image !== null}
+                        <FileHeader {index} {value} />
+                        {#if !viewer.collapsed[index] && value.type === "image"}
+                            {@const image = value.image}
                             <div class="mb border-b text-sm">
                                 {#if image.load}
                                     {#if image.fileA !== null && image.fileB !== null}
@@ -328,10 +325,10 @@
                                 {/if}
                             </div>
                         {/if}
-                        {#if !viewer.collapsed[index] && lines !== null && (!viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks)}
+                        {#if !viewer.collapsed[index] && value.type === "text" && (!viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks)}
                             <div class="mb border-b">
                                 <ConciseDiffView
-                                    {patch}
+                                    patch={value.structuredPatch}
                                     syntaxHighlighting={globalOptions.syntaxHighlighting}
                                     syntaxHighlightingTheme={globalOptions.syntaxHighlightingTheme}
                                     omitPatchHeaderOnlyHunks={globalOptions.omitPatchHeaderOnlyHunks}

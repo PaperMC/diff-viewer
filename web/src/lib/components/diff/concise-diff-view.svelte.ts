@@ -19,6 +19,24 @@ import { onDestroy } from "svelte";
 export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
 export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
 
+export type DiffViewerPatch = {
+    hunks: DiffViewerPatchHunk[];
+};
+
+export type DiffViewerPatchHunk = {
+    lines: PatchLine[];
+    innerPatchHeaderChangesOnly?: boolean;
+};
+
+export type PatchLine = {
+    type: PatchLineType;
+    content: LineSegment[];
+    lineBreak?: boolean;
+    innerPatchLineType: InnerPatchLineType;
+    oldLineNo?: number;
+    newLineNo?: number;
+};
+
 export type LineSegment = {
     text?: string | null;
     iconClass?: string | null;
@@ -33,6 +51,12 @@ export enum PatchLineType {
     ADD,
     REMOVE,
     SPACER,
+}
+
+export enum InnerPatchLineType {
+    ADD,
+    REMOVE,
+    NONE,
 }
 
 export type PatchLineTypeProps = {
@@ -69,12 +93,6 @@ export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
     },
 };
 
-export enum InnerPatchLineType {
-    ADD,
-    REMOVE,
-    NONE,
-}
-
 export type InnerPatchLineTypeProps = {
     style: string;
 };
@@ -97,15 +115,6 @@ export const innerPatchLineTypeProps: Record<InnerPatchLineType, InnerPatchLineT
     [InnerPatchLineType.NONE]: {
         style: "",
     },
-};
-
-export type PatchLine = {
-    type: PatchLineType;
-    content: LineSegment[];
-    lineBreak?: boolean;
-    innerPatchLineType: InnerPatchLineType;
-    oldLineNo?: number;
-    newLineNo?: number;
 };
 
 const joiner = "\uE000";
@@ -613,39 +622,38 @@ async function withLineProcessor<R>(fn: (proc: LineProcessor) => Promise<R>): Pr
     }
 }
 
-export async function makeLines(
+export async function parseDiffViewerPatch(
     patchPromise: StructuredPatch | Promise<StructuredPatch>,
     syntaxHighlighting: boolean,
     syntaxHighlightingTheme: BundledTheme | undefined,
     omitPatchHeaderOnlyHunks: boolean,
     wordDiffs: boolean,
-): Promise<PatchLine[][]> {
+): Promise<DiffViewerPatch> {
     const patch = await patchPromise;
-    const lines: PatchLine[][] = [];
+    const hunks: DiffViewerPatchHunk[] = [];
 
     for (let i = 0; i < patch.hunks.length; i++) {
         const hunk = patch.hunks[i];
-        const hunkLines = await makeHunkLines(patch, hunk, syntaxHighlighting, syntaxHighlightingTheme, omitPatchHeaderOnlyHunks, wordDiffs);
-        lines.push(hunkLines);
+        hunks.push(await makeHunk(patch, hunk, syntaxHighlighting, syntaxHighlightingTheme, omitPatchHeaderOnlyHunks, wordDiffs));
     }
 
-    return lines;
+    return { hunks };
 }
 
-async function makeHunkLines(
+async function makeHunk(
     patch: StructuredPatch,
     hunk: StructuredPatchHunk,
     syntaxHighlighting: boolean,
     syntaxHighlightingTheme: BundledTheme | undefined,
     omitPatchHeaderOnlyHunks: boolean,
     wordDiffs: boolean,
-): Promise<PatchLine[]> {
-    const lines: PatchLine[] = [];
-
+): Promise<DiffViewerPatchHunk> {
     // Skip this hunk if it only contains header changes
     if (omitPatchHeaderOnlyHunks && !hasNonHeaderChanges(hunk.lines)) {
-        return lines;
+        return { innerPatchHeaderChangesOnly: true, lines: [] };
     }
+
+    const lines: PatchLine[] = [];
 
     // Add the hunk header
     const header = `@@ -${hunk.oldStart},${hunk.oldLines} +${hunk.newStart},${hunk.newLines} @@`;
@@ -665,7 +673,7 @@ async function makeHunkLines(
     // Add a separator between hunks
     lines.push({ content: [{ text: "" }], type: PatchLineType.SPACER, innerPatchLineType: InnerPatchLineType.NONE });
 
-    return lines;
+    return { lines };
 }
 
 export function hasNonHeaderChanges(contentLines: string[]) {
@@ -971,14 +979,14 @@ async function getTheme(theme: BundledTheme | undefined): Promise<null | { defau
 }
 
 export class ConciseDiffViewCachedState {
-    patchLines: Promise<PatchLine[][]>;
+    diffViewerPatch: Promise<DiffViewerPatch>;
     syntaxHighlighting: boolean;
     syntaxHighlightingTheme: BundledTheme | undefined;
     omitPatchHeaderOnlyHunks: boolean;
     wordDiffs: boolean;
 
-    constructor(patchLines: Promise<PatchLine[][]>, props: ConciseDiffViewStateProps<unknown>) {
-        this.patchLines = patchLines;
+    constructor(diffViewerPatch: Promise<DiffViewerPatch>, props: ConciseDiffViewStateProps<unknown>) {
+        this.diffViewerPatch = diffViewerPatch;
         this.syntaxHighlighting = props.syntaxHighlighting.current;
         this.syntaxHighlightingTheme = props.syntaxHighlightingTheme.current;
         this.omitPatchHeaderOnlyHunks = props.omitPatchHeaderOnlyHunks.current;
@@ -1034,8 +1042,9 @@ export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
 }>;
 
 export class ConciseDiffViewState<K> {
-    patchLines: Promise<PatchLine[][]> = $state(new Promise<PatchLine[][]>(() => []));
+    diffViewerPatch: Promise<DiffViewerPatch> = $state(new Promise<DiffViewerPatch>(() => []));
     cachedState: ConciseDiffViewCachedState | undefined = undefined;
+    rootStyle: Promise<string> = $state(new Promise<string>(() => []));
 
     private readonly props: ConciseDiffViewStateProps<K>;
 
@@ -1044,6 +1053,18 @@ export class ConciseDiffViewState<K> {
 
         $effect(() => {
             this.update();
+        });
+
+        $effect(() => {
+            const promise = getBaseColors(this.props.syntaxHighlightingTheme.current, this.props.syntaxHighlighting.current);
+            promise.then(
+                () => {
+                    this.rootStyle = promise;
+                },
+                () => {
+                    this.rootStyle = promise;
+                },
+            );
         });
 
         onDestroy(() => {
@@ -1068,7 +1089,7 @@ export class ConciseDiffViewState<K> {
             }
         }
 
-        const promise = makeLines(
+        const promise = parseDiffViewerPatch(
             this.props.patch.current,
             this.props.syntaxHighlighting.current,
             this.props.syntaxHighlightingTheme.current,
@@ -1079,17 +1100,17 @@ export class ConciseDiffViewState<K> {
         promise.then(
             () => {
                 // Don't replace a potentially completed promise with a pending one, wait until the replacement is ready for smooth transitions
-                this.patchLines = promise;
+                this.diffViewerPatch = promise;
             },
             () => {
                 // Propagate errors
-                this.patchLines = promise;
+                this.diffViewerPatch = promise;
             },
         );
     }
 
     restore(state: ConciseDiffViewCachedState) {
-        this.patchLines = state.patchLines;
+        this.diffViewerPatch = state.diffViewerPatch;
         this.cachedState = state;
     }
 }

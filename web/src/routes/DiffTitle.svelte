@@ -26,9 +26,9 @@
     </div>
 {/snippet}
 
-{#if meta.type === "github" && meta.githubDetails}
-    {@render github(meta.githubDetails)}
+{#if meta.type === "github"}
+    {@render github(meta.details)}
 {/if}
-{#if meta.type === "file" && meta.fileName}
+{#if meta.type === "file"}
     {@render file(meta.fileName)}
 {/if}

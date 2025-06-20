@@ -1,12 +1,4 @@
-import {
-    fetchGithubCommitDiff,
-    fetchGithubComparison,
-    fetchGithubFile,
-    fetchGithubPRComparison,
-    type FileStatus,
-    getGithubToken,
-    type GithubDiff,
-} from "./github.svelte";
+import { fetchGithubCommitDiff, fetchGithubComparison, fetchGithubPRComparison, type FileStatus, getGithubToken, type GithubDiff } from "./github.svelte";
 import { type StructuredPatch, parsePatch } from "diff";
 import {
     ConciseDiffViewCachedState,
@@ -19,7 +11,7 @@ import {
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
-import { countOccurrences, type FileTreeNodeData, isImageFile, makeFileTree, type LazyPromise, lazyPromise, watchLocalStorage } from "$lib/util";
+import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, watchLocalStorage } from "$lib/util";
 import { onDestroy } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
@@ -150,14 +142,67 @@ export const staticSidebar = new MediaQuery("(width >= 64rem)");
 
 export type AddOrRemove = "add" | "remove";
 
-export type FileDetails = {
-    content: string;
+export type CommonFileDetails = {
     fromFile: string;
     toFile: string;
-    fromBlob?: Blob;
-    toBlob?: Blob;
     status: FileStatus;
 };
+
+export type TextFileDetails = CommonFileDetails & {
+    type: "text";
+    patchText: string;
+    structuredPatch: Promise<StructuredPatch>;
+};
+
+export type ImageFileDetails = CommonFileDetails & {
+    type: "image";
+    image: ImageDiffDetails;
+};
+
+export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
+    return {
+        type: "text",
+        fromFile,
+        toFile,
+        status,
+        patchText,
+        structuredPatch: (async () => parseSinglePatch(patchText))(),
+    };
+}
+
+export function makeImageDetails(
+    fromFile: string,
+    toFile: string,
+    status: FileStatus,
+    fromBlob?: Promise<Blob> | Blob,
+    toBlob?: Promise<Blob> | Blob,
+): ImageFileDetails {
+    return {
+        type: "image",
+        fromFile,
+        toFile,
+        status,
+        image: {
+            fileA: fromBlob !== undefined ? lazyPromise(async () => URL.createObjectURL(await fromBlob)) : null,
+            fileB: toBlob !== undefined ? lazyPromise(async () => URL.createObjectURL(await toBlob)) : null,
+            load: false,
+        },
+    };
+}
+
+export type FileDetails = TextFileDetails | ImageFileDetails;
+
+export type ImageDiffDetails = {
+    fileA: LazyPromise<string> | null;
+    fileB: LazyPromise<string> | null;
+    load: boolean;
+};
+
+export function requireEitherImage(details: ImageDiffDetails) {
+    if (details.fileA) return details.fileA;
+    if (details.fileB) return details.fileB;
+    throw new Error("Neither image is available");
+}
 
 // Sort such that when displayed as a file tree, directories come before files and each level is sorted by name
 function compareFileDetails(a: FileDetails, b: FileDetails): number {
@@ -240,7 +285,14 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
     }
 }
 
-export function findHeaderChangeOnlyPatches(patchStrings: string[]) {
+export function findHeaderChangeOnlyPatches(fileDetails: FileDetails[]) {
+    const patchStrings = fileDetails.map((details) => {
+        if (details.type === "text") {
+            return details.patchText;
+        }
+        return undefined;
+    });
+
     const result: boolean[] = [];
 
     for (let i = 0; i < patchStrings.length; i++) {
@@ -272,18 +324,6 @@ export function findHeaderChangeOnlyPatches(patchStrings: string[]) {
     return result;
 }
 
-export type ImageDiffDetails = {
-    fileA: LazyPromise<string> | null;
-    fileB: LazyPromise<string> | null;
-    load: boolean;
-};
-
-export function requireEitherImage(details: ImageDiffDetails) {
-    if (details.fileA) return details.fileA;
-    if (details.fileB) return details.fileB;
-    throw new Error("Neither image is available");
-}
-
 export type ViewerStatistics = {
     addedLines: number;
     removedLines: number;
@@ -291,11 +331,17 @@ export type ViewerStatistics = {
     fileRemovedLines: number[];
 };
 
-export type DiffMetadata = {
-    type: "file" | "github";
-    fileName?: string;
-    githubDetails?: GithubDiff;
+export type GithubDiffMetadata = {
+    type: "github";
+    details: GithubDiff;
 };
+
+export type FileDiffMetadata = {
+    type: "file";
+    fileName: string;
+};
+
+export type DiffMetadata = GithubDiffMetadata | FileDiffMetadata;
 
 export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
@@ -313,10 +359,7 @@ export class MultiFileDiffViewerState {
     collapsed: boolean[] = $state([]);
     checked: boolean[] = $state([]);
     fileDetails: FileDetails[] = $state([]);
-    diffText: string[] = $state([]);
-    diffs: Promise<StructuredPatch>[] = $state([]);
     diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
-    images: ImageDiffDetails[] = $state([]);
     vlist: VList<FileDetails> | undefined = $state();
     tree: TreeState<FileTreeNodeData> | undefined = $state();
     activeSearchResult: ActiveSearchResult | null = $state(null);
@@ -330,7 +373,7 @@ export class MultiFileDiffViewerState {
     readonly filteredFileDetails: FileDetails[] = $derived(
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
-    readonly patchHeaderDiffOnly: boolean[] = $derived(findHeaderChangeOnlyPatches(this.diffText));
+    readonly patchHeaderDiffOnly: boolean[] = $derived(findHeaderChangeOnlyPatches(this.fileDetails));
     readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
 
     private constructor() {
@@ -421,103 +464,40 @@ export class MultiFileDiffViewerState {
     }
 
     clearImages() {
-        for (let i = 0; i < this.images.length; i++) {
-            const image = this.images[i];
-            if (image !== null && image !== undefined) {
-                image.load = false;
-                const fileA = image.fileA;
-                if (fileA?.hasValue()) {
-                    (async () => {
-                        const a = await fileA.getValue();
-                        URL.revokeObjectURL(a);
-                    })();
-                }
-                const fileB = image.fileB;
-                if (fileB?.hasValue()) {
-                    (async () => {
-                        const b = await fileB.getValue();
-                        URL.revokeObjectURL(b);
-                    })();
-                }
+        for (let i = 0; i < this.fileDetails.length; i++) {
+            const details = this.fileDetails[i];
+            if (details.type !== "image") {
+                continue;
+            }
+            const image = details.image;
+            image.load = false;
+            const fileA = image.fileA;
+            if (fileA?.hasValue()) {
+                (async () => {
+                    const a = await fileA.getValue();
+                    URL.revokeObjectURL(a);
+                })();
+            }
+            const fileB = image.fileB;
+            if (fileB?.hasValue()) {
+                (async () => {
+                    const b = await fileB.getValue();
+                    URL.revokeObjectURL(b);
+                })();
             }
         }
-        this.images = [];
     }
 
-    loadPatches(patches: FileDetails[], meta: { githubDetails?: GithubDiff; fileName?: string }) {
+    loadPatches(patches: FileDetails[], meta: DiffMetadata | null) {
         // Reset state
         this.collapsed = [];
         this.checked = [];
         this.fileDetails = [];
-        this.diffText = [];
-        this.diffs = [];
         this.clearImages();
         this.vlist?.scrollToIndex(0, { align: "start" });
-
-        if (meta.fileName) {
-            this.diffMetadata = { type: "file", fileName: meta.fileName };
-        } else if (meta.githubDetails) {
-            this.diffMetadata = {
-                type: "github",
-                githubDetails: meta.githubDetails,
-            };
-        } else {
-            this.diffMetadata = null;
-        }
+        this.diffMetadata = meta;
 
         patches.sort(compareFileDetails);
-
-        // Load new state
-        for (let i = 0; i < patches.length; i++) {
-            const patch = patches[i];
-
-            const isImageDiff = isImageFile(patch.fromFile) && isImageFile(patch.toFile);
-            if (isImageDiff && meta.githubDetails) {
-                const githubDetailsCopy = meta.githubDetails;
-
-                let fileA: LazyPromise<string> | null = null;
-                if (patch.status !== "added") {
-                    fileA = lazyPromise(async () =>
-                        URL.createObjectURL(
-                            await fetchGithubFile(getGithubToken(), githubDetailsCopy.owner, githubDetailsCopy.repo, patch.fromFile, githubDetailsCopy.base),
-                        ),
-                    );
-                }
-
-                let fileB: LazyPromise<string> | null = null;
-                if (patch.status !== "removed") {
-                    fileB = lazyPromise(async () =>
-                        URL.createObjectURL(
-                            await fetchGithubFile(getGithubToken(), githubDetailsCopy.owner, githubDetailsCopy.repo, patch.toFile, githubDetailsCopy.head),
-                        ),
-                    );
-                }
-
-                this.images[i] = { fileA, fileB, load: false };
-                continue;
-            }
-            const fromBlob = patch.fromBlob;
-            const toBlob = patch.toBlob;
-            if (isImageDiff && fromBlob && toBlob) {
-                let fileA: LazyPromise<string> | null = null;
-                if (patch.status !== "added") {
-                    fileA = lazyPromise(async () => URL.createObjectURL(fromBlob));
-                }
-
-                let fileB: LazyPromise<string> | null = null;
-                if (patch.status !== "removed") {
-                    fileB = lazyPromise(async () => URL.createObjectURL(toBlob));
-                }
-
-                this.images[i] = { fileA, fileB, load: false };
-                continue;
-            }
-
-            this.diffText[i] = patch.content;
-            this.diffs[i] = (async () => {
-                return parseSinglePatch(patch.content);
-            })();
-        }
 
         // Set this last since it's what the VList loads
         this.fileDetails.push(...patches);
@@ -532,11 +512,11 @@ export class MultiFileDiffViewerState {
         try {
             if (type === "commit") {
                 const { info, files } = await fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]);
-                this.loadPatches(files, { githubDetails: info });
+                this.loadPatches(files, { type: "github", details: info });
                 return true;
             } else if (type === "pull") {
                 const { info, files } = await fetchGithubPRComparison(token, owner, repo, id.split("/")[0]);
-                this.loadPatches(files, { githubDetails: info });
+                this.loadPatches(files, { type: "github", details: info });
                 return true;
             } else if (type === "compare") {
                 let refs = id.split("...");
@@ -550,7 +530,7 @@ export class MultiFileDiffViewerState {
                 const base = refs[0];
                 const head = refs[1];
                 const { info, files } = await fetchGithubComparison(token, owner, repo, base, head);
-                this.loadPatches(files, { githubDetails: info });
+                this.loadPatches(files, { type: "github", details: info });
                 return true;
             }
         } catch (error) {
@@ -570,10 +550,11 @@ export class MultiFileDiffViewerState {
         const fileRemovedLines: number[] = [];
 
         for (let i = 0; i < this.fileDetails.length; i++) {
-            const diff = await this.diffs[i];
-            if (!diff) {
+            const details = this.fileDetails[i];
+            if (details.type !== "text") {
                 continue;
             }
+            const diff = await details.structuredPatch;
 
             for (let j = 0; j < diff.hunks.length; j++) {
                 const hunk = diff.hunks[j];
@@ -602,7 +583,13 @@ export class MultiFileDiffViewerState {
         }
         query = query.toLowerCase();
 
-        const diffs = await Promise.all(this.diffs);
+        const diffPromises = this.fileDetails.map((details) => {
+            if (details.type !== "text") {
+                return undefined;
+            }
+            return details.structuredPatch;
+        });
+        const diffs = await Promise.all(diffPromises);
 
         let total = 0;
         const lines: Map<FileDetails, number[][]> = new Map();

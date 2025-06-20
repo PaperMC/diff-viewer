@@ -1,4 +1,4 @@
-import type { FileDetails } from "./diff-viewer-multi-file.svelte";
+import { type FileDetails, type ImageFileDetails, makeTextDetails } from "./diff-viewer-multi-file.svelte";
 import type { FileStatus } from "./github.svelte";
 import type { TreeNode } from "$lib/components/tree/index.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
@@ -93,55 +93,82 @@ export function binaryFileDummyDetails(fromFile: string, toFile: string, status:
             fakeContent = `diff --git a/${fromFile} b/${toFile}\n--- a/${fromFile}\n+++ b/${toFile}\n@@ -1,1 +1,1 @@\n-Cannot show binary file\n+Cannot show binary file`;
             break;
     }
-    return {
-        content: fakeContent,
-        fromFile: fromFile,
-        toFile: toFile,
-        status,
-    };
+    return makeTextDetails(fromFile, toFile, status, fakeContent);
 }
 
 const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- *\r?\n|diff --git|$)/g;
 
-export function splitMultiFilePatch(patchContent: string): FileDetails[] {
+function parseHeader(
+    patch: string,
+    fromFile: string,
+    toFile: string,
+): {
+    status: FileStatus;
+    binary: boolean;
+} {
+    let status: FileStatus = "modified";
+    if (fromFile !== toFile) {
+        status = "renamed_modified";
+    }
+    let binary = false;
+    let foundIndex = false;
+
+    let lineStart = 0;
+    while (true) {
+        const lineEnd = patch.indexOf("\n", lineStart);
+        if (lineEnd === -1) {
+            break; // No more lines
+        }
+        const line = patch.substring(lineStart, lineEnd);
+        if (line.startsWith("similarity index 100%")) {
+            status = "renamed";
+            if (isImageFile(fromFile) && isImageFile(toFile)) {
+                binary = true; // Treat renamed images as binary
+            }
+        } else if (line.startsWith("deleted file mode")) {
+            status = "removed";
+        } else if (line.startsWith("new file mode")) {
+            status = "added";
+        } else if (line.startsWith("index ")) {
+            foundIndex = true;
+        } else if (foundIndex) {
+            if (line.startsWith("Binary files")) {
+                binary = true;
+            }
+            // end of header
+            break;
+        }
+        lineStart = lineEnd + 1;
+    }
+
+    return { status, binary };
+}
+
+export function splitMultiFilePatch(
+    patchContent: string,
+    imageFactory?: (fromFile: string, toFile: string, status: FileStatus) => ImageFileDetails | null,
+): FileDetails[] {
     const patches: FileDetails[] = [];
     // Process each file in the diff
     let fileMatch;
     while ((fileMatch = fileRegex.exec(patchContent)) !== null) {
         const [fullFileMatch, fromFile, toFile] = fileMatch;
+        const { status, binary } = parseHeader(fullFileMatch, fromFile, toFile);
 
-        let status: FileStatus = "modified";
-
-        const newlineIndex = fullFileMatch.indexOf("\n");
-        if (newlineIndex !== -1) {
-            const secondNewlineIndex = fullFileMatch.indexOf("\n", newlineIndex + 1);
-            if (secondNewlineIndex !== -1) {
-                const line2 = fullFileMatch.substring(newlineIndex + 1, secondNewlineIndex);
-
-                if (fromFile !== toFile) {
-                    if (line2 === "similarity index 100%") {
-                        status = "renamed";
-                    } else {
-                        status = "renamed_modified";
-                    }
-                } else if (line2.match(/^deleted file mode/)) {
-                    status = "removed";
-                } else if (line2.match(/^new file mode/)) {
-                    status = "added";
+        if (binary) {
+            if (imageFactory !== undefined && isImageFile(fromFile) && isImageFile(toFile)) {
+                const imageDetails = imageFactory(fromFile, toFile, status);
+                if (imageDetails != null) {
+                    patches.push(imageDetails);
+                    continue;
                 }
-
-                const thirdNewlineIndex = fullFileMatch.indexOf("\n", secondNewlineIndex + 1);
-                if (thirdNewlineIndex !== -1) {
-                    const line3 = fullFileMatch.substring(secondNewlineIndex + 1, thirdNewlineIndex);
-                    if (line3.match(/^Binary/)) {
-                        patches.push(binaryFileDummyDetails(fromFile, toFile, status));
-                        continue;
-                    }
-                }
+            } else {
+                patches.push(binaryFileDummyDetails(fromFile, toFile, status));
+                continue;
             }
         }
 
-        patches.push({ content: fullFileMatch, fromFile: fromFile, toFile: toFile, status });
+        patches.push(makeTextDetails(fromFile, toFile, status, fullFileMatch));
     }
     return patches;
 }
