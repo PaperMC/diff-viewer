@@ -17,9 +17,13 @@ jobs:
                   repository: ${{ github.event.pull_request.head.repo.full_name }}
             - uses: oven-sh/setup-bun@v2
             - run: bun install
-            - run: cd web && bun run buildPreview
+            - run: cd web && bun run build
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v4"
               with:
                   name: "preview-build"
-                  path: "web/build"
+                  path: |
+                    node_modules
+                    web/.svelte-kit
+                    web/node_modules
+                  include-hidden-files: true

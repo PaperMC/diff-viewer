@@ -6,7 +6,6 @@
     "scripts": {
         "dev": "vite dev",
         "build": "vite build",
-        "buildPreview": "PREVIEW=true vite build",
         "watch": "vite build --watch",
         "preview": "vite preview",
         "prepare": "svelte-kit sync || echo ''",
@@ -24,7 +23,6 @@
         "@octokit/openapi-types": "^25.1.0",
         "@sveltejs/adapter-auto": "^6.0.1",
         "@sveltejs/adapter-cloudflare": "^7.0.3",
-        "@sveltejs/adapter-static": "^3.0.8",
         "@sveltejs/kit": "^2.21.2",
         "@sveltejs/vite-plugin-svelte": "^5.1.0",
         "@tailwindcss/vite": "^4.1.8",

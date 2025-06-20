@@ -33,5 +33,5 @@ jobs:
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   githubToken: ${{ secrets.GITHUB_TOKEN }}
                   projectName: "diffs"
-                  directory: ${{ steps.preview-build-artifact.outputs.download-path }}
+                  directory: ${{ steps.preview-build-artifact.outputs.download-path }}/web/.svelte-kit/cloudflare
                   deploymentName: Preview
