@@ -4,7 +4,7 @@
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, splitMultiFilePatch } from "$lib/util";
     import { onMount } from "svelte";
     import { createTwoFilesPatch } from "diff";
@@ -96,14 +96,9 @@
                 status = "renamed_modified";
             }
 
-            fileDetails.push({
-                content: "",
-                fromFile: fileA.metadata.name,
-                toFile: fileB.metadata.name,
-                fromBlob: blobA,
-                toBlob: blobB,
-                status,
-            });
+            const img = makeImageDetails(fileA.metadata.name, fileB.metadata.name, status, blobA, blobB);
+            img.image.load = true; // load images by default when comparing two files directly
+            fileDetails.push(img);
         } else {
             const [textA, textB] = await Promise.all([blobA.text(), blobB.text()]);
             if (textA === textB) {
@@ -117,15 +112,10 @@
                 status = "renamed_modified";
             }
 
-            fileDetails.push({
-                content: diff,
-                fromFile: fileA.metadata.name,
-                toFile: fileB.metadata.name,
-                status,
-            });
+            fileDetails.push(makeTextDetails(fileA.metadata.name, fileB.metadata.name, status, diff));
         }
 
-        viewer.loadPatches(fileDetails, { fileName: `${fileA.metadata.name}...${fileB.metadata.name}.patch` });
+        viewer.loadPatches(fileDetails, { type: "file", fileName: `${fileA.metadata.name}...${fileB.metadata.name}.patch` });
         await updateUrlParams();
         modalOpen = false;
     }
@@ -164,14 +154,7 @@
                         continue;
                     }
                     if (isImageFile(entry.file.name) && isImageFile(entryB.file.name)) {
-                        fileDetails.push({
-                            content: "",
-                            fromFile: entry.path,
-                            toFile: entryB.path,
-                            fromBlob: entry.file,
-                            toBlob: entryB.file,
-                            status: "modified",
-                        });
+                        fileDetails.push(makeImageDetails(entry.path, entryB.path, "modified", entry.file, entryB.file));
                     } else {
                         fileDetails.push(binaryFileDummyDetails(entry.path, entryB.path, "modified"));
                     }
@@ -181,34 +164,17 @@
                         // Files are identical
                         continue;
                     }
-                    fileDetails.push({
-                        content: createTwoFilesPatch(entry.path, entryB.path, textA, textB),
-                        fromFile: entry.path,
-                        toFile: entryB.path,
-                        status: "modified",
-                    });
+                    fileDetails.push(makeTextDetails(entry.path, entryB.path, "modified", createTwoFilesPatch(entry.path, entryB.path, textA, textB)));
                 }
             } else if (isImageFile(entry.file.name)) {
                 // Image file removed
-                fileDetails.push({
-                    content: "",
-                    fromFile: entry.path,
-                    toFile: entry.path,
-                    fromBlob: entry.file,
-                    toBlob: entry.file,
-                    status: "removed",
-                });
+                fileDetails.push(makeImageDetails(entry.path, entry.path, "removed", entry.file, entry.file));
             } else if (await isBinaryFile(entry.file)) {
                 // Binary file removed
                 fileDetails.push(binaryFileDummyDetails(entry.path, entry.path, "removed"));
             } else {
                 // Text file removed
-                fileDetails.push({
-                    content: createTwoFilesPatch(entry.path, "", await entry.file.text(), ""),
-                    fromFile: entry.path,
-                    toFile: entry.path,
-                    status: "removed",
-                });
+                fileDetails.push(makeTextDetails(entry.path, entry.path, "removed", createTwoFilesPatch(entry.path, "", await entry.file.text(), "")));
             }
         }
 
@@ -217,28 +183,16 @@
             const entryA = entriesAMap.get(entry.path);
             if (!entryA) {
                 if (isImageFile(entry.file.name)) {
-                    fileDetails.push({
-                        content: "",
-                        fromFile: entry.path,
-                        toFile: entry.path,
-                        fromBlob: entry.file,
-                        toBlob: entry.file,
-                        status: "added",
-                    });
+                    fileDetails.push(makeImageDetails(entry.path, entry.path, "added", entry.file, entry.file));
                 } else if (await isBinaryFile(entry.file)) {
                     fileDetails.push(binaryFileDummyDetails(entry.path, entry.path, "added"));
                 } else {
-                    fileDetails.push({
-                        content: createTwoFilesPatch("", entry.path, "", await entry.file.text()),
-                        fromFile: entry.path,
-                        toFile: entry.path,
-                        status: "added",
-                    });
+                    fileDetails.push(makeTextDetails(entry.path, entry.path, "added", createTwoFilesPatch("", entry.path, "", await entry.file.text())));
                 }
             }
         }
 
-        viewer.loadPatches(fileDetails, { fileName: `${dirA.fileName}...${dirB.fileName}.patch` });
+        viewer.loadPatches(fileDetails, { type: "file", fileName: `${dirA.fileName}...${dirB.fileName}.patch` });
         await updateUrlParams();
         modalOpen = false;
     }
@@ -292,7 +246,7 @@
             return;
         }
         modalOpen = false;
-        viewer.loadPatches(files, { fileName: patchFile.metadata.name });
+        viewer.loadPatches(files, { type: "file", fileName: patchFile.metadata.name });
         await updateUrlParams();
     }
 
