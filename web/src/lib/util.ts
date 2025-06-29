@@ -96,7 +96,7 @@ export function binaryFileDummyDetails(fromFile: string, toFile: string, status:
     return makeTextDetails(fromFile, toFile, status, fakeContent);
 }
 
-const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- *\r?\n|diff --git|$)/g;
+const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- \r?\n|diff --git|$)/g;
 
 function parseHeader(
     patch: string,
