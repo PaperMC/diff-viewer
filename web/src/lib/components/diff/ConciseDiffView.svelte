@@ -442,6 +442,7 @@
     {#if canAddComments && lineNum !== undefined && line.type !== PatchLineType.HEADER}
         <button
             class="comment-button"
+            aria-label="Add comment"
             class:visible={hoveredLineKey === lineKey || isSelected}
             class:selected={isSelected}
             onmousedown={(e) => handleMouseDown(e, line, side)}
@@ -465,6 +466,9 @@
         class:line-selected={leftSelected}
         onmouseenter={() => (hoveredLineKey = leftLineKey)}
         onmouseleave={() => (hoveredLineKey = null)}
+        aria-label="Add comment"
+        role="button"
+        tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
         {@render commentButton(line, "LEFT")}
@@ -474,6 +478,9 @@
         class:line-selected={rightSelected}
         onmouseenter={() => (hoveredLineKey = rightLineKey)}
         onmouseleave={() => (hoveredLineKey = null)}
+        aria-label="Add comment"
+        role="button"
+        tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.newLineNo)}</div>
         {@render commentButton(line, "RIGHT")}

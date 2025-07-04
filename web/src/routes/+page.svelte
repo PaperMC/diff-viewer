@@ -16,7 +16,7 @@
     import ImageDiff from "$lib/components/diff/ImageDiff.svelte";
     import AddedOrRemovedImage from "$lib/components/diff/AddedOrRemovedImage.svelte";
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
-    import SettingsPopover from "$lib/components/settings-popover/SettingsPopover.svelte";
+    import SettingsPopover, { globalThemeSetting } from "$lib/components/settings-popover/SettingsPopover.svelte";
     import SettingsPopoverGroup from "$lib/components/settings-popover/SettingsPopoverGroup.svelte";
     import LabeledCheckbox from "$lib/components/LabeledCheckbox.svelte";
     import ShikiThemeSelector from "$lib/components/settings-popover/ShikiThemeSelector.svelte";
@@ -24,7 +24,7 @@
     import DiffSearch from "./DiffSearch.svelte";
     import FileHeader from "./FileHeader.svelte";
     import DiffTitle from "./DiffTitle.svelte";
-    import { type Action } from "svelte";
+    import { type Action } from "svelte/action";
     import { on } from "svelte/events";
     import ActionsPopover from "./ActionsPopover.svelte";
     import OpenDiffDialog from "./OpenDiffDialog.svelte";
@@ -114,31 +114,29 @@
 
 {#snippet settingsPopover()}
     <SettingsPopover class="self-center">
-        {#snippet children({ globalThemeSetting })}
-            {@render globalThemeSetting()}
-            <SettingsPopoverGroup title="Syntax Highlighting">
-                <LabeledCheckbox labelText="Enable" bind:checked={globalOptions.syntaxHighlighting} />
-                <ShikiThemeSelector mode="light" bind:value={globalOptions.syntaxHighlightingThemeLight} />
-                <ShikiThemeSelector mode="dark" bind:value={globalOptions.syntaxHighlightingThemeDark} />
-            </SettingsPopoverGroup>
-            <SettingsPopoverGroup title="Misc.">
-                <LabeledCheckbox labelText="Concise nested diffs" bind:checked={globalOptions.omitPatchHeaderOnlyHunks} />
-                <LabeledCheckbox labelText="Word diffs" bind:checked={globalOptions.wordDiffs} />
-                <LabeledCheckbox labelText="Line wrapping" bind:checked={globalOptions.lineWrap} />
-                {#if viewer.isPRDiff()}
-                    <LabeledCheckbox labelText="Show PR comments" bind:checked={viewer.showComments} />
-                {/if}
-                <div class="flex justify-between px-2 py-1">
-                    <Label.Root id="sidebarLocationLabel" for="sidebarLocation">Sidebar location</Label.Root>
-                    <SimpleRadioGroup
-                        id="sidebarLocation"
-                        aria-labelledby="sidebarLocationLabel"
-                        values={["left", "right"]}
-                        bind:value={globalOptions.sidebarLocation}
-                    />
-                </div>
-            </SettingsPopoverGroup>
-        {/snippet}
+        {@render globalThemeSetting()}
+        <SettingsPopoverGroup title="Syntax Highlighting">
+            <LabeledCheckbox labelText="Enable" bind:checked={globalOptions.syntaxHighlighting} />
+            <ShikiThemeSelector mode="light" bind:value={globalOptions.syntaxHighlightingThemeLight} />
+            <ShikiThemeSelector mode="dark" bind:value={globalOptions.syntaxHighlightingThemeDark} />
+        </SettingsPopoverGroup>
+        <SettingsPopoverGroup title="Misc.">
+            <LabeledCheckbox labelText="Concise nested diffs" bind:checked={globalOptions.omitPatchHeaderOnlyHunks} />
+            <LabeledCheckbox labelText="Word diffs" bind:checked={globalOptions.wordDiffs} />
+            <LabeledCheckbox labelText="Line wrapping" bind:checked={globalOptions.lineWrap} />
+            {#if viewer.isPRDiff()}
+                <LabeledCheckbox labelText="Show PR comments" bind:checked={viewer.showComments} />
+            {/if}
+            <div class="flex justify-between px-2 py-1">
+                <Label.Root id="sidebarLocationLabel" for="sidebarLocation">Sidebar location</Label.Root>
+                <SimpleRadioGroup
+                    id="sidebarLocation"
+                    aria-labelledby="sidebarLocationLabel"
+                    values={["left", "right"]}
+                    bind:value={globalOptions.sidebarLocation}
+                />
+            </div>
+        </SettingsPopoverGroup>
     </SettingsPopover>
 {/snippet}
 
