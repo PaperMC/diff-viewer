@@ -1,7 +1,3 @@
-<script module>
-    export { globalThemeSetting, sectionHeader };
-</script>
-
 <script lang="ts">
     import SettingsPopoverGroup from "./SettingsPopoverGroup.svelte";
     import type { RestProps } from "$lib/types";
@@ -37,7 +33,7 @@
     </Popover.Trigger>
     <Popover.Portal>
         <Popover.Content aria-label="Options" class="z-50 mx-2 flex flex-col gap-1 rounded-sm border bg-neutral py-1 text-sm shadow">
-            {@render children?.()}
+            {@render children?.({ globalThemeSetting, sectionHeader })}
             <Popover.Arrow class="text-edge" />
         </Popover.Content>
     </Popover.Portal>

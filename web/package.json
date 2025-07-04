@@ -48,6 +48,7 @@
     "dependencies": {
         "bits-ui": "^2.4.1",
         "chroma-js": "^3.1.2",
+        "date-fns": "^4.1.0",
         "diff": "^8.0.2",
         "luxon": "^3.6.1",
         "runed": "^0.28.0",
