@@ -1,8 +1,9 @@
 <script lang="ts">
     import type { CommentThread } from "$lib/diff-viewer-multi-file.svelte";
-    import { getGithubToken, type GithubPRComment } from "$lib/github.svelte";
+    import { type GithubPRComment } from "$lib/github.svelte";
     import CommentDisplay from "./CommentDisplay.svelte";
     import CommentForm from "./CommentForm.svelte";
+    import { CommentThreadState } from "./comment-state.svelte";
 
     interface Props {
         thread: CommentThread;
@@ -16,129 +17,64 @@
 
     let { thread, owner, repo, prNumber, onCommentAdded, onCommentUpdated, onCommentDeleted }: Props = $props();
 
-    let showReplyForm = $state(false);
-    let isCollapsed = $state(thread.collapsed);
-
-    const hasToken = $derived(!!getGithubToken());
-
-    // Separate top-level comments from replies
-    const topLevelComments = $derived(thread.comments.filter((comment) => !comment.in_reply_to_id));
-
-    const replies = $derived(thread.comments.filter((comment) => comment.in_reply_to_id));
-
-    // Check if this is a multiline comment thread
-    const isMultilineThread = $derived.by(() => {
-        const firstComment = topLevelComments[0];
-        return firstComment && firstComment.start_line !== undefined && firstComment.start_line !== null && firstComment.start_line !== firstComment.line;
-    });
-
-    // Get line range display for multiline comments
-    const lineRangeDisplay = $derived.by(() => {
-        if (!isMultilineThread) {
-            return `${thread.position.line}`;
-        }
-
-        const firstComment = topLevelComments[0];
-        if (!firstComment || firstComment.start_line === undefined || firstComment.start_line === null) {
-            return `${thread.position.line}`;
-        }
-
-        return `${firstComment.start_line}-${firstComment.line}`;
-    });
-
-    // Get side display for multiline comments
-    const sideDisplay = $derived.by(() => {
-        if (!isMultilineThread) {
-            return thread.position.side;
-        }
-
-        const firstComment = topLevelComments[0];
-        if (!firstComment || firstComment.start_side === undefined || firstComment.start_side === null) {
-            return thread.position.side;
-        }
-
-        // If both start and end are on the same side, just show the side
-        if (firstComment.start_side === firstComment.side) {
-            return firstComment.side;
-        }
-
-        // If spanning across sides, show the range
-        return `${firstComment.start_side} to ${firstComment.side}`;
-    });
-
-    function toggleCollapse() {
-        isCollapsed = !isCollapsed;
-    }
-
-    function handleReplyAdded(comment: GithubPRComment) {
-        showReplyForm = false;
-        onCommentAdded?.(comment);
-    }
-
-    function handleCommentUpdated(comment: GithubPRComment) {
-        onCommentUpdated?.(comment);
-    }
-
-    function handleCommentDeleted(commentId: number) {
-        onCommentDeleted?.(commentId);
-    }
+    const threadState = new CommentThreadState(thread, onCommentAdded, onCommentUpdated, onCommentDeleted);
 </script>
 
 <div class="comment-thread">
     <div class="thread-header">
-        <button class="collapse-button" onclick={toggleCollapse} aria-label={isCollapsed ? "Expand comments" : "Collapse comments"}>
-            <span class="iconify {isCollapsed ? 'octicon--chevron-right-12' : 'octicon--chevron-down-12'}"></span>
+        <button class="collapse-button" onclick={threadState.toggleCollapse} aria-label={threadState.collapsed ? "Expand comments" : "Collapse comments"}>
+            <span class="iconify {threadState.collapsed ? 'octicon--chevron-right-12' : 'octicon--chevron-down-12'}"></span>
             <span class="comment-count">
                 {thread.comments.length} comment{thread.comments.length !== 1 ? "s" : ""}
             </span>
         </button>
 
         <div class="thread-position">
-            {thread.position.path}:{lineRangeDisplay} ({sideDisplay})
+            {thread.position.path}:{threadState.lineRangeDisplay} ({threadState.sideDisplay})
         </div>
     </div>
 
-    {#if !isCollapsed}
+    {#if !threadState.collapsed}
         <div class="thread-content">
             <!-- Top-level comments -->
-            {#each topLevelComments as comment (comment.id)}
-                <CommentDisplay {comment} {owner} {repo} onCommentUpdated={handleCommentUpdated} onCommentDeleted={handleCommentDeleted} />
+            {#each threadState.topLevelComments as comment (comment.id)}
+                <CommentDisplay {comment} {owner} {repo} onCommentUpdated={threadState.handleCommentUpdated} onCommentDeleted={threadState.handleCommentDeleted} />
             {/each}
 
             <!-- Replies -->
-            {#if replies.length > 0}
+            {#if threadState.replies.length > 0}
                 <div class="replies-section">
                     <div class="replies-header">
                         <span class="replies-label">Replies</span>
                     </div>
-                    {#each replies as reply (reply.id)}
+                    {#each threadState.replies as reply (reply.id)}
                         <CommentDisplay
                             comment={reply}
                             isReply={true}
                             {owner}
                             {repo}
-                            onCommentUpdated={handleCommentUpdated}
-                            onCommentDeleted={handleCommentDeleted}
+                            onCommentUpdated={threadState.handleCommentUpdated}
+                            onCommentDeleted={threadState.handleCommentDeleted}
                         />
                     {/each}
                 </div>
             {/if}
 
             <!-- Reply form -->
-            {#if hasToken && topLevelComments.length > 0}
+            {#if threadState.hasToken && threadState.topLevelComments.length > 0}
                 <div class="reply-section">
-                    {#if showReplyForm}
+                    {#if threadState.showReplyForm}
                         <CommentForm
                             {owner}
                             {repo}
                             {prNumber}
-                            replyToId={topLevelComments[0].id}
+                            replyToId={threadState.topLevelComments[0].id}
                             placeholder="Add a reply..."
-                            onCancel={() => (showReplyForm = false)}
-                            onSubmit={handleReplyAdded}
+                            onCancel={() => (threadState.showReplyForm = false)}
+                            onSubmit={threadState.handleReplyAdded}
                         />
                     {:else}
-                        <button class="show-reply-form-button" onclick={() => (showReplyForm = true)}> Reply </button>
+                        <button class="show-reply-form-button" onclick={() => (threadState.showReplyForm = true)}> Reply </button>
                     {/if}
                 </div>
             {/if}

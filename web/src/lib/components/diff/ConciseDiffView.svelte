@@ -80,9 +80,10 @@
     let showNewCommentForm = $state<string | null>(null); // "line:side" format
 
     // Multiline comment selection state
+    // Note: GitHub API requires multiline comments to be within the same hunk, so we track hunkIndex
     let isSelecting = $state(false);
-    let selectionStart = $state<{ line: PatchLine; side: "LEFT" | "RIGHT" } | null>(null);
-    let selectionEnd = $state<{ line: PatchLine; side: "LEFT" | "RIGHT" } | null>(null);
+    let selectionStart = $state<{ line: PatchLine; side: "LEFT" | "RIGHT"; hunkIndex: number } | null>(null);
+    let selectionEnd = $state<{ line: PatchLine; side: "LEFT" | "RIGHT"; hunkIndex: number } | null>(null);
     let isDragging = $state(false);
     let dragThreshold = 5; // pixels
     let dragStartPosition = $state<{ x: number; y: number } | null>(null);
@@ -167,7 +168,7 @@
     }
 
     // Mouse event handlers for drag selection
-    function handleMouseDown(event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT") {
+    function handleMouseDown(event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT", hunkIndex: number) {
         if (!canAddComments || line.type === PatchLineType.HEADER) return;
 
         const lineNum = getLineNumber(line, side);
@@ -178,15 +179,20 @@
 
         isSelecting = true;
         isDragging = false; // Don't set to true until we actually start dragging
-        selectionStart = { line, side };
-        selectionEnd = { line, side };
+        selectionStart = { line, side, hunkIndex };
+        selectionEnd = { line, side, hunkIndex };
     }
 
-    function handleMouseMove(event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT") {
+    function handleMouseMove(event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT", hunkIndex: number) {
         if (!isSelecting || !canAddComments || line.type === PatchLineType.HEADER) return;
 
         const lineNum = getLineNumber(line, side);
         if (lineNum === undefined) return;
+
+        // Don't allow selection across different hunks
+        if (selectionStart && selectionStart.hunkIndex !== hunkIndex) {
+            return;
+        }
 
         // Check if we've moved far enough to start dragging
         if (!isDragging && dragStartPosition) {
@@ -201,7 +207,7 @@
         }
 
         if (isDragging) {
-            selectionEnd = { line, side };
+            selectionEnd = { line, side, hunkIndex };
         }
     }
 
@@ -316,8 +322,11 @@
         return segments;
     });
 
-    function isLineInSelection(line: PatchLine, side: "LEFT" | "RIGHT"): boolean {
+    function isLineInSelection(line: PatchLine, side: "LEFT" | "RIGHT", hunkIndex: number): boolean {
         if (!selectionStart || !selectionEnd) return false;
+
+        // Only lines in the same hunk as the selection can be selected
+        if (selectionStart.hunkIndex !== hunkIndex) return false;
 
         const lineNum = getLineNumber(line, side);
         if (lineNum === undefined) return false;
@@ -435,18 +444,18 @@
     {/await}
 {/snippet}
 
-{#snippet commentButton(line: PatchLine, side: "LEFT" | "RIGHT")}
+{#snippet commentButton(line: PatchLine, side: "LEFT" | "RIGHT", hunkIndex: number)}
     {@const lineKey = getLineKey(line, side)}
     {@const lineNum = getLineNumber(line, side)}
-    {@const isSelected = isLineInSelection(line, side)}
+    {@const isSelected = isLineInSelection(line, side, hunkIndex)}
     {#if canAddComments && lineNum !== undefined && line.type !== PatchLineType.HEADER}
         <button
             class="comment-button"
             aria-label="Add comment"
             class:visible={hoveredLineKey === lineKey || isSelected}
             class:selected={isSelected}
-            onmousedown={(e) => handleMouseDown(e, line, side)}
-            onmousemove={(e) => handleMouseMove(e, line, side)}
+            onmousedown={(e) => handleMouseDown(e, line, side, hunkIndex)}
+            onmousemove={(e) => handleMouseMove(e, line, side, hunkIndex)}
             onclick={(e) => handleClick(e, line, side)}
             title={isSelected ? "Add multiline comment" : "Add comment"}
         >
@@ -459,8 +468,8 @@
     {@const lineType = patchLineTypeProps[line.type]}
     {@const leftLineKey = getLineKey(line, "LEFT")}
     {@const rightLineKey = getLineKey(line, "RIGHT")}
-    {@const leftSelected = isLineInSelection(line, "LEFT")}
-    {@const rightSelected = isLineInSelection(line, "RIGHT")}
+    {@const leftSelected = isLineInSelection(line, "LEFT", hunkIndex)}
+    {@const rightSelected = isLineInSelection(line, "RIGHT", hunkIndex)}
     <div
         class="line-cell relative bg-[var(--hunk-header-bg)]"
         class:line-selected={leftSelected}
@@ -471,7 +480,7 @@
         tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
-        {@render commentButton(line, "LEFT")}
+        {@render commentButton(line, "LEFT", hunkIndex)}
     </div>
     <div
         class="line-cell relative bg-[var(--hunk-header-bg)]"
@@ -483,7 +492,7 @@
         tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.newLineNo)}</div>
-        {@render commentButton(line, "RIGHT")}
+        {@render commentButton(line, "RIGHT", hunkIndex)}
     </div>
     <div class="w-full pl-[1rem] {lineType.classes}" class:line-selected={leftSelected || rightSelected}>
         {@render lineContentWrapper(line, hunkIndex, lineIndex, lineType, innerPatchLineTypeProps[line.innerPatchLineType])}

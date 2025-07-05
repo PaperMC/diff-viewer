@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { GithubPRComment } from "$lib/github.svelte";
     import { formatDistance } from "date-fns";
-    import { getGithubUsername, getGithubToken, updateGithubPRComment, deleteGithubPRComment } from "$lib/github.svelte";
+    import { CommentDisplayState } from "./comment-state.svelte";
 
     interface Props {
         comment: GithubPRComment;
@@ -14,93 +14,11 @@
 
     let { comment, isReply = false, owner, repo, onCommentUpdated, onCommentDeleted }: Props = $props();
 
-    let isEditing = $state(false);
-    let editText = $state("");
-    let isSubmitting = $state(false);
-    let error = $state<string | null>(null);
-    let isDeleting = $state(false);
-
-    const currentUser = $derived(getGithubUsername());
-    const hasToken = $derived(!!getGithubToken());
-    const canEdit = $derived(hasToken && currentUser === comment.user.login);
-    const canDelete = $derived(hasToken && currentUser === comment.user.login);
+    const displayState = new CommentDisplayState(comment, owner, repo, onCommentUpdated, onCommentDeleted);
 
     function formatTimestamp(dateString: string): string {
         const date = new Date(dateString);
         return formatDistance(date, new Date(), { addSuffix: true });
-    }
-
-    function startEdit() {
-        isEditing = true;
-        editText = comment.body;
-        error = null;
-    }
-
-    function cancelEdit() {
-        isEditing = false;
-        editText = "";
-        error = null;
-    }
-
-    async function saveEdit() {
-        if (!editText.trim()) {
-            error = "Comment cannot be empty";
-            return;
-        }
-
-        const token = getGithubToken();
-        if (!token) {
-            error = "Authentication required to edit comments";
-            return;
-        }
-
-        isSubmitting = true;
-        error = null;
-
-        try {
-            const updatedComment = await updateGithubPRComment(token, owner, repo, comment.id, editText.trim());
-            onCommentUpdated?.(updatedComment);
-            isEditing = false;
-            editText = "";
-        } catch (err) {
-            error = err instanceof Error ? err.message : "Failed to update comment";
-        } finally {
-            isSubmitting = false;
-        }
-    }
-
-    async function deleteComment() {
-        if (!confirm("Are you sure you want to delete this comment?")) {
-            return;
-        }
-
-        const token = getGithubToken();
-        if (!token) {
-            error = "Authentication required to delete comments";
-            return;
-        }
-
-        isDeleting = true;
-        error = null;
-
-        try {
-            await deleteGithubPRComment(token, owner, repo, comment.id);
-            onCommentDeleted?.(comment.id);
-        } catch (err) {
-            error = err instanceof Error ? err.message : "Failed to delete comment";
-        } finally {
-            isDeleting = false;
-        }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault();
-            saveEdit();
-        }
-        if (event.key === "Escape") {
-            cancelEdit();
-        }
     }
 </script>
 
@@ -125,16 +43,16 @@
             {/if}
         </div>
 
-        {#if (canEdit || canDelete) && !isEditing}
+        {#if (displayState.canEdit || displayState.canDelete) && !displayState.isEditing}
             <div class="comment-actions">
-                {#if canEdit}
-                    <button class="action-button edit-button" aria-label="Edit" onclick={startEdit} disabled={isDeleting}>
+                {#if displayState.canEdit}
+                    <button class="action-button edit-button" aria-label="Edit" onclick={displayState.startEdit} disabled={displayState.isDeleting}>
                         <span class="iconify octicon--pencil-16"></span>
                     </button>
                 {/if}
-                {#if canDelete}
-                    <button class="action-button delete-button" aria-label="Delete" onclick={deleteComment} disabled={isDeleting}>
-                        {#if isDeleting}
+                {#if displayState.canDelete}
+                    <button class="action-button delete-button" aria-label="Delete" onclick={displayState.deleteComment} disabled={displayState.isDeleting}>
+                        {#if displayState.isDeleting}
                             <span class="spinning iconify octicon--sync-16"></span>
                         {:else}
                             <span class="iconify octicon--trash-16"></span>
@@ -145,24 +63,24 @@
         {/if}
     </div>
 
-    {#if error}
+    {#if displayState.error}
         <div class="error-message">
-            {error}
+            {displayState.error}
         </div>
     {/if}
 
-    {#if isEditing}
+    {#if displayState.isEditing}
         <div class="edit-form">
-            <textarea bind:value={editText} class="edit-textarea" rows="3" disabled={isSubmitting} onkeydown={handleKeyDown}></textarea>
+            <textarea bind:value={displayState.editText} class="edit-textarea" rows="3" disabled={displayState.isSubmitting} onkeydown={displayState.handleKeyDown}></textarea>
             <div class="edit-actions">
                 <div class="edit-hint">
                     <span class="iconify octicon--info-16"></span>
                     Use Cmd/Ctrl + Enter to save, Escape to cancel
                 </div>
                 <div class="button-group">
-                    <button class="cancel-button" onclick={cancelEdit} disabled={isSubmitting}> Cancel </button>
-                    <button class="save-button" onclick={saveEdit} disabled={isSubmitting || !editText.trim()}>
-                        {#if isSubmitting}
+                    <button class="cancel-button" onclick={displayState.cancelEdit} disabled={displayState.isSubmitting}> Cancel </button>
+                    <button class="save-button" onclick={displayState.saveEdit} disabled={displayState.isSubmitting || !displayState.editText.trim()}>
+                        {#if displayState.isSubmitting}
                             <span class="spinning iconify octicon--sync-16"></span>
                             Saving...
                         {:else}

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { createGithubPRComment, replyToGithubPRComment, getGithubToken, type GithubPRComment } from "$lib/github.svelte";
+    import { CommentFormState, type CommentFormProps } from "./comment-state.svelte";
+    import type { GithubPRComment } from "$lib/github.svelte";
 
     interface Props {
         owner: string;
@@ -31,115 +32,39 @@
         onCancel,
     }: Props = $props();
 
-    let commentText = $state("");
-    let isSubmitting = $state(false);
-    let error = $state<string | null>(null);
+    const formProps: CommentFormProps = {
+        owner,
+        repo,
+        prNumber,
+        path,
+        line,
+        side,
+        startLine,
+        startSide,
+        replyToId,
+        placeholder,
+    };
 
-    const canSubmit = $derived(commentText.trim().length > 0 && !isSubmitting);
-    const isReply = $derived(!!replyToId);
-    const isMultilineComment = $derived(!isReply && startLine !== undefined && startSide !== undefined && startLine !== line);
-
-    // Ensure correct line ordering for GitHub API
-    const orderedLines = $derived.by(() => {
-        if (!isMultilineComment || startLine === undefined || startSide === undefined || line === undefined) {
-            return { startLine, startSide, endLine: line, endSide: side };
-        }
-
-        // GitHub API requires start_line < line
-        if (startLine < line) {
-            return { startLine, startSide, endLine: line, endSide: side };
-        } else if (startLine > line) {
-            return { startLine: line, startSide: side, endLine: startLine, endSide: startSide };
-        } else {
-            // Same line number - order by side (LEFT before RIGHT)
-            if (startSide === "LEFT" && side === "RIGHT") {
-                return { startLine, startSide, endLine: line, endSide: side };
-            } else {
-                return { startLine: line, startSide: side, endLine: startLine, endSide: startSide };
-            }
-        }
-    });
-
-    async function handleSubmit() {
-        if (!canSubmit) return;
-
-        const token = getGithubToken();
-        if (!token) {
-            error = "Authentication required to post comments";
-            return;
-        }
-
-        isSubmitting = true;
-        error = null;
-
-        try {
-            let comment: GithubPRComment;
-
-            if (isReply) {
-                comment = await replyToGithubPRComment(token, owner, repo, prNumber, replyToId!, commentText.trim());
-            } else {
-                if (!path || line === undefined || !side) {
-                    throw new Error("Path, line, and side are required for new comments");
-                }
-
-                if (orderedLines.endLine === undefined) {
-                    throw new Error("End line is required for new comments");
-                }
-
-                comment = await createGithubPRComment(
-                    token,
-                    owner,
-                    repo,
-                    prNumber,
-                    commentText.trim(),
-                    path,
-                    orderedLines.endLine,
-                    orderedLines.endSide,
-                    orderedLines.startLine,
-                    orderedLines.startSide,
-                );
-            }
-
-            commentText = "";
-            onSubmit?.(comment);
-        } catch (err) {
-            error = err instanceof Error ? err.message : "Failed to post comment";
-        } finally {
-            isSubmitting = false;
-        }
-    }
-
-    function handleCancel() {
-        commentText = "";
-        error = null;
-        onCancel?.();
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-        if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-            event.preventDefault();
-            handleSubmit();
-        }
-    }
+    const formState = new CommentFormState(formProps, onSubmit, onCancel);
 </script>
 
 <div class="comment-form">
-    {#if error}
+    {#if formState.error}
         <div class="error-message">
-            {error}
+            {formState.error}
         </div>
     {/if}
 
-    {#if isMultilineComment}
+    {#if formState.isMultilineComment}
         <div class="multiline-indicator">
             <span class="iconify octicon--diff-16"></span>
-            Commenting on lines {orderedLines.startLine}-{orderedLines.endLine} ({orderedLines.startSide === orderedLines.endSide
-                ? orderedLines.endSide
-                : `${orderedLines.startSide} to ${orderedLines.endSide}`})
+            Commenting on lines {formState.orderedLines.startLine}-{formState.orderedLines.endLine} ({formState.orderedLines.startSide === formState.orderedLines.endSide
+                ? formState.orderedLines.endSide
+                : `${formState.orderedLines.startSide} to ${formState.orderedLines.endSide}`})
         </div>
     {/if}
 
-    <textarea bind:value={commentText} {placeholder} rows="3" class="comment-textarea" disabled={isSubmitting} onkeydown={handleKeyDown}></textarea>
+    <textarea bind:value={formState.text} {placeholder} rows="3" class="comment-textarea" disabled={formState.isSubmitting} onkeydown={formState.handleKeyDown}></textarea>
 
     <div class="form-actions">
         <div class="form-hint">
@@ -149,15 +74,15 @@
 
         <div class="button-group">
             {#if onCancel}
-                <button type="button" class="cancel-button" onclick={handleCancel} disabled={isSubmitting}> Cancel </button>
+                <button type="button" class="cancel-button" onclick={formState.cancel} disabled={formState.isSubmitting}> Cancel </button>
             {/if}
 
-            <button type="button" class="submit-button" onclick={handleSubmit} disabled={!canSubmit}>
-                {#if isSubmitting}
+            <button type="button" class="submit-button" onclick={formState.submit} disabled={!formState.canSubmit}>
+                {#if formState.isSubmitting}
                     <span class="spinning iconify octicon--sync-16"></span>
-                    {isReply ? "Replying..." : "Commenting..."}
+                    {formState.isReply ? "Replying..." : "Commenting..."}
                 {:else}
-                    {isReply ? "Reply" : "Comment"}
+                    {formState.isReply ? "Reply" : "Comment"}
                 {/if}
             </button>
         </div>
