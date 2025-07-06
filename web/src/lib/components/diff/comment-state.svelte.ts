@@ -1,6 +1,13 @@
-import { type GithubPRComment, getGithubToken, getGithubUsername, createGithubPRComment, replyToGithubPRComment, updateGithubPRComment, deleteGithubPRComment } from "$lib/github.svelte";
+import {
+    type GithubPRComment,
+    getGithubToken,
+    getGithubUsername,
+    createGithubPRComment,
+    replyToGithubPRComment,
+    updateGithubPRComment,
+    deleteGithubPRComment,
+} from "$lib/github.svelte";
 import type { CommentThread } from "$lib/diff-viewer-multi-file.svelte";
-import type { PatchLine } from "$lib/components/diff/concise-diff-view.svelte";
 
 export interface CommentFormProps {
     owner: string;
@@ -27,10 +34,7 @@ export class CommentFormState {
     readonly canSubmit = $derived(this.text.trim().length > 0 && !this.isSubmitting);
     readonly isReply = $derived(!!this.props.replyToId);
     readonly isMultilineComment = $derived(
-        !this.isReply && 
-        this.props.startLine !== undefined && 
-        this.props.startSide !== undefined && 
-        this.props.startLine !== this.props.line
+        !this.isReply && this.props.startLine !== undefined && this.props.startSide !== undefined && this.props.startLine !== this.props.line,
     );
 
     constructor(props: CommentFormProps, onSubmit?: (comment: GithubPRComment) => void, onCancel?: () => void) {
@@ -42,44 +46,44 @@ export class CommentFormState {
     // Ensure correct line ordering for GitHub API
     readonly orderedLines = $derived.by(() => {
         if (!this.isMultilineComment || this.props.startLine === undefined || this.props.startSide === undefined || this.props.line === undefined) {
-            return { 
-                startLine: this.props.startLine, 
-                startSide: this.props.startSide, 
-                endLine: this.props.line, 
-                endSide: this.props.side 
+            return {
+                startLine: this.props.startLine,
+                startSide: this.props.startSide,
+                endLine: this.props.line,
+                endSide: this.props.side,
             };
         }
 
         // GitHub API requires start_line < line
         if (this.props.startLine < this.props.line) {
-            return { 
-                startLine: this.props.startLine, 
-                startSide: this.props.startSide, 
-                endLine: this.props.line, 
-                endSide: this.props.side 
+            return {
+                startLine: this.props.startLine,
+                startSide: this.props.startSide,
+                endLine: this.props.line,
+                endSide: this.props.side,
             };
         } else if (this.props.startLine > this.props.line) {
-            return { 
-                startLine: this.props.line, 
-                startSide: this.props.side, 
-                endLine: this.props.startLine, 
-                endSide: this.props.startSide 
+            return {
+                startLine: this.props.line,
+                startSide: this.props.side,
+                endLine: this.props.startLine,
+                endSide: this.props.startSide,
             };
         } else {
             // Same line number - order by side (LEFT before RIGHT)
             if (this.props.startSide === "LEFT" && this.props.side === "RIGHT") {
-                return { 
-                    startLine: this.props.startLine, 
-                    startSide: this.props.startSide, 
-                    endLine: this.props.line, 
-                    endSide: this.props.side 
+                return {
+                    startLine: this.props.startLine,
+                    startSide: this.props.startSide,
+                    endLine: this.props.line,
+                    endSide: this.props.side,
                 };
             } else {
-                return { 
-                    startLine: this.props.line, 
-                    startSide: this.props.side, 
-                    endLine: this.props.startLine, 
-                    endSide: this.props.startSide 
+                return {
+                    startLine: this.props.line,
+                    startSide: this.props.side,
+                    endLine: this.props.startLine,
+                    endSide: this.props.startSide,
                 };
             }
         }
@@ -101,14 +105,7 @@ export class CommentFormState {
             let comment: GithubPRComment;
 
             if (this.isReply) {
-                comment = await replyToGithubPRComment(
-                    token, 
-                    this.props.owner, 
-                    this.props.repo, 
-                    this.props.prNumber, 
-                    this.props.replyToId!, 
-                    this.text.trim()
-                );
+                comment = await replyToGithubPRComment(token, this.props.owner, this.props.repo, this.props.prNumber, this.props.replyToId!, this.text.trim());
             } else {
                 if (!this.props.path || this.props.line === undefined || !this.props.side) {
                     throw new Error("Path, line, and side are required for new comments");
@@ -189,7 +186,7 @@ export class CommentDisplayState {
         owner: string,
         repo: string,
         onUpdated?: (comment: GithubPRComment) => void,
-        onDeleted?: (commentId: number) => void
+        onDeleted?: (commentId: number) => void,
     ) {
         this.comment = comment;
         this.owner = owner;
@@ -226,13 +223,7 @@ export class CommentDisplayState {
         this.error = null;
 
         try {
-            const updatedComment = await updateGithubPRComment(
-                token, 
-                this.owner, 
-                this.repo, 
-                this.comment.id, 
-                this.editText.trim()
-            );
+            const updatedComment = await updateGithubPRComment(token, this.owner, this.repo, this.comment.id, this.editText.trim());
             this.onUpdated?.(updatedComment);
             this.isEditing = false;
             this.editText = "";
@@ -288,14 +279,14 @@ export class CommentThreadState {
     private readonly onCommentDeleted?: (commentId: number) => void;
 
     readonly hasToken = $derived(!!getGithubToken());
-    readonly topLevelComments = $derived(this.thread.comments.filter(comment => !comment.in_reply_to_id));
-    readonly replies = $derived(this.thread.comments.filter(comment => comment.in_reply_to_id));
+    readonly topLevelComments = $derived(this.thread.comments.filter((comment) => !comment.in_reply_to_id));
+    readonly replies = $derived(this.thread.comments.filter((comment) => comment.in_reply_to_id));
 
     constructor(
         thread: CommentThread,
         onCommentAdded?: (comment: GithubPRComment) => void,
         onCommentUpdated?: (comment: GithubPRComment) => void,
-        onCommentDeleted?: (commentId: number) => void
+        onCommentDeleted?: (commentId: number) => void,
     ) {
         this.thread = thread;
         this.collapsed = thread.collapsed;
@@ -306,10 +297,7 @@ export class CommentThreadState {
 
     readonly isMultilineThread = $derived.by(() => {
         const firstComment = this.topLevelComments[0];
-        return firstComment && 
-               firstComment.start_line !== undefined && 
-               firstComment.start_line !== null && 
-               firstComment.start_line !== firstComment.line;
+        return firstComment && firstComment.start_line !== undefined && firstComment.start_line !== null && firstComment.start_line !== firstComment.line;
     });
 
     readonly lineRangeDisplay = $derived.by(() => {
@@ -359,199 +347,3 @@ export class CommentThreadState {
         this.onCommentDeleted?.(commentId);
     };
 }
-
-export interface LineSelection {
-    line: PatchLine;
-    side: "LEFT" | "RIGHT";
-}
-
-export class CommentSelectionState {
-    isSelecting: boolean = $state(false);
-    selectionStart: LineSelection | null = $state(null);
-    selectionEnd: LineSelection | null = $state(null);
-    isDragging: boolean = $state(false);
-    dragStartPosition: { x: number; y: number } | null = $state(null);
-    showNewCommentForm: string | null = $state(null); // "line:side" format
-    hoveredLineKey: string | null = $state(null);
-
-    private readonly dragThreshold = 5; // pixels
-    private readonly canAddComments: boolean;
-    private readonly getLineNumber: (line: PatchLine, side: "LEFT" | "RIGHT") => number | undefined;
-    private readonly getLineKey: (line: PatchLine, side: "LEFT" | "RIGHT") => string;
-
-    constructor(
-        canAddComments: boolean,
-        getLineNumber: (line: PatchLine, side: "LEFT" | "RIGHT") => number | undefined,
-        getLineKey: (line: PatchLine, side: "LEFT" | "RIGHT") => string
-    ) {
-        this.canAddComments = canAddComments;
-        this.getLineNumber = getLineNumber;
-        this.getLineKey = getLineKey;
-    }
-
-    handleMouseDown = (event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT"): void => {
-        if (!this.canAddComments) return;
-
-        const lineNum = this.getLineNumber(line, side);
-        if (lineNum === undefined) return;
-
-        this.dragStartPosition = { x: event.clientX, y: event.clientY };
-        this.isSelecting = true;
-        this.isDragging = false;
-        this.selectionStart = { line, side };
-        this.selectionEnd = { line, side };
-    };
-
-    handleMouseMove = (event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT"): void => {
-        if (!this.isSelecting || !this.canAddComments) return;
-
-        const lineNum = this.getLineNumber(line, side);
-        if (lineNum === undefined) return;
-
-        if (!this.isDragging && this.dragStartPosition) {
-            const dx = event.clientX - this.dragStartPosition.x;
-            const dy = event.clientY - this.dragStartPosition.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance > this.dragThreshold) {
-                this.isDragging = true;
-                event.preventDefault();
-            }
-        }
-
-        if (this.isDragging) {
-            this.selectionEnd = { line, side };
-        }
-    };
-
-    handleMouseUp = (): void => {
-        if (!this.isSelecting) return;
-
-        if (this.isDragging && this.selectionStart && this.selectionEnd) {
-            const hasMultilineSelection = this.selectionStart.line !== this.selectionEnd.line || 
-                                         this.selectionStart.side !== this.selectionEnd.side;
-            
-            if (hasMultilineSelection) {
-                const startLineNum = this.getLineNumber(this.selectionStart.line, this.selectionStart.side);
-                const endLineNum = this.getLineNumber(this.selectionEnd.line, this.selectionEnd.side);
-
-                if (startLineNum !== undefined && endLineNum !== undefined) {
-                    // Ensure proper order
-                    if (startLineNum > endLineNum || 
-                        (startLineNum === endLineNum && this.selectionStart.side === "RIGHT" && this.selectionEnd.side === "LEFT")) {
-                        const temp = this.selectionStart;
-                        this.selectionStart = this.selectionEnd;
-                        this.selectionEnd = temp;
-                    }
-
-                    this.showNewCommentForm = this.getLineKey(this.selectionEnd.line, this.selectionEnd.side);
-                    this.isSelecting = false;
-                    this.isDragging = false;
-                    this.dragStartPosition = null;
-                    return;
-                }
-            }
-        }
-
-        this.clearSelection();
-    };
-
-    handleClick = (event: MouseEvent, line: PatchLine, side: "LEFT" | "RIGHT"): void => {
-        if (this.isDragging) {
-            event.preventDefault();
-            return;
-        }
-
-        if (this.selectionStart && this.selectionEnd && 
-            (this.selectionStart.line !== this.selectionEnd.line || this.selectionStart.side !== this.selectionEnd.side)) {
-            event.preventDefault();
-            return;
-        }
-
-        this.handleAddComment(line, side);
-    };
-
-    handleAddComment = (line: PatchLine, side: "LEFT" | "RIGHT"): void => {
-        const lineKey = this.getLineKey(line, side);
-
-        if (this.showNewCommentForm && this.showNewCommentForm !== lineKey) {
-            this.showNewCommentForm = lineKey;
-            this.clearSelection();
-            return;
-        }
-
-        if (this.selectionStart && this.selectionEnd && 
-            (this.selectionStart.line !== this.selectionEnd.line || this.selectionStart.side !== this.selectionEnd.side)) {
-            const startLineNum = this.getLineNumber(this.selectionStart.line, this.selectionStart.side);
-            const endLineNum = this.getLineNumber(this.selectionEnd.line, this.selectionEnd.side);
-
-            if (startLineNum !== undefined && endLineNum !== undefined) {
-                if (startLineNum > endLineNum || 
-                    (startLineNum === endLineNum && this.selectionStart.side === "RIGHT" && this.selectionEnd.side === "LEFT")) {
-                    const temp = this.selectionStart;
-                    this.selectionStart = this.selectionEnd;
-                    this.selectionEnd = temp;
-                }
-
-                this.showNewCommentForm = this.getLineKey(this.selectionEnd.line, this.selectionEnd.side);
-                this.clearSelection();
-                return;
-            }
-        }
-
-        this.showNewCommentForm = lineKey;
-        this.clearSelection();
-    };
-
-    isLineInSelection(line: PatchLine, side: "LEFT" | "RIGHT"): boolean {
-        if (!this.selectionStart || !this.selectionEnd) return false;
-
-        const lineNum = this.getLineNumber(line, side);
-        if (lineNum === undefined) return false;
-
-        const startLineNum = this.getLineNumber(this.selectionStart.line, this.selectionStart.side);
-        const endLineNum = this.getLineNumber(this.selectionEnd.line, this.selectionEnd.side);
-
-        if (startLineNum === undefined || endLineNum === undefined) return false;
-
-        let actualStartLineNum = startLineNum;
-        let actualEndLineNum = endLineNum;
-        let actualStartSide = this.selectionStart.side;
-        let actualEndSide = this.selectionEnd.side;
-
-        if (startLineNum > endLineNum || 
-            (startLineNum === endLineNum && this.selectionStart.side === "RIGHT" && this.selectionEnd.side === "LEFT")) {
-            actualStartLineNum = endLineNum;
-            actualEndLineNum = startLineNum;
-            actualStartSide = this.selectionEnd.side;
-            actualEndSide = this.selectionStart.side;
-        }
-
-        if (actualStartSide === actualEndSide && side === actualStartSide) {
-            return lineNum >= actualStartLineNum && lineNum <= actualEndLineNum;
-        }
-
-        if (actualStartSide !== actualEndSide) {
-            if (side === actualStartSide) {
-                return lineNum >= actualStartLineNum;
-            } else if (side === actualEndSide) {
-                return lineNum <= actualEndLineNum;
-            }
-        }
-
-        return false;
-    }
-
-    clearSelection = (): void => {
-        this.isSelecting = false;
-        this.selectionStart = null;
-        this.selectionEnd = null;
-        this.isDragging = false;
-        this.dragStartPosition = null;
-    };
-
-    cancelCommentForm = (): void => {
-        this.showNewCommentForm = null;
-        this.clearSelection();
-    };
-} 

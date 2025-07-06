@@ -2,6 +2,7 @@
     import type { GithubPRComment } from "$lib/github.svelte";
     import { formatDistance } from "date-fns";
     import { CommentDisplayState } from "./comment-state.svelte";
+    import MarkdownRenderer from "./MarkdownRenderer.svelte";
 
     interface Props {
         comment: GithubPRComment;
@@ -10,9 +11,11 @@
         repo: string;
         onCommentUpdated?: (comment: GithubPRComment) => void;
         onCommentDeleted?: (commentId: number) => void;
+        originalContentForSuggestion?: string;
+        startLine?: number;
     }
 
-    let { comment, isReply = false, owner, repo, onCommentUpdated, onCommentDeleted }: Props = $props();
+    let { comment, isReply = false, owner, repo, onCommentUpdated, onCommentDeleted, originalContentForSuggestion, startLine }: Props = $props();
 
     const displayState = new CommentDisplayState(comment, owner, repo, onCommentUpdated, onCommentDeleted);
 
@@ -71,7 +74,13 @@
 
     {#if displayState.isEditing}
         <div class="edit-form">
-            <textarea bind:value={displayState.editText} class="edit-textarea" rows="3" disabled={displayState.isSubmitting} onkeydown={displayState.handleKeyDown}></textarea>
+            <textarea
+                bind:value={displayState.editText}
+                class="edit-textarea"
+                rows="3"
+                disabled={displayState.isSubmitting}
+                onkeydown={displayState.handleKeyDown}
+            ></textarea>
             <div class="edit-actions">
                 <div class="edit-hint">
                     <span class="iconify octicon--info-16"></span>
@@ -92,7 +101,7 @@
         </div>
     {:else}
         <div class="comment-body">
-            <p>{comment.body}</p>
+            <MarkdownRenderer content={comment.body} originalContentForSuggestion={originalContentForSuggestion ?? ""} {startLine} />
         </div>
     {/if}
 </div>
@@ -305,13 +314,6 @@
 
     .comment-body {
         margin-bottom: 4px;
-    }
-
-    .comment-body p {
-        margin: 0;
-        line-height: 1.2;
-        white-space: pre-wrap;
-        font-size: 0.75rem;
     }
 
     .github-link {

@@ -13,11 +13,22 @@
         onCommentAdded?: (comment: GithubPRComment) => void;
         onCommentUpdated?: (comment: GithubPRComment) => void;
         onCommentDeleted?: (commentId: number) => void;
+        originalContentForSuggestion?: string;
     }
 
-    let { thread, owner, repo, prNumber, onCommentAdded, onCommentUpdated, onCommentDeleted }: Props = $props();
+    let { thread, owner, repo, prNumber, onCommentAdded, onCommentUpdated, onCommentDeleted, originalContentForSuggestion }: Props = $props();
 
     const threadState = new CommentThreadState(thread, onCommentAdded, onCommentUpdated, onCommentDeleted);
+
+    // Calculate the starting line for suggestions based on the thread's position
+    // For multiline comments, use the start_line; for single-line comments, use the thread's position line
+    const startLine = $derived.by(() => {
+        const firstComment = threadState.topLevelComments[0];
+        if (firstComment && firstComment.start_line !== undefined && firstComment.start_line !== null) {
+            return firstComment.start_line;
+        }
+        return thread.position.line;
+    });
 </script>
 
 <div class="comment-thread">
@@ -33,12 +44,19 @@
             {thread.position.path}:{threadState.lineRangeDisplay} ({threadState.sideDisplay})
         </div>
     </div>
-
     {#if !threadState.collapsed}
         <div class="thread-content">
             <!-- Top-level comments -->
             {#each threadState.topLevelComments as comment (comment.id)}
-                <CommentDisplay {comment} {owner} {repo} onCommentUpdated={threadState.handleCommentUpdated} onCommentDeleted={threadState.handleCommentDeleted} />
+                <CommentDisplay
+                    {comment}
+                    {owner}
+                    {repo}
+                    onCommentUpdated={threadState.handleCommentUpdated}
+                    onCommentDeleted={threadState.handleCommentDeleted}
+                    {originalContentForSuggestion}
+                    {startLine}
+                />
             {/each}
 
             <!-- Replies -->
@@ -55,6 +73,8 @@
                             {repo}
                             onCommentUpdated={threadState.handleCommentUpdated}
                             onCommentDeleted={threadState.handleCommentDeleted}
+                            {originalContentForSuggestion}
+                            {startLine}
                         />
                     {/each}
                 </div>

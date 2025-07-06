@@ -11,6 +11,8 @@
         type PatchLineTypeProps,
         patchLineTypeProps,
         type SearchSegment,
+        type DiffViewerPatch,
+        type DiffViewerPatchHunk,
     } from "$lib/components/diff/concise-diff-view.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import CommentThread from "./CommentThread.svelte";
@@ -18,7 +20,7 @@
     import type { CommentThread as CommentThreadType } from "$lib/diff-viewer-multi-file.svelte";
     import { getGithubToken, type GithubPRComment } from "$lib/github.svelte";
     import { type StructuredPatch } from "diff";
-    import { onDestroy } from "svelte";
+    import { onDestroy, setContext } from "svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
 
@@ -55,6 +57,13 @@
         repo?: string;
         prNumber?: string;
     } = $props();
+
+    setContext("diff-settings", {
+        syntaxHighlighting,
+        syntaxHighlightingTheme,
+        wordDiffs,
+        lineWrap,
+    });
 
     const parsedPatch: Promise<StructuredPatch> = $derived.by(async () => {
         if (rawPatchContent !== undefined) {
@@ -106,6 +115,34 @@
 
     function getLineNumber(line: PatchLine, side: "LEFT" | "RIGHT"): number | undefined {
         return side === "LEFT" ? line.oldLineNo : line.newLineNo;
+    }
+
+    function getOriginalContentForThread(thread: CommentThreadType, hunk: DiffViewerPatchHunk): string {
+        const firstComment = thread.comments[0];
+        if (!firstComment) return "";
+
+        const isMultiline = firstComment.start_line !== undefined && firstComment.start_line !== null && firstComment.start_line !== firstComment.line;
+
+        const startLine = isMultiline ? firstComment.start_line! : thread.position.line;
+        const endLine = thread.position.line;
+
+        const selectedLinesContent: string[] = [];
+
+        for (const line of hunk.lines) {
+            if (line.type === PatchLineType.ADD || line.type === PatchLineType.CONTEXT) {
+                const lineNum = line.newLineNo;
+                if (lineNum !== undefined && lineNum >= startLine && lineNum <= endLine) {
+                    const content = extractLineContent(line);
+                    selectedLinesContent.push(content);
+                }
+            }
+        }
+
+        return selectedLinesContent.join("\n");
+    }
+
+    function extractLineContent(line: PatchLine): string {
+        return line.content.map((segment) => segment.text || "").join("");
     }
 
     function handleAddComment(line: PatchLine, side: "LEFT" | "RIGHT") {
@@ -336,6 +373,11 @@
 
         if (startLineNum === undefined || endLineNum === undefined) return false;
 
+        // For single line selection (same line and side)
+        if (selectionStart.line === selectionEnd.line && selectionStart.side === selectionEnd.side) {
+            return line === selectionStart.line && side === selectionStart.side;
+        }
+
         // Determine actual start and end (handle both directions)
         let actualStartLineNum = startLineNum;
         let actualEndLineNum = endLineNum;
@@ -355,12 +397,12 @@
             return lineNum >= actualStartLineNum && lineNum <= actualEndLineNum;
         }
 
-        // For cross-side selection (left to right or right to left)
+        // For cross-side selection, only include the exact start and end lines
         if (actualStartSide !== actualEndSide) {
-            if (side === actualStartSide) {
-                return lineNum >= actualStartLineNum;
-            } else if (side === actualEndSide) {
-                return lineNum <= actualEndLineNum;
+            if (side === actualStartSide && line === selectionStart.line) {
+                return true;
+            } else if (side === actualEndSide && line === selectionEnd.line) {
+                return true;
             }
         }
 
@@ -389,6 +431,39 @@
         }
 
         handleAddComment(line, side);
+    }
+
+    function getSelectionInfo(diffViewerPatch: DiffViewerPatch): { content: string; containsDeletedLines: boolean } {
+        if (!selectionStart || !selectionEnd) return { content: "", containsDeletedLines: false };
+
+        let containsDeletedLines = false;
+        const selectedLines: string[] = [];
+        const hunk = diffViewerPatch.hunks[selectionStart.hunkIndex];
+
+        if (hunk) {
+            for (let lineIndex = 0; lineIndex < hunk.lines.length; lineIndex++) {
+                const line = hunk.lines[lineIndex];
+
+                // Skip header and spacer lines
+                if (line.type === PatchLineType.HEADER || line.type === PatchLineType.SPACER) continue;
+
+                // Check if this line is in the selection using the same logic as isLineInSelection
+                if (isLineInSelection(line, "LEFT", selectionStart.hunkIndex) || isLineInSelection(line, "RIGHT", selectionStart.hunkIndex)) {
+                    if (line.type === PatchLineType.REMOVE) {
+                        containsDeletedLines = true;
+                    }
+                    const content = extractLineContent(line);
+                    // Remove diff prefix if present
+                    let cleanContent = content;
+                    if (content.startsWith("+") || content.startsWith("-") || content.startsWith(" ")) {
+                        cleanContent = content.substring(1);
+                    }
+                    selectedLines.push(cleanContent);
+                }
+            }
+        }
+
+        return { content: selectedLines.join("\n"), containsDeletedLines };
     }
 </script>
 
@@ -444,23 +519,59 @@
     {/await}
 {/snippet}
 
-{#snippet commentButton(line: PatchLine, side: "LEFT" | "RIGHT", hunkIndex: number)}
-    {@const lineKey = getLineKey(line, side)}
-    {@const lineNum = getLineNumber(line, side)}
-    {@const isSelected = isLineInSelection(line, side, hunkIndex)}
-    {#if canAddComments && lineNum !== undefined && line.type !== PatchLineType.HEADER}
-        <button
-            class="comment-button"
-            aria-label="Add comment"
-            class:visible={hoveredLineKey === lineKey || isSelected}
-            class:selected={isSelected}
-            onmousedown={(e) => handleMouseDown(e, line, side, hunkIndex)}
-            onmousemove={(e) => handleMouseMove(e, line, side, hunkIndex)}
-            onclick={(e) => handleClick(e, line, side)}
-            title={isSelected ? "Add multiline comment" : "Add comment"}
-        >
-            <span class="iconify octicon--plus-16"></span>
-        </button>
+{#snippet commentButton(line: PatchLine, hunkIndex: number, isRightColumn: boolean)}
+    {@const leftLineKey = getLineKey(line, "LEFT")}
+    {@const rightLineKey = getLineKey(line, "RIGHT")}
+    {@const leftLineNum = getLineNumber(line, "LEFT")}
+    {@const rightLineNum = getLineNumber(line, "RIGHT")}
+    {@const leftSelected = isLineInSelection(line, "LEFT", hunkIndex)}
+    {@const rightSelected = isLineInSelection(line, "RIGHT", hunkIndex)}
+    {@const isThisLineHovered = hoveredLineKey === leftLineKey || hoveredLineKey === rightLineKey}
+
+    {#if canAddComments && (leftLineNum !== undefined || rightLineNum !== undefined) && line.type !== PatchLineType.HEADER}
+        {#if line.type === PatchLineType.REMOVE && isRightColumn}
+            <!-- For deleted lines, show button only on right column and only when this specific line is hovered -->
+            <button
+                class="comment-button"
+                aria-label="Add comment"
+                class:visible={isThisLineHovered || leftSelected}
+                class:selected={leftSelected}
+                onmousedown={(e) => handleMouseDown(e, line, "LEFT", hunkIndex)}
+                onmousemove={(e) => handleMouseMove(e, line, "LEFT", hunkIndex)}
+                onclick={(e) => handleClick(e, line, "LEFT")}
+                title={leftSelected ? "Add multiline comment" : "Add comment"}
+            >
+                <span class="iconify octicon--plus-16"></span>
+            </button>
+        {:else if line.type === PatchLineType.ADD && isRightColumn}
+            <!-- For added lines, show button only on right column -->
+            <button
+                class="comment-button"
+                aria-label="Add comment"
+                class:visible={isThisLineHovered || rightSelected}
+                class:selected={rightSelected}
+                onmousedown={(e) => handleMouseDown(e, line, "RIGHT", hunkIndex)}
+                onmousemove={(e) => handleMouseMove(e, line, "RIGHT", hunkIndex)}
+                onclick={(e) => handleClick(e, line, "RIGHT")}
+                title={rightSelected ? "Add multiline comment" : "Add comment"}
+            >
+                <span class="iconify octicon--plus-16"></span>
+            </button>
+        {:else if line.type === PatchLineType.CONTEXT && isRightColumn}
+            <!-- For context lines, show button only on right column -->
+            <button
+                class="comment-button"
+                aria-label="Add comment"
+                class:visible={isThisLineHovered || rightSelected}
+                class:selected={rightSelected}
+                onmousedown={(e) => handleMouseDown(e, line, "RIGHT", hunkIndex)}
+                onmousemove={(e) => handleMouseMove(e, line, "RIGHT", hunkIndex)}
+                onclick={(e) => handleClick(e, line, "RIGHT")}
+                title={rightSelected ? "Add multiline comment" : "Add comment"}
+            >
+                <span class="iconify octicon--plus-16"></span>
+            </button>
+        {/if}
     {/if}
 {/snippet}
 
@@ -473,33 +584,43 @@
     <div
         class="line-cell relative bg-[var(--hunk-header-bg)]"
         class:line-selected={leftSelected}
-        onmouseenter={() => (hoveredLineKey = leftLineKey)}
+        onmouseenter={() => {
+            if (line.oldLineNo !== undefined) {
+                hoveredLineKey = leftLineKey;
+            }
+        }}
         onmouseleave={() => (hoveredLineKey = null)}
         aria-label="Add comment"
         role="button"
         tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
-        {@render commentButton(line, "LEFT", hunkIndex)}
     </div>
     <div
         class="line-cell relative bg-[var(--hunk-header-bg)]"
         class:line-selected={rightSelected}
-        onmouseenter={() => (hoveredLineKey = rightLineKey)}
+        onmouseenter={() => {
+            if (line.newLineNo !== undefined) {
+                hoveredLineKey = rightLineKey;
+            } else if (line.oldLineNo !== undefined) {
+                // For deleted lines (no right line number), use left line key
+                hoveredLineKey = leftLineKey;
+            }
+        }}
         onmouseleave={() => (hoveredLineKey = null)}
         aria-label="Add comment"
         role="button"
         tabindex="0"
     >
         <div class="line-number select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.newLineNo)}</div>
-        {@render commentButton(line, "RIGHT", hunkIndex)}
+        {@render commentButton(line, hunkIndex, true)}
     </div>
     <div class="w-full pl-[1rem] {lineType.classes}" class:line-selected={leftSelected || rightSelected}>
         {@render lineContentWrapper(line, hunkIndex, lineIndex, lineType, innerPatchLineTypeProps[line.innerPatchLineType])}
     </div>
 {/snippet}
 
-{#snippet renderComments(line: PatchLine)}
+{#snippet renderComments(line: PatchLine, diffViewerPatch: DiffViewerPatch, hunk: DiffViewerPatchHunk)}
     {#if showComments && commentsForLine && filePath}
         {@const leftLineNum = line.oldLineNo}
         {@const rightLineNum = line.newLineNo}
@@ -513,6 +634,7 @@
                 <div class="comment-spacer"></div>
                 <div class="comments-container">
                     {#each allComments as thread (thread.id)}
+                        {@const originalContentForSuggestion = getOriginalContentForThread(thread, hunk)}
                         <CommentThread
                             {thread}
                             owner={owner ?? ""}
@@ -521,6 +643,7 @@
                             onCommentAdded={handleCommentSubmitted}
                             onCommentUpdated={handleCommentUpdated}
                             onCommentDeleted={handleCommentDeleted}
+                            {originalContentForSuggestion}
                         />
                     {/each}
                 </div>
@@ -539,6 +662,20 @@
                     {@const startSide = selectionStart?.side}
                     {@const hasMultilineSelection =
                         selectionStart && selectionEnd && (selectionStart.line !== selectionEnd.line || selectionStart.side !== selectionEnd.side)}
+                    {@const selectionInfo = getSelectionInfo(diffViewerPatch)}
+                    {@const singleLineContent =
+                        !hasMultilineSelection && selectionInfo.content === ""
+                            ? (() => {
+                                  const content = extractLineContent(line);
+                                  // Remove diff prefix if present
+                                  if (content.startsWith("+") || content.startsWith("-") || content.startsWith(" ")) {
+                                      return content.substring(1);
+                                  }
+                                  return content;
+                              })()
+                            : selectionInfo.content}
+                    {@const singleLineIsDeleted = !hasMultilineSelection && line.type === PatchLineType.REMOVE}
+                    {@const shouldDisableSuggestions = selectionInfo.containsDeletedLines || singleLineIsDeleted}
                     <div class="comment-row">
                         <div class="comment-spacer"></div>
                         <div class="comment-spacer"></div>
@@ -552,6 +689,8 @@
                                 side={currentSide}
                                 startLine={hasMultilineSelection ? startLineNum : undefined}
                                 startSide={hasMultilineSelection ? startSide : undefined}
+                                selectedContent={singleLineContent}
+                                disableSuggestions={shouldDisableSuggestions}
                                 onSubmit={handleCommentSubmitted}
                                 onCancel={handleCommentFormCancel}
                             />
@@ -574,7 +713,7 @@
         {#each diffViewerPatch.hunks as hunk, hunkIndex (hunkIndex)}
             {#each hunk.lines as line, lineIndex (lineIndex)}
                 {@render renderLine(line, hunkIndex, lineIndex)}
-                {@render renderComments(line)}
+                {@render renderComments(line, diffViewerPatch, hunk)}
             {/each}
         {/each}
     </div>
@@ -622,7 +761,7 @@
         text-wrap: nowrap;
         position: relative;
         z-index: 0;
-        padding: 0 24px 0 8px;
+        padding: 0 8px 0 8px;
     }
 
     .prefix {
@@ -645,13 +784,13 @@
     }
 
     .line-cell.line-selected {
-        background: var(--color-blue-100) !important;
-        border: 1px solid var(--color-blue-300);
+        background: var(--select-bg, var(--color-blue-100)) !important;
+        border: 1px solid var(--color-primary);
         border-radius: 2px;
     }
 
     .line-selected {
-        background: var(--color-blue-50) !important;
+        background: var(--select-bg, var(--color-blue-50)) !important;
     }
 
     .comment-button {
@@ -687,11 +826,11 @@
     }
 
     .comment-button:hover {
-        background: var(--color-primary-hover);
+        background: var(--color-primary);
     }
 
     .comment-button.selected:hover {
-        background: var(--color-blue-700);
+        background: var(--color-blue-600);
     }
 
     .comment-row {
