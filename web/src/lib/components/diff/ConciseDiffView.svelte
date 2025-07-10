@@ -13,7 +13,6 @@
         type SearchSegment,
     } from "$lib/components/diff/concise-diff-view.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
-    import { type StructuredPatch } from "diff";
     import { onDestroy } from "svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
@@ -33,7 +32,7 @@
         cacheKey,
     }: ConciseDiffViewProps<K> = $props();
 
-    const parsedPatch: Promise<StructuredPatch> = $derived.by(async () => {
+    const parsedPatch = $derived.by(() => {
         if (rawPatchContent !== undefined) {
             return parseSinglePatch(rawPatchContent);
         } else if (patch !== undefined) {

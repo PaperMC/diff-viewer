@@ -1013,7 +1013,7 @@ export function parseSinglePatch(rawPatchContent: string): StructuredPatch {
 
 export interface ConciseDiffViewProps<K> {
     rawPatchContent?: string;
-    patch?: Promise<StructuredPatch>;
+    patch?: StructuredPatch;
 
     syntaxHighlighting?: boolean;
     syntaxHighlightingTheme?: BundledTheme;
@@ -1030,7 +1030,7 @@ export interface ConciseDiffViewProps<K> {
 }
 
 export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
-    patch: Promise<StructuredPatch>;
+    patch: StructuredPatch;
 
     syntaxHighlighting: boolean;
     syntaxHighlightingTheme: BundledTheme | undefined;
