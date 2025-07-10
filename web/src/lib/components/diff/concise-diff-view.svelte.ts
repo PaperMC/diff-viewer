@@ -676,6 +676,19 @@ async function makeHunk(
     return { lines };
 }
 
+export function patchHeaderDiffOnly(patch: StructuredPatch): boolean {
+    if (patch.hunks.length === 0) {
+        return false;
+    }
+    let onlyHeaderChanges = true;
+    for (let j = 0; j < patch.hunks.length; j++) {
+        if (hasNonHeaderChanges(patch.hunks[j].lines)) {
+            onlyHeaderChanges = false;
+        }
+    }
+    return onlyHeaderChanges;
+}
+
 export function hasNonHeaderChanges(contentLines: string[]) {
     for (const line of contentLines) {
         if (lineHasNonHeaderChange(line)) {
