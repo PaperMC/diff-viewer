@@ -28,6 +28,8 @@
             });
         }
     }
+
+    let patchHeaderDiffOnly = $derived(value.type === "text" && value.patchHeaderDiffOnly);
 </script>
 
 {#snippet fileName()}
@@ -101,11 +103,11 @@
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-2">
-        {#if viewer.patchHeaderDiffOnly[index]}
+        {#if patchHeaderDiffOnly}
             <span class="rounded-sm bg-neutral-3 px-1.5">Patch-header-only diff</span>
         {/if}
         {@render actionsPopover()}
-        {#if !viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
+        {#if !patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
             {@render collapseToggle()}
         {/if}
     </div>

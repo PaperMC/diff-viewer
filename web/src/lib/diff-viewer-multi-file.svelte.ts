@@ -4,9 +4,9 @@ import {
     ConciseDiffViewCachedState,
     DEFAULT_THEME_DARK,
     DEFAULT_THEME_LIGHT,
-    hasNonHeaderChanges,
     isNoNewlineAtEofLine,
     parseSinglePatch,
+    patchHeaderDiffOnly,
 } from "$lib/components/diff/concise-diff-view.svelte";
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
@@ -151,6 +151,7 @@ export type CommonFileDetails = {
 export type TextFileDetails = CommonFileDetails & {
     type: "text";
     structuredPatch: StructuredPatch;
+    patchHeaderDiffOnly: boolean;
 };
 
 export type ImageFileDetails = CommonFileDetails & {
@@ -159,12 +160,14 @@ export type ImageFileDetails = CommonFileDetails & {
 };
 
 export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
+    const patch = parseSinglePatch(patchText);
     return {
         type: "text",
         fromFile,
         toFile,
         status,
-        structuredPatch: parseSinglePatch(patchText),
+        structuredPatch: patch,
+        patchHeaderDiffOnly: patchHeaderDiffOnly(patch),
     };
 }
 
@@ -283,30 +286,6 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
     }
 }
 
-export function findHeaderChangeOnlyPatches(fileDetails: FileDetails[]) {
-    const result: boolean[] = [];
-
-    for (const details of fileDetails) {
-        if (details.type !== "text") {
-            result.push(false);
-            continue;
-        }
-        if (details.structuredPatch.hunks.length === 0) {
-            result.push(false);
-            continue;
-        }
-        let onlyHeaderChanges = true;
-        for (let j = 0; j < details.structuredPatch.hunks.length; j++) {
-            if (hasNonHeaderChanges(details.structuredPatch.hunks[j].lines)) {
-                onlyHeaderChanges = false;
-            }
-        }
-        result.push(onlyHeaderChanges);
-    }
-
-    return result;
-}
-
 export type ViewerStatistics = {
     addedLines: number;
     removedLines: number;
@@ -356,14 +335,17 @@ export class MultiFileDiffViewerState {
     readonly filteredFileDetails: FileDetails[] = $derived(
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
-    readonly patchHeaderDiffOnly: boolean[] = $derived(findHeaderChangeOnlyPatches(this.fileDetails));
     readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
 
     private constructor() {
         // Auto-check all patch header diff only diffs
         $effect(() => {
-            for (let i = 0; i < this.patchHeaderDiffOnly.length; i++) {
-                if (this.patchHeaderDiffOnly[i] && this.checked[i] === undefined) {
+            for (let i = 0; i < this.fileDetails.length; i++) {
+                const details = this.fileDetails[i];
+                if (details.type !== "text") {
+                    continue;
+                }
+                if (details.patchHeaderDiffOnly && this.checked[i] === undefined) {
                     this.checked[i] = true;
                 }
             }

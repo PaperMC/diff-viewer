@@ -321,7 +321,7 @@
                                 {/if}
                             </div>
                         {/if}
-                        {#if !viewer.collapsed[index] && value.type === "text" && (!viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks)}
+                        {#if !viewer.collapsed[index] && value.type === "text" && (!value.patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks)}
                             <div class="mb border-b">
                                 <ConciseDiffView
                                     patch={value.structuredPatch}
