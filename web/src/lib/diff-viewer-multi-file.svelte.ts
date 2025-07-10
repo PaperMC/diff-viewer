@@ -1,5 +1,5 @@
 import { fetchGithubCommitDiff, fetchGithubComparison, fetchGithubPRComparison, type FileStatus, getGithubToken, type GithubDiff } from "./github.svelte";
-import { type StructuredPatch, parsePatch } from "diff";
+import { type StructuredPatch } from "diff";
 import {
     ConciseDiffViewCachedState,
     DEFAULT_THEME_DARK,
@@ -150,8 +150,7 @@ export type CommonFileDetails = {
 
 export type TextFileDetails = CommonFileDetails & {
     type: "text";
-    patchText: string;
-    structuredPatch: Promise<StructuredPatch>;
+    structuredPatch: StructuredPatch;
 };
 
 export type ImageFileDetails = CommonFileDetails & {
@@ -165,8 +164,7 @@ export function makeTextDetails(fromFile: string, toFile: string, status: FileSt
         fromFile,
         toFile,
         status,
-        patchText,
-        structuredPatch: (async () => parseSinglePatch(patchText))(),
+        structuredPatch: parseSinglePatch(patchText),
     };
 }
 
@@ -286,35 +284,20 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
 }
 
 export function findHeaderChangeOnlyPatches(fileDetails: FileDetails[]) {
-    const patchStrings = fileDetails.map((details) => {
-        if (details.type === "text") {
-            return details.patchText;
-        }
-        return undefined;
-    });
-
     const result: boolean[] = [];
 
-    for (let i = 0; i < patchStrings.length; i++) {
-        const patchString = patchStrings[i];
-        if (patchString === undefined || patchString.length === 0) {
+    for (const details of fileDetails) {
+        if (details.type !== "text") {
             result.push(false);
             continue;
         }
-        // TODO: Parsing twice is wasteful
-        const patches = parsePatch(patchString);
-        if (patches.length !== 1) {
-            result.push(false);
-            continue;
-        }
-        const patch = patches[0];
-        if (patch.hunks.length === 0) {
+        if (details.structuredPatch.hunks.length === 0) {
             result.push(false);
             continue;
         }
         let onlyHeaderChanges = true;
-        for (let j = 0; j < patch.hunks.length; j++) {
-            if (hasNonHeaderChanges(patch.hunks[j].lines)) {
+        for (let j = 0; j < details.structuredPatch.hunks.length; j++) {
+            if (hasNonHeaderChanges(details.structuredPatch.hunks[j].lines)) {
                 onlyHeaderChanges = false;
             }
         }
@@ -368,7 +351,7 @@ export class MultiFileDiffViewerState {
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
-    readonly stats: Promise<ViewerStatistics> = $derived(this.countStats());
+    readonly stats: ViewerStatistics = $derived(this.countStats());
     readonly fileTreeRoots: TreeNode<FileTreeNodeData>[] = $derived(makeFileTree(this.fileDetails));
     readonly filteredFileDetails: FileDetails[] = $derived(
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
@@ -543,7 +526,7 @@ export class MultiFileDiffViewerState {
         return false;
     }
 
-    private async countStats(): Promise<ViewerStatistics> {
+    private countStats(): ViewerStatistics {
         let addedLines = 0;
         let removedLines = 0;
         const fileAddedLines: number[] = [];
@@ -554,7 +537,7 @@ export class MultiFileDiffViewerState {
             if (details.type !== "text") {
                 continue;
             }
-            const diff = await details.structuredPatch;
+            const diff = details.structuredPatch;
 
             for (let j = 0; j < diff.hunks.length; j++) {
                 const hunk = diff.hunks[j];

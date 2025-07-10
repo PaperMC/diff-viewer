@@ -283,11 +283,7 @@
         </div>
         <div class="flex flex-row items-center gap-2 px-3 pb-2">
             <SidebarToggle class="data-[side=right]:order-10" />
-            {#await viewer.stats}
-                <DiffStats />
-            {:then stats}
-                <DiffStats add={stats.addedLines} remove={stats.removedLines} />
-            {/await}
+            <DiffStats add={viewer.stats.addedLines} remove={viewer.stats.removedLines} />
             <DiffSearch />
         </div>
         <div class="flex flex-1 flex-col border-t">

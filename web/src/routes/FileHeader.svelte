@@ -97,11 +97,7 @@
     onkeyup={(event) => event.key === "Enter" && viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
 >
     {#if value.type === "text"}
-        {#await viewer.stats}
-            <DiffStats brief />
-        {:then stats}
-            <DiffStats brief add={stats.fileAddedLines[index]} remove={stats.fileRemovedLines[index]} />
-        {/await}
+        <DiffStats brief add={viewer.stats.fileAddedLines[index]} remove={viewer.stats.fileRemovedLines[index]} />
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-2">
