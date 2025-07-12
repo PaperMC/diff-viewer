@@ -7,14 +7,14 @@ import {
     type GithubPRComment,
     fetchGithubPRWithComments,
 } from "./github.svelte";
-import { type StructuredPatch, parsePatch } from "diff";
+import { type StructuredPatch } from "diff";
 import {
     ConciseDiffViewCachedState,
     DEFAULT_THEME_DARK,
     DEFAULT_THEME_LIGHT,
-    hasNonHeaderChanges,
     isNoNewlineAtEofLine,
     parseSinglePatch,
+    patchHeaderDiffOnly,
 } from "$lib/components/diff/concise-diff-view.svelte";
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
@@ -158,8 +158,8 @@ export type CommonFileDetails = {
 
 export type TextFileDetails = CommonFileDetails & {
     type: "text";
-    patchText: string;
-    structuredPatch: Promise<StructuredPatch>;
+    structuredPatch: StructuredPatch;
+    patchHeaderDiffOnly: boolean;
 };
 
 export type ImageFileDetails = CommonFileDetails & {
@@ -168,13 +168,14 @@ export type ImageFileDetails = CommonFileDetails & {
 };
 
 export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
+    const patch = parseSinglePatch(patchText);
     return {
         type: "text",
         fromFile,
         toFile,
         status,
-        patchText,
-        structuredPatch: (async () => parseSinglePatch(patchText))(),
+        structuredPatch: patch,
+        patchHeaderDiffOnly: patchHeaderDiffOnly(patch),
     };
 }
 
@@ -293,45 +294,6 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
     }
 }
 
-export function findHeaderChangeOnlyPatches(fileDetails: FileDetails[]) {
-    const patchStrings = fileDetails.map((details) => {
-        if (details.type === "text") {
-            return details.patchText;
-        }
-        return undefined;
-    });
-
-    const result: boolean[] = [];
-
-    for (let i = 0; i < patchStrings.length; i++) {
-        const patchString = patchStrings[i];
-        if (patchString === undefined || patchString.length === 0) {
-            result.push(false);
-            continue;
-        }
-        // TODO: Parsing twice is wasteful
-        const patches = parsePatch(patchString);
-        if (patches.length !== 1) {
-            result.push(false);
-            continue;
-        }
-        const patch = patches[0];
-        if (patch.hunks.length === 0) {
-            result.push(false);
-            continue;
-        }
-        let onlyHeaderChanges = true;
-        for (let j = 0; j < patch.hunks.length; j++) {
-            if (hasNonHeaderChanges(patch.hunks[j].lines)) {
-                onlyHeaderChanges = false;
-            }
-        }
-        result.push(onlyHeaderChanges);
-    }
-
-    return result;
-}
-
 export type ViewerStatistics = {
     addedLines: number;
     removedLines: number;
@@ -400,19 +362,22 @@ export class MultiFileDiffViewerState {
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
-    readonly stats: Promise<ViewerStatistics> = $derived(this.countStats());
+    readonly stats: ViewerStatistics = $derived(this.countStats());
     readonly fileTreeRoots: TreeNode<FileTreeNodeData>[] = $derived(makeFileTree(this.fileDetails));
     readonly filteredFileDetails: FileDetails[] = $derived(
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
-    readonly patchHeaderDiffOnly: boolean[] = $derived(findHeaderChangeOnlyPatches(this.fileDetails));
     readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
 
     private constructor() {
         // Auto-check all patch header diff only diffs
         $effect(() => {
-            for (let i = 0; i < this.patchHeaderDiffOnly.length; i++) {
-                if (this.patchHeaderDiffOnly[i] && this.checked[i] === undefined) {
+            for (let i = 0; i < this.fileDetails.length; i++) {
+                const details = this.fileDetails[i];
+                if (details.type !== "text") {
+                    continue;
+                }
+                if (details.patchHeaderDiffOnly && this.checked[i] === undefined) {
                     this.checked[i] = true;
                 }
             }
@@ -718,7 +683,7 @@ export class MultiFileDiffViewerState {
         return this.diffMetadata?.type === "github" && !!this.diffMetadata.prNumber;
     }
 
-    private async countStats(): Promise<ViewerStatistics> {
+    private countStats(): ViewerStatistics {
         let addedLines = 0;
         let removedLines = 0;
         const fileAddedLines: number[] = [];
@@ -729,7 +694,7 @@ export class MultiFileDiffViewerState {
             if (details.type !== "text") {
                 continue;
             }
-            const diff = await details.structuredPatch;
+            const diff = details.structuredPatch;
 
             for (let j = 0; j < diff.hunks.length; j++) {
                 const hunk = diff.hunks[j];

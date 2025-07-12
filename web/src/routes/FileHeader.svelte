@@ -28,6 +28,8 @@
             });
         }
     }
+
+    let patchHeaderDiffOnly = $derived(value.type === "text" && value.patchHeaderDiffOnly);
 </script>
 
 {#snippet fileName()}
@@ -97,19 +99,15 @@
     onkeyup={(event) => event.key === "Enter" && viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
 >
     {#if value.type === "text"}
-        {#await viewer.stats}
-            <DiffStats brief />
-        {:then stats}
-            <DiffStats brief add={stats.fileAddedLines[index]} remove={stats.fileRemovedLines[index]} />
-        {/await}
+        <DiffStats brief add={viewer.stats.fileAddedLines[index]} remove={viewer.stats.fileRemovedLines[index]} />
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-2">
-        {#if viewer.patchHeaderDiffOnly[index]}
+        {#if patchHeaderDiffOnly}
             <span class="rounded-sm bg-neutral-3 px-1.5">Patch-header-only diff</span>
         {/if}
         {@render actionsPopover()}
-        {#if !viewer.patchHeaderDiffOnly[index] || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
+        {#if !patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
             {@render collapseToggle()}
         {/if}
     </div>

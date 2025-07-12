@@ -65,7 +65,7 @@
         lineWrap,
     });
 
-    const parsedPatch: Promise<StructuredPatch> = $derived.by(async () => {
+    const parsedPatch = $derived.by(() => {
         if (rawPatchContent !== undefined) {
             return parseSinglePatch(rawPatchContent);
         } else if (patch !== undefined) {
