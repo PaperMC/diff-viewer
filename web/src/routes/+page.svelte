@@ -124,6 +124,9 @@
             <LabeledCheckbox labelText="Concise nested diffs" bind:checked={globalOptions.omitPatchHeaderOnlyHunks} />
             <LabeledCheckbox labelText="Word diffs" bind:checked={globalOptions.wordDiffs} />
             <LabeledCheckbox labelText="Line wrapping" bind:checked={globalOptions.lineWrap} />
+            {#if viewer.isPRDiff()}
+                <LabeledCheckbox labelText="Show PR comments" bind:checked={viewer.showComments} />
+            {/if}
             <div class="flex justify-between px-2 py-1">
                 <Label.Root id="sidebarLocationLabel" for="sidebarLocation">Sidebar location</Label.Root>
                 <SimpleRadioGroup
@@ -337,6 +340,15 @@
                                         : undefined}
                                     cache={viewer.diffViewCache}
                                     cacheKey={value}
+                                    showComments={viewer.isPRDiff() && viewer.showComments}
+                                    commentsForLine={(line, side) => viewer.getCommentsForLine(value.toFile, line, side)}
+                                    onCommentAdded={(comment) => viewer.addComment(comment)}
+                                    onCommentUpdated={(comment) => viewer.updateComment(comment)}
+                                    onCommentDeleted={(commentId) => viewer.deleteComment(commentId)}
+                                    filePath={value.toFile}
+                                    owner={viewer.diffMetadata?.type === "github" ? viewer.diffMetadata.details.owner : undefined}
+                                    repo={viewer.diffMetadata?.type === "github" ? viewer.diffMetadata.details.repo : undefined}
+                                    prNumber={viewer.diffMetadata?.type === "github" ? viewer.diffMetadata.prNumber : undefined}
                                 />
                             </div>
                         {/if}

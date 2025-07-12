@@ -1,4 +1,12 @@
-import { fetchGithubCommitDiff, fetchGithubComparison, fetchGithubPRComparison, type FileStatus, getGithubToken, type GithubDiff } from "./github.svelte";
+import {
+    fetchGithubCommitDiff,
+    fetchGithubComparison,
+    type FileStatus,
+    getGithubToken,
+    type GithubDiff,
+    type GithubPRComment,
+    fetchGithubPRWithComments,
+} from "./github.svelte";
 import { type StructuredPatch } from "diff";
 import {
     ConciseDiffViewCachedState,
@@ -296,6 +304,7 @@ export type ViewerStatistics = {
 export type GithubDiffMetadata = {
     type: "github";
     details: GithubDiff;
+    prNumber?: string;
 };
 
 export type FileDiffMetadata = {
@@ -304,6 +313,27 @@ export type FileDiffMetadata = {
 };
 
 export type DiffMetadata = GithubDiffMetadata | FileDiffMetadata;
+
+export type CommentPosition = {
+    path: string;
+    line: number;
+    side: "LEFT" | "RIGHT";
+};
+
+export type CommentThread = {
+    id: string;
+    position: CommentPosition;
+    comments: GithubPRComment[];
+    collapsed: boolean;
+};
+
+export type FileComments = {
+    [key: string]: CommentThread[];
+};
+
+export type PRComments = {
+    [path: string]: FileComments;
+};
 
 export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
@@ -327,6 +357,8 @@ export class MultiFileDiffViewerState {
     activeSearchResult: ActiveSearchResult | null = $state(null);
     sidebarCollapsed = $state(false);
     diffMetadata: DiffMetadata | null = $state(null);
+    prComments: PRComments = $state({});
+    showComments: boolean = $state(true);
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
@@ -480,8 +512,10 @@ export class MultiFileDiffViewerState {
                 this.loadPatches(files, { type: "github", details: info });
                 return true;
             } else if (type === "pull") {
-                const { info, files } = await fetchGithubPRComparison(token, owner, repo, id.split("/")[0]);
-                this.loadPatches(files, { type: "github", details: info });
+                const prNumber = id.split("/")[0];
+                const { diffResult, comments } = await fetchGithubPRWithComments(token, owner, repo, prNumber);
+                this.loadPatches(diffResult.files, { type: "github", details: diffResult.info, prNumber });
+                this.loadPRComments(comments);
                 return true;
             } else if (type === "compare") {
                 let refs = id.split("...");
@@ -506,6 +540,147 @@ export class MultiFileDiffViewerState {
 
         alert("Unsupported URL type " + url);
         return false;
+    }
+
+    loadPRComments(comments: GithubPRComment[]) {
+        const organizedComments: PRComments = {};
+
+        for (const comment of comments) {
+            const path = comment.path;
+            const line = comment.line || comment.original_line;
+            const side = comment.side === "LEFT" ? "LEFT" : "RIGHT";
+
+            if (!line || !path) continue;
+
+            if (!organizedComments[path]) {
+                organizedComments[path] = {};
+            }
+
+            const lineKey = `${line}:${side}`;
+
+            if (!organizedComments[path][lineKey]) {
+                organizedComments[path][lineKey] = [];
+            }
+
+            // Find existing thread or create new one
+            let thread = organizedComments[path][lineKey].find((t) => t.position.path === path && t.position.line === line && t.position.side === side);
+
+            if (!thread) {
+                thread = {
+                    id: `${path}:${line}:${side}`,
+                    position: { path, line, side },
+                    comments: [],
+                    collapsed: false,
+                };
+                organizedComments[path][lineKey].push(thread);
+            }
+
+            thread.comments.push(comment);
+        }
+
+        // Sort comments in each thread by creation date
+        for (const path in organizedComments) {
+            for (const lineKey in organizedComments[path]) {
+                for (const thread of organizedComments[path][lineKey]) {
+                    thread.comments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                }
+            }
+        }
+
+        this.prComments = organizedComments;
+    }
+
+    getCommentsForLine(path: string, line: number, side: "LEFT" | "RIGHT"): CommentThread[] {
+        const fileComments = this.prComments[path];
+        if (!fileComments) return [];
+
+        const lineKey = `${line}:${side}`;
+        return fileComments[lineKey] || [];
+    }
+
+    addComment(comment: GithubPRComment) {
+        const path = comment.path;
+        const line = comment.line || comment.original_line;
+        const side = comment.side === "LEFT" ? "LEFT" : "RIGHT";
+
+        if (!line || !path) return;
+
+        if (!this.prComments[path]) {
+            this.prComments[path] = {};
+        }
+
+        const lineKey = `${line}:${side}`;
+
+        if (!this.prComments[path][lineKey]) {
+            this.prComments[path][lineKey] = [];
+        }
+
+        // Find existing thread or create new one
+        let thread = this.prComments[path][lineKey].find((t) => t.position.path === path && t.position.line === line && t.position.side === side);
+
+        if (!thread) {
+            thread = {
+                id: `${path}:${line}:${side}`,
+                position: { path, line, side },
+                comments: [],
+                collapsed: false,
+            };
+            this.prComments[path][lineKey].push(thread);
+        }
+
+        thread.comments.push(comment);
+        thread.comments.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    }
+
+    updateComment(updatedComment: GithubPRComment) {
+        const path = updatedComment.path;
+        const line = updatedComment.line || updatedComment.original_line;
+        const side = updatedComment.side === "LEFT" ? "LEFT" : "RIGHT";
+
+        if (!line || !path) return;
+
+        const fileComments = this.prComments[path];
+        if (!fileComments) return;
+
+        const lineKey = `${line}:${side}`;
+        const threads = fileComments[lineKey];
+        if (!threads) return;
+
+        for (const thread of threads) {
+            const commentIndex = thread.comments.findIndex((c) => c.id === updatedComment.id);
+            if (commentIndex !== -1) {
+                thread.comments[commentIndex] = updatedComment;
+                break;
+            }
+        }
+    }
+
+    deleteComment(commentId: number) {
+        for (const path in this.prComments) {
+            for (const lineKey in this.prComments[path]) {
+                const threads = this.prComments[path][lineKey];
+                for (let i = threads.length - 1; i >= 0; i--) {
+                    const thread = threads[i];
+                    const commentIndex = thread.comments.findIndex((c) => c.id === commentId);
+                    if (commentIndex !== -1) {
+                        thread.comments.splice(commentIndex, 1);
+                        // If thread is empty, remove it
+                        if (thread.comments.length === 0) {
+                            threads.splice(i, 1);
+                        }
+                        // If no threads left for this line, remove the line entry
+                        if (threads.length === 0) {
+                            delete this.prComments[path][lineKey];
+                        }
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    isPRDiff(): boolean {
+        return this.diffMetadata?.type === "github" && !!this.diffMetadata.prNumber;
     }
 
     private countStats(): ViewerStatistics {

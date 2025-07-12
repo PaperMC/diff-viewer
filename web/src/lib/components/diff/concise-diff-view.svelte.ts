@@ -13,8 +13,8 @@ import {
 import { guessLanguageFromExtension, type MutableValue, type ReadableBoxedValues } from "$lib/util";
 import type { IRawThemeSetting } from "shiki/textmate";
 import chroma from "chroma-js";
-import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { onDestroy } from "svelte";
+import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 
 export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
 export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
@@ -198,6 +198,11 @@ class LineProcessor {
 
     private async processInternal() {
         for (let i = 0; i < this.contentLines.length; i++) {
+            // Yield to the event loop every couple hundred lines so large diffs don't freeze the UI
+            if (i % 200 === 0) {
+                // Using a micro-task is enough to let rendering catch up without noticeable slowdown
+                await Promise.resolve();
+            }
             const lineText = this.contentLines[i];
 
             const oldState = this.state;
@@ -848,132 +853,145 @@ function makeTransparent(hex: string | undefined) {
     return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.5)`;
 }
 
-export async function getBaseColors(themeKey: BundledTheme | undefined, syntaxHighlighting: boolean): Promise<string> {
-    const theme = await getTheme(themeKey);
-    if (!syntaxHighlighting || !theme) {
-        let styles = "";
-        if (getEffectiveGlobalTheme() === "dark") {
-            // Make sure tailwind emits these props
-            // "text-green-600 text-red-600 text-green-700 text-red-700 text-green-800 text-red-800 text-blue-800"
-            styles += `
-              --hunk-header-bg-themed: var(--color-gray-800);
-              --select-bg-themed: var(--color-blue-800);
+// Memoization cache to avoid recomputing base colors for every diff view
+const baseColorCache: Map<string, Promise<string>> = new Map();
 
-              --inserted-text-bg-themed: var(--color-green-700);
-              --removed-text-bg-themed: var(--color-red-700);
-              --inserted-line-bg-themed: var(--color-green-800);
-              --removed-line-bg-themed: var(--color-red-800);
-              --inner-inserted-line-bg-themed: var(--color-green-600);
-              --inner-removed-line-bg-themed: var(--color-red-600);
-              --inner-inserted-line-fg-themed: var(--color-green-300);
-              --inner-removed-line-fg-themed: var(--color-red-300);
-              `;
+export async function getBaseColors(themeKey: BundledTheme | undefined, syntaxHighlighting: boolean, isDark: boolean): Promise<string> {
+    const cacheKey = `${String(themeKey)}|${syntaxHighlighting}|${isDark}`;
+    if (baseColorCache.has(cacheKey)) {
+        return baseColorCache.get(cacheKey)!;
+    }
+
+    const compute = (async () => {
+        const theme = await getTheme(themeKey);
+        if (!syntaxHighlighting || !theme) {
+            let styles = "";
+            if (isDark) {
+                // Make sure tailwind emits these props
+                // "text-green-600 text-red-600 text-green-700 text-red-700 text-green-800 text-red-800 text-blue-800"
+                styles += `
+                  --hunk-header-bg-themed: var(--color-gray-800);
+                  --select-bg-themed: var(--color-blue-800);
+
+                  --inserted-text-bg-themed: var(--color-green-700);
+                  --removed-text-bg-themed: var(--color-red-700);
+                  --inserted-line-bg-themed: var(--color-green-800);
+                  --removed-line-bg-themed: var(--color-red-800);
+                  --inner-inserted-line-bg-themed: var(--color-green-600);
+                  --inner-removed-line-bg-themed: var(--color-red-600);
+                  --inner-inserted-line-fg-themed: var(--color-green-300);
+                  --inner-removed-line-fg-themed: var(--color-red-300);
+                  `;
+            } else {
+                styles += `
+                  --inserted-text-bg-themed: var(--color-green-400);
+                  --removed-text-bg-themed: var(--color-red-400);
+                  --inserted-line-bg-themed: var(--color-green-100);
+                  --removed-line-bg-themed: var(--color-red-100);
+                  --inner-inserted-line-bg-themed: var(--color-green-300);
+                  --inner-removed-line-bg-themed: var(--color-red-300);
+                  --inner-inserted-line-fg-themed: var(--color-green-800);
+                  --inner-removed-line-fg-themed: var(--color-red-800);
+                  `;
+            }
+            return styles;
+        }
+        const tokenColors = theme.default.tokenColors || [];
+
+        const style: Map<string, string | undefined> = new Map();
+
+        // Find the foreground/default text color for the theme
+        const foundFg = extractColor(theme.default, { color: "editor.foreground" });
+        if (foundFg) {
+            style.set("--editor-fg-themed", foundFg);
+            makeLCHVars("--editor-foreground", foundFg, style);
         } else {
-            styles += `
-              --inserted-text-bg-themed: var(--color-green-400);
-              --removed-text-bg-themed: var(--color-red-400);
-              --inserted-line-bg-themed: var(--color-green-100);
-              --removed-line-bg-themed: var(--color-red-100);
-              --inner-inserted-line-bg-themed: var(--color-green-300);
-              --inner-removed-line-bg-themed: var(--color-red-300);
-              --inner-inserted-line-fg-themed: var(--color-green-800);
-              --inner-removed-line-fg-themed: var(--color-red-800);
-              `;
+            let globalScope = tokenColors.find((t) => t.scope === undefined);
+            if (!globalScope) {
+                // Tokenize something to force Shiki to run it's fix for 'broken' themes
+                await codeToTokens("hi", { theme: theme.default, lang: "text" });
+                globalScope = tokenColors.find((t) => t.scope === undefined);
+            }
+            const globalFg = globalScope?.settings.foreground;
+            if (globalFg) {
+                style.set("--editor-fg-themed", globalFg);
+                makeLCHVars("--editor-foreground", globalFg, style);
+            } else {
+                console.error("No foreground color found in theme");
+            }
         }
-        return styles;
-    }
-    const tokenColors = theme.default.tokenColors || [];
 
-    const style: Map<string, string | undefined> = new Map();
+        // These colors are mostly universal
+        style.set("--editor-bg-themed", extractColor(theme.default, { color: "editor.background" }));
+        makeLCHVars("--editor-background", style.get("--editor-bg-themed"), style);
+        style.set("--select-bg-themed", extractColor(theme.default, { color: "editor.selectionBackground" }));
 
-    // Find the foreground/default text color for the theme
-    const foundFg = extractColor(theme.default, { color: "editor.foreground" });
-    if (foundFg) {
-        style.set("--editor-fg-themed", foundFg);
-        makeLCHVars("--editor-foreground", foundFg, style);
-    } else {
-        let globalScope = tokenColors.find((t) => t.scope === undefined);
-        if (!globalScope) {
-            // Tokenize something to force Shiki to run it's fix for 'broken' themes
-            await codeToTokens("hi", { theme: theme.default, lang: "text" });
-            globalScope = tokenColors.find((t) => t.scope === undefined);
+        // Don't use these - just add chroma to the inner diff highlight below for consistency
+        // These are also applied to the line by VSCode...?
+        // style.set("--inserted-text-bg-themed", extractColor(theme.default, { color: "diffEditor.insertedTextBackground" }));
+        // style.set("--removed-text-bg-themed", extractColor(theme.default, { color: "diffEditor.removedTextBackground" }));
+
+        // 1) Try diffEditor.insertedLineBackground for inserted line highlight color
+        // 2) Try editorGutter.addedBackground for inserted line highlight color
+        // 3) Try markup.inserted scope bg for inserted line highlight color
+        // 4) Try markup.inserted scope fg for inserted line text color
+        let insertLineBg = extractColor(theme.default, { color: "diffEditor.insertedLineBackground" });
+        if (!insertLineBg) {
+            insertLineBg = extractColor(theme.default, { color: "editorGutter.addedBackground", modifier: makeTransparent });
         }
-        const globalFg = globalScope?.settings.foreground;
-        if (globalFg) {
-            style.set("--editor-fg-themed", globalFg);
-            makeLCHVars("--editor-foreground", globalFg, style);
+        if (!insertLineBg) {
+            insertLineBg = extractColor(theme.default, { bgTokenScope: "markup.inserted", modifier: makeTransparent });
+        }
+        if (insertLineBg) {
+            style.set("--inserted-line-bg-themed", insertLineBg);
+            style.set("--inner-inserted-line-bg-themed", moreChroma(insertLineBg, 0.5));
+            style.set("--inserted-text-bg-themed", darken(moreChroma(insertLineBg, 1.25), 0.25));
+
+            // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
+            // Increase chroma to match our adjustments to bg color above
+            style.set("--inner-inserted-line-fg-themed", moreChroma(extractColor(theme.default, { fgTokenScope: "markup.inserted" })));
         } else {
-            console.error("No foreground color found in theme");
+            style.set("--inserted-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.inserted" }));
         }
-    }
 
-    // These colors are mostly universal
-    style.set("--editor-bg-themed", extractColor(theme.default, { color: "editor.background" }));
-    makeLCHVars("--editor-background", style.get("--editor-bg-themed"), style);
-    style.set("--select-bg-themed", extractColor(theme.default, { color: "editor.selectionBackground" }));
-
-    // Don't use these - just add chroma to the inner diff highlight below for consistency
-    // These are also applied to the line by VSCode...?
-    // style.set("--inserted-text-bg-themed", extractColor(theme.default, { color: "diffEditor.insertedTextBackground" }));
-    // style.set("--removed-text-bg-themed", extractColor(theme.default, { color: "diffEditor.removedTextBackground" }));
-
-    // 1) Try diffEditor.insertedLineBackground for inserted line highlight color
-    // 2) Try editorGutter.addedBackground for inserted line highlight color
-    // 3) Try markup.inserted scope bg for inserted line highlight color
-    // 4) Try markup.inserted scope fg for inserted line text color
-    let insertLineBg = extractColor(theme.default, { color: "diffEditor.insertedLineBackground" });
-    if (!insertLineBg) {
-        insertLineBg = extractColor(theme.default, { color: "editorGutter.addedBackground", modifier: makeTransparent });
-    }
-    if (!insertLineBg) {
-        insertLineBg = extractColor(theme.default, { bgTokenScope: "markup.inserted", modifier: makeTransparent });
-    }
-    if (insertLineBg) {
-        style.set("--inserted-line-bg-themed", insertLineBg);
-        style.set("--inner-inserted-line-bg-themed", moreChroma(insertLineBg, 0.5));
-        style.set("--inserted-text-bg-themed", darken(moreChroma(insertLineBg, 1.25), 0.25));
-
-        // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
-        // Increase chroma to match our adjustments to bg color above
-        style.set("--inner-inserted-line-fg-themed", moreChroma(extractColor(theme.default, { fgTokenScope: "markup.inserted" })));
-    } else {
-        style.set("--inserted-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.inserted" }));
-    }
-
-    // 1) Try diffEditor.removedLineBackground for removed line highlight color
-    // 2) Try editorGutter.deletedBackground for removed line highlight color
-    // 3) Try markup.deleted scope bg for removed line highlight color
-    // 4) Try markup.deleted scope fg for removed line text color
-    let removeLineBg = extractColor(theme.default, { color: "diffEditor.removedLineBackground" });
-    if (!removeLineBg) {
-        removeLineBg = extractColor(theme.default, { color: "editorGutter.deletedBackground", modifier: makeTransparent });
-    }
-    if (!removeLineBg) {
-        removeLineBg = extractColor(theme.default, { bgTokenScope: "markup.deleted", modifier: makeTransparent });
-    }
-    if (removeLineBg) {
-        style.set("--removed-line-bg-themed", removeLineBg);
-        style.set("--inner-removed-line-bg-themed", moreChroma(removeLineBg, 0.5));
-        style.set("--removed-text-bg-themed", darken(moreChroma(removeLineBg, 1.25), 0.25));
-
-        // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
-        // Increase chroma to match our adjustments to bg color above
-        style.set("--inner-removed-line-fg-themed", moreChroma(extractColor(theme.default, { fgTokenScope: "markup.deleted" })));
-    } else {
-        style.set("--removed-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.deleted" }));
-    }
-
-    // One or both of these is often missing, see ConciseDiffView.svelte <style> for fallback behavior
-    style.set("--hunk-header-bg-themed", extractColor(theme.default, { color: "sideBarSectionHeader.background" }));
-    style.set("--hunk-header-fg-themed", extractColor(theme.default, { fgTokenScope: "meta.diff.header" }));
-
-    let styleString = "";
-    style.forEach((value, key) => {
-        if (value) {
-            styleString += `${key}: ${value};`;
+        // 1) Try diffEditor.removedLineBackground for removed line highlight color
+        // 2) Try editorGutter.deletedBackground for removed line highlight color
+        // 3) Try markup.deleted scope bg for removed line highlight color
+        // 4) Try markup.deleted scope fg for removed line text color
+        let removeLineBg = extractColor(theme.default, { color: "diffEditor.removedLineBackground" });
+        if (!removeLineBg) {
+            removeLineBg = extractColor(theme.default, { color: "editorGutter.deletedBackground", modifier: makeTransparent });
         }
-    });
-    return styleString;
+        if (!removeLineBg) {
+            removeLineBg = extractColor(theme.default, { bgTokenScope: "markup.deleted", modifier: makeTransparent });
+        }
+        if (removeLineBg) {
+            style.set("--removed-line-bg-themed", removeLineBg);
+            style.set("--inner-removed-line-bg-themed", moreChroma(removeLineBg, 0.5));
+            style.set("--removed-text-bg-themed", darken(moreChroma(removeLineBg, 1.25), 0.25));
+
+            // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
+            // Increase chroma to match our adjustments to bg color above
+            style.set("--inner-removed-line-fg-themed", moreChroma(extractColor(theme.default, { fgTokenScope: "markup.deleted" })));
+        } else {
+            style.set("--removed-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.deleted" }));
+        }
+
+        // One or both of these is often missing, see ConciseDiffView.svelte <style> for fallback behavior
+        style.set("--hunk-header-bg-themed", extractColor(theme.default, { color: "sideBarSectionHeader.background" }));
+        style.set("--hunk-header-fg-themed", extractColor(theme.default, { fgTokenScope: "meta.diff.header" }));
+
+        let styleString = "";
+        style.forEach((value, key) => {
+            if (value) {
+                styleString += `${key}: ${value};`;
+            }
+        });
+        return styleString;
+    })();
+
+    baseColorCache.set(cacheKey, compute);
+    return compute;
 }
 
 let cachedThemeKey: BundledTheme | undefined = $state(undefined);
@@ -1069,7 +1087,8 @@ export class ConciseDiffViewState<K> {
         });
 
         $effect(() => {
-            const promise = getBaseColors(this.props.syntaxHighlightingTheme.current, this.props.syntaxHighlighting.current);
+            const isDark = getEffectiveGlobalTheme() === "dark";
+            const promise = getBaseColors(this.props.syntaxHighlightingTheme.current, this.props.syntaxHighlighting.current, isDark);
             promise.then(
                 () => {
                     this.rootStyle = promise;
