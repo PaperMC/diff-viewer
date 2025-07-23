@@ -12,7 +12,7 @@
         "chroma-js": "^3.1.2",
         "diff": "^8.0.2",
         "luxon": "^3.7.1",
-        "runed": "^0.30.0",
+        "runed": "^0.31.0",
         "shiki": "^3.7.0",
         "svelte-toolbelt": "^0.9.3",
         "virtua": "^0.41.5",
@@ -814,7 +814,7 @@
 
     "run-parallel": ["run-parallel@1.2.0", "", { "dependencies": { "queue-microtask": "^1.2.2" } }, "sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA=="],
 
-    "runed": ["runed@0.30.0", "", { "dependencies": { "esm-env": "^1.0.0" }, "peerDependencies": { "svelte": "^5.7.0" } }, "sha512-nUNekgGeBOchR4EKm5uCDziT/52yF+vhYvn98s9eDuEzr86jeFqCZenTEBe2v2t3c90xYfTcQO1WxeeT3qVfQA=="],
+    "runed": ["runed@0.31.1", "", { "dependencies": { "esm-env": "^1.0.0" }, "peerDependencies": { "svelte": "^5.7.0" } }, "sha512-v3czcTnO+EJjiPvD4dwIqfTdHLZ8oH0zJheKqAHh9QMViY7Qb29UlAMRpX7ZtHh7AFqV60KmfxaJ9QMy+L1igQ=="],
 
     "sade": ["sade@1.8.1", "", { "dependencies": { "mri": "^1.1.0" } }, "sha512-xal3CZX1Xlo/k4ApwCFrHVACi9fBqJ7V+mwhBsuf/1IOKbBy098Fex+Wa/5QMubw09pSZ/u8EY8PWgevJsXp1A=="],
 
