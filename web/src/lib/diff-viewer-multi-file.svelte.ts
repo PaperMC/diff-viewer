@@ -483,30 +483,40 @@ export class MultiFileDiffViewerState {
             return false;
         }
         try {
+            // Show progress bar
             this.loadingState.start();
             await tick();
             await animationFramePromise();
 
+            // Update metadata
             this.diffMetadata = await meta();
             await tick();
             await animationFramePromise();
 
+            // Clear previous state
             this.clear(false);
             await tick();
             await animationFramePromise();
 
+            // Setup generator
             const generator = await patches();
+            await tick();
+            await animationFramePromise();
 
+            // Load patches
             const tempDetails: FileDetails[] = [];
+            let lastYield = Date.now();
             for await (const details of generator) {
                 this.loadingState.loadedCount++;
 
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
 
-                // TODO this makes it load one patch per frame
-                await tick();
-                await animationFramePromise();
+                if (Date.now() - lastYield > 50) {
+                    await tick();
+                    await animationFramePromise();
+                    lastYield = Date.now();
+                }
             }
             if (tempDetails.length === 0) {
                 throw new Error("No valid patches found in the provided data.");
@@ -520,6 +530,10 @@ export class MultiFileDiffViewerState {
             alert("Failed to load patches: " + e);
             return false;
         } finally {
+            // Let the last progress update render before closing the loading state
+            await tick();
+            await animationFramePromise();
+
             this.loadingState.done();
         }
     }
