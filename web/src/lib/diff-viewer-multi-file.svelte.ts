@@ -338,7 +338,8 @@ export class MultiFileDiffViewerState {
     activeSearchResult: ActiveSearchResult | null = $state(null);
     sidebarCollapsed = $state(false);
     diffMetadata: DiffMetadata | null = $state(null);
-    readonly progressBar = $state(new ProgressBarState(100, 100));
+    loading: boolean = $state(false);
+    readonly progressBar = $state(new ProgressBarState(null, 100));
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
@@ -478,8 +479,13 @@ export class MultiFileDiffViewerState {
     }
 
     async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>) {
+        if (this.loading) {
+            alert("Already loading patches, please wait.");
+            return false;
+        }
         try {
             this.progressBar.setSpinning();
+            this.loading = true;
             await tick();
             await animationFramePromise();
 
@@ -510,9 +516,7 @@ export class MultiFileDiffViewerState {
             alert("Failed to load patches: " + e);
             return false;
         } finally {
-            if (!this.progressBar.isDone()) {
-                this.progressBar.setProgress(100, 100);
-            }
+            this.loading = false;
         }
     }
 
