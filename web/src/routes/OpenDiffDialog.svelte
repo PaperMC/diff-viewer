@@ -181,6 +181,8 @@
         const entriesB: ProtoFileDetails[] = flatten(dirB).filter(blacklist);
         const entriesBMap = new Map(entriesB.map((entry) => [entry.path, entry]));
 
+        viewer.loadingState.totalCount = new Set([...entriesAMap.keys(), ...entriesBMap.keys()]).size;
+
         for (const entry of entriesA) {
             const entryB = entriesBMap.get(entry.path);
             if (entryB) {
@@ -190,6 +192,7 @@
                 if (aBinary || bBinary) {
                     if (await bytesEqual(entry.file, entryB.file)) {
                         // Files are identical
+                        viewer.loadingState.loadedCount++;
                         continue;
                     }
                     if (isImageFile(entry.file.name) && isImageFile(entryB.file.name)) {
@@ -201,6 +204,7 @@
                     const [textA, textB] = await Promise.all([entry.file.text(), entryB.file.text()]);
                     if (textA === textB) {
                         // Files are identical
+                        viewer.loadingState.loadedCount++;
                         continue;
                     }
                     yield makeTextDetails(entry.path, entryB.path, "modified", createTwoFilesPatch(entry.path, entryB.path, textA, textB));

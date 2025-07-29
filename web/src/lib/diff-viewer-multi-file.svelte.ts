@@ -523,11 +523,10 @@ export class MultiFileDiffViewerState {
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
 
-                const now = performance.now();
-                if (now - lastYield > 50 || i % 100 === 0) {
+                if (performance.now() - lastYield > 50 || i % 100 === 0) {
                     await tick();
                     await yieldToBrowser();
-                    lastYield = now;
+                    lastYield = performance.now();
                 }
             }
             if (tempDetails.length === 0) {
