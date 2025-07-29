@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import type { components } from "@octokit/openapi-types";
 import { splitMultiFilePatch, trimCommitHash } from "$lib/util";
-import { type FileDetails, makeImageDetails } from "$lib/diff-viewer-multi-file.svelte";
+import { makeImageDetails } from "$lib/diff-viewer-multi-file.svelte";
 import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
 
 export const GITHUB_USERNAME_KEY = "github_username";
@@ -22,7 +22,7 @@ export type GithubDiff = {
 
 export type GithubDiffResult = {
     info: GithubDiff;
-    files: FileDetails[];
+    response: string;
 };
 
 if (browser) {
@@ -139,7 +139,7 @@ export async function fetchGithubPRInfo(token: string | null, owner: string, rep
     }
 }
 
-function splitMultiFilePatchGithub(details: GithubDiff, patch: string) {
+export function splitMultiFilePatchGithub(details: GithubDiff, patch: string) {
     return splitMultiFilePatch(patch, (from, to, status) => {
         const token = getGithubToken();
         return makeImageDetails(
@@ -176,7 +176,7 @@ export async function fetchGithubComparison(
             url = `https://github.com/${owner}/${repo}/compare/${base}...${head}`;
         }
         const info = { owner, repo, base, head, description, backlink: url };
-        return { files: splitMultiFilePatchGithub(info, await response.text()), info };
+        return { response: await response.text(), info };
     } else {
         throw Error(`Failed to retrieve comparison (${response.status}): ${await response.text()}`);
     }
@@ -207,7 +207,7 @@ export async function fetchGithubCommitDiff(token: string | null, owner: string,
         const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
         const info = { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
         return {
-            files: splitMultiFilePatchGithub(info, await response.text()),
+            response: await response.text(),
             info,
         };
     } else {

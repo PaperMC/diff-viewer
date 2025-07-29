@@ -4,12 +4,12 @@
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
-    import { type FileDetails, makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, splitMultiFilePatch } from "$lib/util";
-    import { onMount, tick } from "svelte";
+    import { onMount } from "svelte";
     import { createTwoFilesPatch } from "diff";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
-    import { DirectoryEntry, FileEntry, MultimodalFileInputState } from "$lib/components/files/index.svelte";
+    import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "$lib/components/files/index.svelte";
     import { SvelteSet } from "svelte/reactivity";
     import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
     import { flip } from "svelte/animate";
@@ -66,60 +66,84 @@
             alert("Both files must be selected to compare.");
             return;
         }
-        const isImageDiff = isImageFile(fileA.metadata.name) && isImageFile(fileB.metadata.name);
-        let blobA: Blob, blobB: Blob;
-        try {
-            [blobA, blobB] = await Promise.all([fileA.resolve(), fileB.resolve()]);
-        } catch (e) {
-            console.log("Failed to resolve files:", e);
-            alert("Failed to resolve files: " + e);
+        const fileAMeta = fileA.metadata;
+        const fileBMeta = fileB.metadata;
+        modalOpen = false;
+        const success = await viewer.loadPatches(
+            async () => {
+                return { type: "file", fileName: `${fileAMeta.name}...${fileBMeta.name}.patch` };
+            },
+            async () => {
+                const isImageDiff = isImageFile(fileAMeta.name) && isImageFile(fileBMeta.name);
+                let blobA: Blob, blobB: Blob;
+                try {
+                    [blobA, blobB] = await Promise.all([fileA.resolve(), fileB.resolve()]);
+                } catch (e) {
+                    console.log("Failed to resolve files:", e);
+                    throw new Error("Failed to resolve files", { cause: e });
+                }
+                const [aBinary, bBinary] = await Promise.all([isBinaryFile(blobA), isBinaryFile(blobB)]);
+                if (aBinary || bBinary) {
+                    if (!isImageDiff) {
+                        throw new Error("Cannot compare binary files (except image-to-image comparisons).");
+                    }
+                }
+                if (isImageDiff) {
+                    return generateSingleImagePatch(fileAMeta, fileBMeta, blobA, blobB);
+                } else {
+                    return generateSingleTextPatch(fileAMeta, fileBMeta, blobA, blobB);
+                }
+            },
+        );
+        if (!success) {
+            modalOpen = true;
             return;
         }
-        const [aBinary, bBinary] = await Promise.all([isBinaryFile(blobA), isBinaryFile(blobB)]);
-        if (aBinary || bBinary) {
-            if (!isImageDiff) {
-                alert("Cannot compare binary files (except image-to-image comparisons).");
-                return;
-            }
-        }
-
-        const fileDetails: FileDetails[] = [];
-
-        if (isImageDiff) {
-            if (await bytesEqual(blobA, blobB)) {
-                alert("The files are identical.");
-                return;
-            }
-
-            let status: FileStatus = "modified";
-            if (fileA.metadata.name !== fileB.metadata.name) {
-                status = "renamed_modified";
-            }
-
-            viewer.progressBar.setSpinning();
-            const img = makeImageDetails(fileA.metadata.name, fileB.metadata.name, status, blobA, blobB);
-            img.image.load = true; // load images by default when comparing two files directly
-            fileDetails.push(img);
-        } else {
-            const [textA, textB] = await Promise.all([blobA.text(), blobB.text()]);
-            if (textA === textB) {
-                alert("The files are identical.");
-                return;
-            }
-
-            viewer.progressBar.setSpinning();
-            const diff = createTwoFilesPatch(fileA.metadata.name, fileB.metadata.name, textA, textB);
-            let status: FileStatus = "modified";
-            if (fileA.metadata.name !== fileB.metadata.name) {
-                status = "renamed_modified";
-            }
-
-            fileDetails.push(makeTextDetails(fileA.metadata.name, fileB.metadata.name, status, diff));
-        }
-
-        viewer.loadPatches(fileDetails, { type: "file", fileName: `${fileA.metadata.name}...${fileB.metadata.name}.patch` });
         await updateUrlParams();
-        modalOpen = false;
+    }
+
+    async function* generateSingleImagePatch(
+        fileAMeta: MultimodalFileInputValueMetadata,
+        fileBMeta: MultimodalFileInputValueMetadata,
+        blobA: Blob,
+        blobB: Blob,
+    ) {
+        if (await bytesEqual(blobA, blobB)) {
+            alert("The files are identical.");
+            return;
+        }
+
+        let status: FileStatus = "modified";
+        if (fileAMeta.name !== fileBMeta.name) {
+            status = "renamed_modified";
+        }
+
+        viewer.progressBar.setSpinning();
+        const img = makeImageDetails(fileAMeta.name, fileBMeta.name, status, blobA, blobB);
+        img.image.load = true; // load images by default when comparing two files directly
+        yield img;
+    }
+
+    async function* generateSingleTextPatch(
+        fileAMeta: MultimodalFileInputValueMetadata,
+        fileBMeta: MultimodalFileInputValueMetadata,
+        blobA: Blob,
+        blobB: Blob,
+    ) {
+        const [textA, textB] = await Promise.all([blobA.text(), blobB.text()]);
+        if (textA === textB) {
+            alert("The files are identical.");
+            return;
+        }
+
+        viewer.progressBar.setSpinning();
+        const diff = createTwoFilesPatch(fileAMeta.name, fileBMeta.name, textA, textB);
+        let status: FileStatus = "modified";
+        if (fileAMeta.name !== fileBMeta.name) {
+            status = "renamed_modified";
+        }
+
+        yield makeTextDetails(fileAMeta.name, fileBMeta.name, status, diff);
     }
 
     type ProtoFileDetails = {
@@ -134,8 +158,23 @@
             alert("Both directories must be selected to compare.");
             return;
         }
-        viewer.progressBar.setSpinning();
+        modalOpen = false;
+        const success = await viewer.loadPatches(
+            async () => {
+                return { type: "file", fileName: `${dirA.fileName}...${dirB.fileName}.patch` };
+            },
+            async () => {
+                return generateDirPatches(dirA, dirB);
+            },
+        );
+        if (!success) {
+            modalOpen = true;
+            return;
+        }
+        await updateUrlParams();
+    }
 
+    async function* generateDirPatches(dirA: DirectoryEntry, dirB: DirectoryEntry) {
         const blacklist = (entry: ProtoFileDetails) => {
             return !dirBlacklistRegexes.some((pattern) => pattern.test(entry.path));
         };
@@ -144,7 +183,6 @@
         const entriesB: ProtoFileDetails[] = flatten(dirB).filter(blacklist);
         const entriesBMap = new Map(entriesB.map((entry) => [entry.path, entry]));
 
-        const fileDetails: FileDetails[] = [];
         for (const entry of entriesA) {
             const entryB = entriesBMap.get(entry.path);
             if (entryB) {
@@ -157,9 +195,9 @@
                         continue;
                     }
                     if (isImageFile(entry.file.name) && isImageFile(entryB.file.name)) {
-                        fileDetails.push(makeImageDetails(entry.path, entryB.path, "modified", entry.file, entryB.file));
+                        yield makeImageDetails(entry.path, entryB.path, "modified", entry.file, entryB.file);
                     } else {
-                        fileDetails.push(binaryFileDummyDetails(entry.path, entryB.path, "modified"));
+                        yield binaryFileDummyDetails(entry.path, entryB.path, "modified");
                     }
                 } else {
                     const [textA, textB] = await Promise.all([entry.file.text(), entryB.file.text()]);
@@ -167,17 +205,17 @@
                         // Files are identical
                         continue;
                     }
-                    fileDetails.push(makeTextDetails(entry.path, entryB.path, "modified", createTwoFilesPatch(entry.path, entryB.path, textA, textB)));
+                    yield makeTextDetails(entry.path, entryB.path, "modified", createTwoFilesPatch(entry.path, entryB.path, textA, textB));
                 }
             } else if (isImageFile(entry.file.name)) {
                 // Image file removed
-                fileDetails.push(makeImageDetails(entry.path, entry.path, "removed", entry.file, entry.file));
+                yield makeImageDetails(entry.path, entry.path, "removed", entry.file, entry.file);
             } else if (await isBinaryFile(entry.file)) {
                 // Binary file removed
-                fileDetails.push(binaryFileDummyDetails(entry.path, entry.path, "removed"));
+                yield binaryFileDummyDetails(entry.path, entry.path, "removed");
             } else {
                 // Text file removed
-                fileDetails.push(makeTextDetails(entry.path, entry.path, "removed", createTwoFilesPatch(entry.path, "", await entry.file.text(), "")));
+                yield makeTextDetails(entry.path, entry.path, "removed", createTwoFilesPatch(entry.path, "", await entry.file.text(), ""));
             }
         }
 
@@ -186,18 +224,14 @@
             const entryA = entriesAMap.get(entry.path);
             if (!entryA) {
                 if (isImageFile(entry.file.name)) {
-                    fileDetails.push(makeImageDetails(entry.path, entry.path, "added", entry.file, entry.file));
+                    yield makeImageDetails(entry.path, entry.path, "added", entry.file, entry.file);
                 } else if (await isBinaryFile(entry.file)) {
-                    fileDetails.push(binaryFileDummyDetails(entry.path, entry.path, "added"));
+                    yield binaryFileDummyDetails(entry.path, entry.path, "added");
                 } else {
-                    fileDetails.push(makeTextDetails(entry.path, entry.path, "added", createTwoFilesPatch("", entry.path, "", await entry.file.text())));
+                    yield makeTextDetails(entry.path, entry.path, "added", createTwoFilesPatch("", entry.path, "", await entry.file.text()));
                 }
             }
         }
-
-        viewer.loadPatches(fileDetails, { type: "file", fileName: `${dirA.fileName}...${dirB.fileName}.patch` });
-        await updateUrlParams();
-        modalOpen = false;
     }
 
     function flatten(dir: DirectoryEntry): ProtoFileDetails[] {
@@ -245,22 +279,31 @@
             return;
         }
         modalOpen = false;
-        viewer.progressBar.setSpinning();
-        requestAnimationFrame(async () => {
-            await tick();
-
-            requestAnimationFrame(async () => {
-                const files = splitMultiFilePatch(text);
-                if (files.length === 0) {
-                    modalOpen = true;
-                    viewer.progressBar.setProgress(100, 100);
-                    alert("No valid patches found in the file.");
-                    return;
+        const files = splitMultiFilePatch(text);
+        if (files.length === 0) {
+            modalOpen = true;
+            viewer.progressBar.setProgress(100, 100);
+            alert("No valid patches found in the file.");
+            return;
+        }
+        const success = await viewer.loadPatches(
+            async () => {
+                return { type: "file", fileName: meta.name };
+            },
+            async () => {
+                async function* generatePatches() {
+                    for (const file of files) {
+                        yield file;
+                    }
                 }
-                viewer.loadPatches(files, { type: "file", fileName: meta.name });
-                await updateUrlParams();
-            });
-        });
+                return generatePatches();
+            },
+        );
+        if (!success) {
+            modalOpen = true;
+            return;
+        }
+        await updateUrlParams();
     }
 
     async function handleGithubUrl() {
