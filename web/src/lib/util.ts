@@ -471,6 +471,10 @@ export function animationFramePromise() {
     });
 }
 
+export async function yieldToBrowser() {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 // from bits-ui internals
 export type ReadableBoxedValues<T> = {
     [K in keyof T]: ReadableBox<T[K]>;

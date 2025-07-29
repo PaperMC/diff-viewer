@@ -20,7 +20,16 @@ import {
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
-import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, watchLocalStorage, animationFramePromise } from "$lib/util";
+import {
+    countOccurrences,
+    type FileTreeNodeData,
+    makeFileTree,
+    type LazyPromise,
+    lazyPromise,
+    watchLocalStorage,
+    animationFramePromise,
+    yieldToBrowser,
+} from "$lib/util";
 import { onDestroy, tick } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
@@ -506,16 +515,18 @@ export class MultiFileDiffViewerState {
             // Load patches
             const tempDetails: FileDetails[] = [];
             let lastYield = performance.now();
+            let i = 0;
             for await (const details of generator) {
+                i++;
                 this.loadingState.loadedCount++;
 
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
 
                 const now = performance.now();
-                if (now - lastYield > 50) {
+                if (now - lastYield > 50 || i % 100 === 0) {
                     await tick();
-                    await animationFramePromise();
+                    await yieldToBrowser();
                     lastYield = now;
                 }
             }
