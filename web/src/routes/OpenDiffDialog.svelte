@@ -118,7 +118,6 @@
             status = "renamed_modified";
         }
 
-        viewer.progressBar.setSpinning();
         const img = makeImageDetails(fileAMeta.name, fileBMeta.name, status, blobA, blobB);
         img.image.load = true; // load images by default when comparing two files directly
         yield img;
@@ -136,7 +135,6 @@
             return;
         }
 
-        viewer.progressBar.setSpinning();
         const diff = createTwoFilesPatch(fileAMeta.name, fileBMeta.name, textA, textB);
         let status: FileStatus = "modified";
         if (fileAMeta.name !== fileBMeta.name) {
