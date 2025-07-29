@@ -24,7 +24,7 @@ import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise
 import { onDestroy, tick } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
-import { Context, Debounced } from "runed";
+import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 
@@ -338,8 +338,7 @@ export class MultiFileDiffViewerState {
     activeSearchResult: ActiveSearchResult | null = $state(null);
     sidebarCollapsed = $state(false);
     diffMetadata: DiffMetadata | null = $state(null);
-    loading: boolean = $state(false);
-    readonly progressBar = $state(new ProgressBarState(null, 100));
+    readonly loadingState: LoadingState = $state(new LoadingState());
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
@@ -479,13 +478,12 @@ export class MultiFileDiffViewerState {
     }
 
     async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>) {
-        if (this.loading) {
+        if (this.loadingState.loading) {
             alert("Already loading patches, please wait.");
             return false;
         }
         try {
-            this.progressBar.setSpinning();
-            this.loading = true;
+            this.loadingState.start();
             await tick();
             await animationFramePromise();
 
@@ -501,8 +499,14 @@ export class MultiFileDiffViewerState {
 
             const tempDetails: FileDetails[] = [];
             for await (const details of generator) {
+                this.loadingState.loadedCount++;
+
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
+
+                // TODO this makes it load one patch per frame
+                await tick();
+                await animationFramePromise();
             }
             if (tempDetails.length === 0) {
                 throw new Error("No valid patches found in the provided data.");
@@ -516,7 +520,7 @@ export class MultiFileDiffViewerState {
             alert("Failed to load patches: " + e);
             return false;
         } finally {
-            this.loading = false;
+            this.loadingState.done();
         }
     }
 
@@ -527,7 +531,7 @@ export class MultiFileDiffViewerState {
             },
             async () => {
                 const result = await resultPromise;
-                return parseMultiFilePatchGithub(result.info, await result.response);
+                return parseMultiFilePatchGithub(result.info, await result.response, this.loadingState);
             },
         );
     }
@@ -658,6 +662,34 @@ export class MultiFileDiffViewerState {
         }
 
         return new SearchResults(counts, total, mappings, lines);
+    }
+}
+
+export class LoadingState {
+    loading: boolean = $state(false);
+    loadedCount: number = $state(0);
+    totalCount: number | null = $state(0);
+    readonly progressBar = $state(new ProgressBarState(null, 100));
+
+    constructor() {
+        watch([() => this.loadedCount, () => this.totalCount], ([loadedCount, totalCount]) => {
+            if (totalCount === null || totalCount <= 0) {
+                this.progressBar.setSpinning();
+            } else {
+                this.progressBar.setProgress(loadedCount, totalCount);
+            }
+        });
+    }
+
+    start() {
+        this.loadedCount = 0;
+        this.totalCount = null;
+        this.progressBar.setSpinning();
+        this.loading = true;
+    }
+
+    done() {
+        this.loading = false;
     }
 }
 

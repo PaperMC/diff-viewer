@@ -1,4 +1,4 @@
-import { type FileDetails, type ImageFileDetails, makeTextDetails } from "./diff-viewer-multi-file.svelte";
+import { type FileDetails, type ImageFileDetails, LoadingState, makeTextDetails } from "./diff-viewer-multi-file.svelte";
 import type { FileStatus } from "./github.svelte";
 import type { TreeNode } from "$lib/components/tree/index.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
@@ -146,9 +146,11 @@ function parseHeader(patch: string, fromFile: string, toFile: string): BasicHead
 
 export function parseMultiFilePatch(
     patchContent: string,
+    loadingState: LoadingState,
     imageFactory?: (fromFile: string, toFile: string, status: FileStatus) => ImageFileDetails | null,
 ): AsyncGenerator<FileDetails> {
     const split = splitMultiFilePatch(patchContent);
+    loadingState.totalCount = split.length;
     async function* detailsGenerator() {
         for (const [header, content] of split) {
             if (header.binary) {

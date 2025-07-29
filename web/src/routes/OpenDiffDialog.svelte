@@ -282,7 +282,7 @@
                 return { type: "file", fileName: meta.name };
             },
             async () => {
-                return parseMultiFilePatch(text);
+                return parseMultiFilePatch(text, viewer.loadingState);
             },
         );
         if (!success) {
