@@ -98,14 +98,14 @@ export function binaryFileDummyDetails(fromFile: string, toFile: string, status:
 
 const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- \r?\n|diff --git|$)/g;
 
-function parseHeader(
-    patch: string,
-    fromFile: string,
-    toFile: string,
-): {
+type BasicHeader = {
+    fromFile: string;
+    toFile: string;
     status: FileStatus;
     binary: boolean;
-} {
+};
+
+function parseHeader(patch: string, fromFile: string, toFile: string): BasicHeader {
     let status: FileStatus = "modified";
     if (fromFile !== toFile) {
         status = "renamed_modified";
@@ -141,34 +141,42 @@ function parseHeader(
         lineStart = lineEnd + 1;
     }
 
-    return { status, binary };
+    return { fromFile, toFile, status, binary };
 }
 
-export function splitMultiFilePatch(
+export function parseMultiFilePatch(
     patchContent: string,
     imageFactory?: (fromFile: string, toFile: string, status: FileStatus) => ImageFileDetails | null,
-): FileDetails[] {
-    const patches: FileDetails[] = [];
-    // Process each file in the diff
+): AsyncGenerator<FileDetails> {
+    const split = splitMultiFilePatch(patchContent);
+    async function* detailsGenerator() {
+        for (const [header, content] of split) {
+            if (header.binary) {
+                if (imageFactory !== undefined && isImageFile(header.fromFile) && isImageFile(header.toFile)) {
+                    const imageDetails = imageFactory(header.fromFile, header.toFile, header.status);
+                    if (imageDetails != null) {
+                        yield imageDetails;
+                        continue;
+                    }
+                } else {
+                    yield binaryFileDummyDetails(header.fromFile, header.toFile, header.status);
+                    continue;
+                }
+            }
+
+            yield makeTextDetails(header.fromFile, header.toFile, header.status, content);
+        }
+    }
+    return detailsGenerator();
+}
+
+export function splitMultiFilePatch(patchContent: string): [BasicHeader, string][] {
+    const patches: [BasicHeader, string][] = [];
     let fileMatch;
     while ((fileMatch = fileRegex.exec(patchContent)) !== null) {
         const [fullFileMatch, fromFile, toFile] = fileMatch;
-        const { status, binary } = parseHeader(fullFileMatch, fromFile, toFile);
-
-        if (binary) {
-            if (imageFactory !== undefined && isImageFile(fromFile) && isImageFile(toFile)) {
-                const imageDetails = imageFactory(fromFile, toFile, status);
-                if (imageDetails != null) {
-                    patches.push(imageDetails);
-                    continue;
-                }
-            } else {
-                patches.push(binaryFileDummyDetails(fromFile, toFile, status));
-                continue;
-            }
-        }
-
-        patches.push(makeTextDetails(fromFile, toFile, status, fullFileMatch));
+        const header = parseHeader(fullFileMatch, fromFile, toFile);
+        patches.push([header, fullFileMatch]);
     }
     return patches;
 }

@@ -5,7 +5,7 @@
     import { page } from "$app/state";
     import { goto } from "$app/navigation";
     import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
-    import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, splitMultiFilePatch } from "$lib/util";
+    import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
     import { onMount } from "svelte";
     import { createTwoFilesPatch } from "diff";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
@@ -279,24 +279,12 @@
             return;
         }
         modalOpen = false;
-        const files = splitMultiFilePatch(text);
-        if (files.length === 0) {
-            modalOpen = true;
-            viewer.progressBar.setProgress(100, 100);
-            alert("No valid patches found in the file.");
-            return;
-        }
         const success = await viewer.loadPatches(
             async () => {
                 return { type: "file", fileName: meta.name };
             },
             async () => {
-                async function* generatePatches() {
-                    for (const file of files) {
-                        yield file;
-                    }
-                }
-                return generatePatches();
+                return parseMultiFilePatch(text);
             },
         );
         if (!success) {
