@@ -22,7 +22,7 @@ export type GithubDiff = {
 
 export type GithubDiffResult = {
     info: GithubDiff;
-    response: string;
+    response: Promise<string>;
 };
 
 if (browser) {
@@ -176,7 +176,7 @@ export async function fetchGithubComparison(
             url = `https://github.com/${owner}/${repo}/compare/${base}...${head}`;
         }
         const info = { owner, repo, base, head, description, backlink: url };
-        return { response: await response.text(), info };
+        return { response: response.text(), info };
     } else {
         throw Error(`Failed to retrieve comparison (${response.status}): ${await response.text()}`);
     }
@@ -207,7 +207,7 @@ export async function fetchGithubCommitDiff(token: string | null, owner: string,
         const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
         const info = { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
         return {
-            response: await response.text(),
+            response: response.text(),
             info,
         };
     } else {
