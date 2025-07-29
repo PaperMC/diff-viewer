@@ -455,6 +455,12 @@ export const resizeObserver: Action<HTMLElement, ResizeObserverCallback> = (node
     };
 };
 
+export function animationFramePromise() {
+    return new Promise((resolve) => {
+        requestAnimationFrame(resolve);
+    });
+}
+
 // from bits-ui internals
 export type ReadableBoxedValues<T> = {
     [K in keyof T]: ReadableBox<T[K]>;

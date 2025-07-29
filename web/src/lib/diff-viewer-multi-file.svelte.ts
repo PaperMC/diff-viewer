@@ -1,4 +1,13 @@
-import { fetchGithubCommitDiff, fetchGithubComparison, fetchGithubPRComparison, type FileStatus, getGithubToken, type GithubDiff } from "./github.svelte";
+import {
+    fetchGithubCommitDiff,
+    fetchGithubComparison,
+    fetchGithubPRComparison,
+    type FileStatus,
+    getGithubToken,
+    type GithubDiff,
+    type GithubDiffResult,
+    splitMultiFilePatchGithub,
+} from "./github.svelte";
 import { type StructuredPatch } from "diff";
 import {
     ConciseDiffViewCachedState,
@@ -11,8 +20,8 @@ import {
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
-import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, watchLocalStorage } from "$lib/util";
-import { onDestroy } from "svelte";
+import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, watchLocalStorage, animationFramePromise } from "$lib/util";
+import { onDestroy, tick } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced } from "runed";
@@ -319,6 +328,7 @@ export class MultiFileDiffViewerState {
 
     fileTreeFilter: string = $state("");
     searchQuery: string = $state("");
+    // TODO remove parallel arrays to fix order-dependency issues
     collapsed: boolean[] = $state([]);
     checked: boolean[] = $state([]);
     fileDetails: FileDetails[] = $state([]);
@@ -455,24 +465,70 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    loadPatches(patches: FileDetails[], meta: DiffMetadata | null) {
+    private clear(clearMeta: boolean = true) {
         // Reset state
         this.collapsed = [];
         this.checked = [];
-        this.diffMetadata = null;
+        if (clearMeta) {
+            this.diffMetadata = null;
+        }
         this.fileDetails = [];
         this.clearImages();
         this.vlist?.scrollToIndex(0, { align: "start" });
+    }
 
-        // Load new state
-        this.diffMetadata = meta;
-        patches.sort(compareFileDetails);
-        this.fileDetails.push(...patches);
+    async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>) {
+        try {
+            this.progressBar.setSpinning();
+            await tick();
+            await animationFramePromise();
 
-        // in case the caller didn't close the progress
-        if (!this.progressBar.isDone()) {
-            this.progressBar.setProgress(100, 100);
+            this.diffMetadata = await meta();
+            await tick();
+            await animationFramePromise();
+
+            this.clear(false);
+            await tick();
+            await animationFramePromise();
+
+            const generator = await patches();
+
+            const tempDetails: FileDetails[] = [];
+            for await (const details of generator) {
+                // Pushing directly to the main array causes too many signals to update (lag)
+                tempDetails.push(details);
+            }
+            tempDetails.sort(compareFileDetails);
+            this.fileDetails.push(...tempDetails);
+            return true;
+        } catch (e) {
+            this.clear(); // Clear any partially loaded state
+            console.error("Failed to load patches:", e);
+            alert("Failed to load patches: " + e);
+            return false;
+        } finally {
+            if (!this.progressBar.isDone()) {
+                this.progressBar.setProgress(100, 100);
+            }
         }
+    }
+
+    private async loadPatchesGithub(resultPromise: Promise<GithubDiffResult>) {
+        return await this.loadPatches(
+            async () => {
+                return { type: "github", details: (await resultPromise).info };
+            },
+            async () => {
+                const result = await resultPromise;
+                const split = splitMultiFilePatchGithub(result.info, result.response);
+                async function* generatePatches() {
+                    for (const patch of split) {
+                        yield patch;
+                    }
+                }
+                return generatePatches();
+            },
+        );
     }
 
     // TODO fails for initial commit?
@@ -483,15 +539,9 @@ export class MultiFileDiffViewerState {
 
         try {
             if (type === "commit") {
-                this.progressBar.setSpinning();
-                const { info, files } = await fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]);
-                this.loadPatches(files, { type: "github", details: info });
-                return true;
+                return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]));
             } else if (type === "pull") {
-                this.progressBar.setSpinning();
-                const { info, files } = await fetchGithubPRComparison(token, owner, repo, id.split("/")[0]);
-                this.loadPatches(files, { type: "github", details: info });
-                return true;
+                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, id.split("/")[0]));
             } else if (type === "compare") {
                 let refs = id.split("...");
                 if (refs.length !== 2) {
@@ -501,12 +551,9 @@ export class MultiFileDiffViewerState {
                         return false;
                     }
                 }
-                this.progressBar.setSpinning();
                 const base = refs[0];
                 const head = refs[1];
-                const { info, files } = await fetchGithubComparison(token, owner, repo, base, head);
-                this.loadPatches(files, { type: "github", details: info });
-                return true;
+                return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, base, head));
             }
         } catch (error) {
             console.error(error);
