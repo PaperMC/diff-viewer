@@ -1,6 +1,8 @@
-import { type ReadableBoxedValues } from "svelte-toolbelt";
+import { type ReadableBoxedValues, type WritableBoxedValues } from "svelte-toolbelt";
 import { getExtensionForLanguage, lazyPromise } from "$lib/util";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
+import type { Snippet } from "svelte";
+import type { RestProps } from "$lib/types";
 
 export interface FileSystemEntry {
     fileName: string;
@@ -26,7 +28,51 @@ export class FileEntry implements FileSystemEntry {
     }
 }
 
-export async function pickDirectory(): Promise<DirectoryEntry> {
+export type DirectoryInputProps = {
+    children?: Snippet<[{ directory?: DirectoryEntry; loading: boolean }]>;
+    directory?: DirectoryEntry;
+    loading?: boolean;
+} & RestProps;
+
+export type DirectoryInputStateProps = WritableBoxedValues<{
+    directory: DirectoryEntry | undefined;
+    loading: boolean;
+}>;
+
+export class DirectoryInputState {
+    private readonly opts: DirectoryInputStateProps;
+
+    constructor(opts: DirectoryInputStateProps) {
+        this.opts = opts;
+        this.onclick = this.onclick.bind(this);
+    }
+
+    get props() {
+        return {
+            onclick: this.onclick,
+        };
+    }
+
+    async onclick() {
+        if (this.opts.loading.current) {
+            return;
+        }
+        try {
+            this.opts.loading.current = true;
+            this.opts.directory.current = await pickDirectory();
+        } catch (e) {
+            if (e instanceof Error && e.name === "AbortError") {
+                return;
+            } else {
+                console.error("Failed to pick directory", e);
+            }
+        } finally {
+            this.opts.loading.current = false;
+        }
+    }
+}
+
+async function pickDirectory(): Promise<DirectoryEntry> {
     if (!window.showDirectoryPicker) {
         return await pickDirectoryLegacy();
     }

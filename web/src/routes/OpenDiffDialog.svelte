@@ -6,7 +6,7 @@
     import { goto } from "$app/navigation";
     import { type FileDetails, makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, splitMultiFilePatch } from "$lib/util";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { createTwoFilesPatch } from "diff";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
     import { DirectoryEntry, FileEntry, MultimodalFileInputState } from "$lib/components/files/index.svelte";
@@ -96,6 +96,7 @@
                 status = "renamed_modified";
             }
 
+            viewer.progressBar.setSpinning();
             const img = makeImageDetails(fileA.metadata.name, fileB.metadata.name, status, blobA, blobB);
             img.image.load = true; // load images by default when comparing two files directly
             fileDetails.push(img);
@@ -106,6 +107,7 @@
                 return;
             }
 
+            viewer.progressBar.setSpinning();
             const diff = createTwoFilesPatch(fileA.metadata.name, fileB.metadata.name, textA, textB);
             let status: FileStatus = "modified";
             if (fileA.metadata.name !== fileB.metadata.name) {
@@ -132,6 +134,7 @@
             alert("Both directories must be selected to compare.");
             return;
         }
+        viewer.progressBar.setSpinning();
 
         const blacklist = (entry: ProtoFileDetails) => {
             return !dirBlacklistRegexes.some((pattern) => pattern.test(entry.path));
@@ -231,6 +234,7 @@
             alert("No patch file selected.");
             return;
         }
+        const meta = patchFile.metadata;
         let text: string;
         try {
             const blob = await patchFile.resolve();
@@ -240,14 +244,23 @@
             alert("Failed to resolve patch file: " + e);
             return;
         }
-        const files = splitMultiFilePatch(text);
-        if (files.length === 0) {
-            alert("No valid patches found in the file.");
-            return;
-        }
         modalOpen = false;
-        viewer.loadPatches(files, { type: "file", fileName: patchFile.metadata.name });
-        await updateUrlParams();
+        viewer.progressBar.setSpinning();
+        requestAnimationFrame(async () => {
+            await tick();
+
+            requestAnimationFrame(async () => {
+                const files = splitMultiFilePatch(text);
+                if (files.length === 0) {
+                    modalOpen = true;
+                    viewer.progressBar.setProgress(100, 100);
+                    alert("No valid patches found in the file.");
+                    return;
+                }
+                viewer.loadPatches(files, { type: "file", fileName: meta.name });
+                await updateUrlParams();
+            });
+        });
     }
 
     async function handleGithubUrl() {

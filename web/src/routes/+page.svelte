@@ -33,6 +33,7 @@
     import { onClickOutside } from "runed";
     import SidebarToggle from "./SidebarToggle.svelte";
     import type { PageProps } from "./$types";
+    import ProgressBar from "$lib/components/progress-bar/ProgressBar.svelte";
 
     let { data }: PageProps = $props();
     const globalOptions = GlobalOptions.init(data.globalOptions);
@@ -136,6 +137,12 @@
         </SettingsPopoverGroup>
     </SettingsPopover>
 {/snippet}
+
+{#if !viewer.progressBar.isDone()}
+    <div class="absolute bottom-1/2 left-1/2 z-50 -translate-x-1/2 translate-y-1/2 rounded-full border bg-neutral p-2 shadow-md">
+        <ProgressBar bind:state={viewer.progressBar} class="h-2 w-32" />
+    </div>
+{/if}
 
 <div class="relative flex min-h-screen flex-row justify-center">
     <div
