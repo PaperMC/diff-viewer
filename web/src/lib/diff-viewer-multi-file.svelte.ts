@@ -17,6 +17,7 @@ import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced } from "runed";
 import { MediaQuery } from "svelte/reactivity";
+import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 
 export type SidebarLocation = "left" | "right";
 
@@ -327,6 +328,7 @@ export class MultiFileDiffViewerState {
     activeSearchResult: ActiveSearchResult | null = $state(null);
     sidebarCollapsed = $state(false);
     diffMetadata: DiffMetadata | null = $state(null);
+    readonly progressBar = $state(new ProgressBarState(100, 100));
 
     readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
@@ -457,15 +459,20 @@ export class MultiFileDiffViewerState {
         // Reset state
         this.collapsed = [];
         this.checked = [];
+        this.diffMetadata = null;
         this.fileDetails = [];
         this.clearImages();
         this.vlist?.scrollToIndex(0, { align: "start" });
+
+        // Load new state
         this.diffMetadata = meta;
-
         patches.sort(compareFileDetails);
-
-        // Set this last since it's what the VList loads
         this.fileDetails.push(...patches);
+
+        // in case the caller didn't close the progress
+        if (!this.progressBar.isDone()) {
+            this.progressBar.setProgress(100, 100);
+        }
     }
 
     // TODO fails for initial commit?
@@ -476,10 +483,12 @@ export class MultiFileDiffViewerState {
 
         try {
             if (type === "commit") {
+                this.progressBar.setSpinning();
                 const { info, files } = await fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]);
                 this.loadPatches(files, { type: "github", details: info });
                 return true;
             } else if (type === "pull") {
+                this.progressBar.setSpinning();
                 const { info, files } = await fetchGithubPRComparison(token, owner, repo, id.split("/")[0]);
                 this.loadPatches(files, { type: "github", details: info });
                 return true;
@@ -492,6 +501,7 @@ export class MultiFileDiffViewerState {
                         return false;
                     }
                 }
+                this.progressBar.setSpinning();
                 const base = refs[0];
                 const head = refs[1];
                 const { info, files } = await fetchGithubComparison(token, owner, repo, base, head);
