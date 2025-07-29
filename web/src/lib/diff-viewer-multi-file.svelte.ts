@@ -505,17 +505,18 @@ export class MultiFileDiffViewerState {
 
             // Load patches
             const tempDetails: FileDetails[] = [];
-            let lastYield = Date.now();
+            let lastYield = performance.now();
             for await (const details of generator) {
                 this.loadingState.loadedCount++;
 
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
 
-                if (Date.now() - lastYield > 50) {
+                const now = performance.now();
+                if (now - lastYield > 50) {
                     await tick();
                     await animationFramePromise();
-                    lastYield = Date.now();
+                    lastYield = now;
                 }
             }
             if (tempDetails.length === 0) {
