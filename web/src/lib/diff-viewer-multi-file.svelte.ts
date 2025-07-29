@@ -527,7 +527,7 @@ export class MultiFileDiffViewerState {
             },
             async () => {
                 const result = await resultPromise;
-                return parseMultiFilePatchGithub(result.info, result.response);
+                return parseMultiFilePatchGithub(result.info, await result.response);
             },
         );
     }
