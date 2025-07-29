@@ -1,6 +1,6 @@
 import { browser } from "$app/environment";
 import type { components } from "@octokit/openapi-types";
-import { splitMultiFilePatch, trimCommitHash } from "$lib/util";
+import { parseMultiFilePatch, trimCommitHash } from "$lib/util";
 import { makeImageDetails } from "$lib/diff-viewer-multi-file.svelte";
 import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
 
@@ -139,8 +139,8 @@ export async function fetchGithubPRInfo(token: string | null, owner: string, rep
     }
 }
 
-export function splitMultiFilePatchGithub(details: GithubDiff, patch: string) {
-    return splitMultiFilePatch(patch, (from, to, status) => {
+export function parseMultiFilePatchGithub(details: GithubDiff, patch: string) {
+    return parseMultiFilePatch(patch, (from, to, status) => {
         const token = getGithubToken();
         return makeImageDetails(
             from,

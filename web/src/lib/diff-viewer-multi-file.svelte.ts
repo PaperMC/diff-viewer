@@ -6,7 +6,7 @@ import {
     getGithubToken,
     type GithubDiff,
     type GithubDiffResult,
-    splitMultiFilePatchGithub,
+    parseMultiFilePatchGithub,
 } from "./github.svelte";
 import { type StructuredPatch } from "diff";
 import {
@@ -498,6 +498,9 @@ export class MultiFileDiffViewerState {
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
             }
+            if (tempDetails.length === 0) {
+                throw new Error("No valid patches found in the provided data.");
+            }
             tempDetails.sort(compareFileDetails);
             this.fileDetails.push(...tempDetails);
             return true;
@@ -520,13 +523,7 @@ export class MultiFileDiffViewerState {
             },
             async () => {
                 const result = await resultPromise;
-                const split = splitMultiFilePatchGithub(result.info, result.response);
-                async function* generatePatches() {
-                    for (const patch of split) {
-                        yield patch;
-                    }
-                }
-                return generatePatches();
+                return parseMultiFilePatchGithub(result.info, result.response);
             },
         );
     }
