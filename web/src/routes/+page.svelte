@@ -246,7 +246,7 @@
         </div>
     </div>
     <div class="flex grow flex-col">
-        <div class="flex flex-wrap items-center gap-2 px-3 py-2">
+        <div class="flex flex-wrap gap-2 px-3 py-2">
             {#if viewer.diffMetadata !== null}
                 <DiffTitle meta={viewer.diffMetadata} />
             {/if}
