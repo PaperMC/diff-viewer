@@ -138,9 +138,9 @@
     </SettingsPopover>
 {/snippet}
 
-{#if viewer.loading}
+{#if viewer.loadingState.loading}
     <div class="absolute bottom-1/2 left-1/2 z-50 -translate-x-1/2 translate-y-1/2 rounded-full border bg-neutral p-2 shadow-md">
-        <ProgressBar bind:state={viewer.progressBar} class="h-2 w-32" />
+        <ProgressBar bind:state={viewer.loadingState.progressBar} class="h-2 w-32" />
     </div>
 {/if}
 
