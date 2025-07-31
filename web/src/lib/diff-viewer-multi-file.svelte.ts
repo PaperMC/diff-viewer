@@ -497,8 +497,12 @@ export class MultiFileDiffViewerState {
             await tick();
             await animationFramePromise();
 
+            // Start potential multiple web requests in parallel
+            const metaPromise = meta();
+            const generatorPromise = patches();
+
             // Update metadata
-            this.diffMetadata = await meta();
+            this.diffMetadata = await metaPromise;
             await tick();
             await animationFramePromise();
 
@@ -508,7 +512,7 @@ export class MultiFileDiffViewerState {
             await animationFramePromise();
 
             // Setup generator
-            const generator = await patches();
+            const generator = await generatorPromise;
             await tick();
             await animationFramePromise();
 
@@ -549,14 +553,15 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    private async loadPatchesGithub(resultPromise: Promise<GithubDiffResult>) {
+    private async loadPatchesGithub(resultOrPromise: Promise<GithubDiffResult> | GithubDiffResult) {
         return await this.loadPatches(
             async () => {
-                return { type: "github", details: (await resultPromise).info };
+                const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
+                return { type: "github", details: await result.info };
             },
             async () => {
-                const result = await resultPromise;
-                return parseMultiFilePatchGithub(result.info, await result.response, this.loadingState);
+                const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
+                return parseMultiFilePatchGithub(await result.info, await result.response, this.loadingState);
             },
         );
     }

@@ -21,7 +21,7 @@ export type GithubDiff = {
 };
 
 export type GithubDiffResult = {
-    info: GithubDiff;
+    info: Promise<GithubDiff>;
     response: Promise<string>;
 };
 
@@ -112,7 +112,7 @@ export async function fetchGithubPRComparison(token: string | null, owner: strin
     const base = prInfo.base.sha;
     const head = prInfo.head.sha;
     const title = `${prInfo.title} (#${prInfo.number})`;
-    return await fetchGithubComparison(token, owner, repo, base, head, title, prInfo.html_url);
+    return fetchGithubComparison(token, owner, repo, base, head, title, prInfo.html_url);
 }
 
 function injectOptionalToken(token: string | null, opts: RequestInit) {
@@ -124,7 +124,7 @@ function injectOptionalToken(token: string | null, opts: RequestInit) {
     }
 }
 
-export async function fetchGithubPRInfo(token: string | null, owner: string, repo: string, prNumber: string): Promise<GithubPR> {
+async function fetchGithubPRInfo(token: string | null, owner: string, repo: string, prNumber: string): Promise<GithubPR> {
     const opts: RequestInit = {
         headers: {
             Accept: "application/json",
@@ -152,7 +152,7 @@ export function parseMultiFilePatchGithub(details: GithubDiff, patch: string, lo
     });
 }
 
-export async function fetchGithubComparison(
+export function fetchGithubComparison(
     token: string | null,
     owner: string,
     repo: string,
@@ -160,59 +160,66 @@ export async function fetchGithubComparison(
     head: string,
     description?: string,
     url?: string,
-): Promise<GithubDiffResult> {
-    const opts: RequestInit = {
-        headers: {
-            Accept: "application/vnd.github.v3.diff",
-        },
+): GithubDiffResult {
+    return {
+        info: (async () => {
+            if (!url) {
+                url = `https://github.com/${owner}/${repo}/compare/${base}...${head}`;
+            }
+            if (!description) {
+                description = `Comparing ${trimCommitHash(base)}...${trimCommitHash(head)}`;
+            }
+            return { owner, repo, base, head, description, backlink: url };
+        })(),
+        response: (async () => {
+            const opts: RequestInit = {
+                headers: {
+                    Accept: "application/vnd.github.v3.diff",
+                },
+            };
+            injectOptionalToken(token, opts);
+            const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/compare/${base}...${head}`, opts);
+            if (!response.ok) {
+                throw Error(`Failed to retrieve comparison (${response.status}): ${await response.text()}`);
+            }
+            return await response.text();
+        })(),
     };
-    injectOptionalToken(token, opts);
-    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/compare/${base}...${head}`, opts);
-    if (response.ok) {
-        if (!description) {
-            description = `Comparing ${trimCommitHash(base)}...${trimCommitHash(head)}`;
-        }
-        if (!url) {
-            url = `https://github.com/${owner}/${repo}/compare/${base}...${head}`;
-        }
-        const info = { owner, repo, base, head, description, backlink: url };
-        return { response: response.text(), info };
-    } else {
-        throw Error(`Failed to retrieve comparison (${response.status}): ${await response.text()}`);
-    }
 }
 
-export async function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string): Promise<GithubDiffResult> {
-    const diffOpts: RequestInit = {
-        headers: {
-            Accept: "application/vnd.github.v3.diff",
-        },
-    };
-    injectOptionalToken(token, diffOpts);
+export function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string): GithubDiffResult {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits/${commit}`;
-    const response = await fetch(url, diffOpts);
-    if (response.ok) {
-        const metaOpts: RequestInit = {
-            headers: {
-                Accept: "application/vnd.github+json",
-            },
-        };
-        injectOptionalToken(token, metaOpts);
-        const metaResponse = await fetch(url, metaOpts);
-        if (!metaResponse.ok) {
-            throw Error(`Failed to retrieve commit meta (${metaResponse.status}): ${await metaResponse.text()}`);
-        }
-        const meta: GithubCommitDetails = await metaResponse.json();
-        const firstParent = meta.parents[0].sha;
-        const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
-        const info = { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
-        return {
-            response: response.text(),
-            info,
-        };
-    } else {
-        throw Error(`Failed to retrieve commit diff (${response.status}): ${await response.text()}`);
-    }
+    return {
+        info: (async () => {
+            const metaOpts: RequestInit = {
+                headers: {
+                    Accept: "application/vnd.github+json",
+                },
+            };
+            injectOptionalToken(token, metaOpts);
+            const metaResponse = await fetch(url, metaOpts);
+            if (!metaResponse.ok) {
+                throw Error(`Failed to retrieve commit meta (${metaResponse.status}): ${await metaResponse.text()}`);
+            }
+            const meta: GithubCommitDetails = await metaResponse.json();
+            const firstParent = meta.parents[0].sha;
+            const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
+            return { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
+        })(),
+        response: (async () => {
+            const diffOpts: RequestInit = {
+                headers: {
+                    Accept: "application/vnd.github.v3.diff",
+                },
+            };
+            injectOptionalToken(token, diffOpts);
+            const response = await fetch(url, diffOpts);
+            if (!response.ok) {
+                throw Error(`Failed to retrieve commit diff (${response.status}): ${await response.text()}`);
+            }
+            return await response.text();
+        })(),
+    };
 }
 
 export async function fetchGithubFile(token: string | null, owner: string, repo: string, path: string, ref: string): Promise<Blob> {
