@@ -1,7 +1,7 @@
 <script lang="ts">
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
     import LabeledCheckbox from "$lib/components/LabeledCheckbox.svelte";
-    import { type FileDetails, GlobalOptions, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, type GithubDiffMetadata, GlobalOptions, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { Popover, Button } from "bits-ui";
     import { tick } from "svelte";
 
@@ -15,6 +15,7 @@
     let { index, value }: Props = $props();
 
     let popoverOpen = $state(false);
+    let isGithubDiff = viewer.diffMetadata?.type === "github";
 
     async function showInFileTree() {
         const fileTreeElement = document.getElementById("file-tree-file-" + index);
@@ -26,6 +27,15 @@
             requestAnimationFrame(() => {
                 fileTreeElement.focus();
             });
+        }
+    }
+
+    async function openInGithub() {
+        if (isGithubDiff) {
+            popoverOpen = false;
+            const filePath = value.toFile;
+            const { owner, repo, head } = (viewer.diffMetadata as GithubDiffMetadata).details;
+            window.open(`https://github.com/${owner}/${repo}/blob/${head}/${filePath}`, "_blank");
         }
     }
 
@@ -84,6 +94,13 @@
                         }
                     }
                 />
+                <Button.Root
+                    onclick={openInGithub}
+                    disabled={!isGithubDiff}
+                    class="disabled:btn-disabled px-2 py-1 not-disabled:btn-ghost disabled:text-gray-500"
+                >
+                    Open in GitHub
+                </Button.Root>
                 <Popover.Arrow class="text-edge" />
             </Popover.Content>
         </Popover.Portal>
