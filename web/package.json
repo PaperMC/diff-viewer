@@ -20,7 +20,7 @@
         "@eslint/js": "^9.30.1",
         "@iconify-json/octicon": "^1.2.7",
         "@iconify/tailwind4": "^1.0.6",
-        "@octokit/openapi-types": "^25.1.0",
+        "@octokit/openapi-types": "^26.0.0",
         "@sveltejs/adapter-auto": "^6.0.1",
         "@sveltejs/adapter-cloudflare": "^7.0.5",
         "@sveltejs/kit": "^2.22.5",
