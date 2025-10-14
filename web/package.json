@@ -53,7 +53,7 @@
         "runed": "^0.31.0",
         "shiki": "^3.7.0",
         "svelte-toolbelt": "^0.9.3",
-        "virtua": "^0.41.5"
+        "virtua": "^0.45.0"
     },
     "bunrc": {
         "run": {
