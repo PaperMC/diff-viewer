@@ -17,7 +17,6 @@
     async function prevResult() {
         const files = await viewer.searchResults;
         if (files.totalMatches === 0) {
-            currentMatchIdx = -1;
             return;
         }
         const startIdx = currentMatchIdx == -1 ? 0 : currentMatchIdx;
@@ -29,7 +28,6 @@
     async function nextResult() {
         const files = await viewer.searchResults;
         if (files.totalMatches === 0) {
-            currentMatchIdx = -1;
             return;
         }
         currentMatchIdx = (currentMatchIdx + 1) % files.totalMatches;
