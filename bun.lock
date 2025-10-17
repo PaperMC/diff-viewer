@@ -23,7 +23,7 @@
         "@iconify-json/octicon": "^1.2.16",
         "@iconify/tailwind4": "^1.0.6",
         "@octokit/openapi-types": "^26.0.0",
-        "@sveltejs/adapter-auto": "^6.1.1",
+        "@sveltejs/adapter-auto": "^7.0.0",
         "@sveltejs/adapter-cloudflare": "^7.2.4",
         "@sveltejs/kit": "^2.47.0",
         "@sveltejs/vite-plugin-svelte": "^6.2.1",
@@ -73,10 +73,6 @@
       },
     },
   },
-  "trustedDependencies": [
-    "@tailwindcss/oxide",
-    "web",
-  ],
   "packages": {
     "@antfu/install-pkg": ["@antfu/install-pkg@1.1.0", "", { "dependencies": { "package-manager-detector": "^1.3.0", "tinyexec": "^1.0.1" } }, "sha512-MGQsmw10ZyI+EJo45CdSER4zEb+p31LpDAFp2Z3gkSd1yqVZGi0Ebx++YTEMonJy4oChEMLsxZ64j8FH6sSqtQ=="],
 
@@ -364,7 +360,7 @@
 
     "@sveltejs/acorn-typescript": ["@sveltejs/acorn-typescript@1.0.5", "", { "peerDependencies": { "acorn": "^8.9.0" } }, "sha512-IwQk4yfwLdibDlrXVE04jTZYlLnwsTT2PIOQQGNLWfjavGifnk1JD1LcZjZaBTRcxZu2FfPfNLOE04DSu9lqtQ=="],
 
-    "@sveltejs/adapter-auto": ["@sveltejs/adapter-auto@6.1.1", "", { "peerDependencies": { "@sveltejs/kit": "^2.0.0" } }, "sha512-cBNt4jgH4KuaNO5gRSB2CZKkGtz+OCZ8lPjRQGjhvVUD4akotnj2weUia6imLl2v07K3IgsQRyM36909miSwoQ=="],
+    "@sveltejs/adapter-auto": ["@sveltejs/adapter-auto@7.0.0", "", { "peerDependencies": { "@sveltejs/kit": "^2.0.0" } }, "sha512-ImDWaErTOCkRS4Gt+5gZuymKFBobnhChXUZ9lhUZLahUgvA4OOvRzi3sahzYgbxGj5nkA6OV0GAW378+dl/gyw=="],
 
     "@sveltejs/adapter-cloudflare": ["@sveltejs/adapter-cloudflare@7.2.4", "", { "dependencies": { "@cloudflare/workers-types": "^4.20250507.0", "worktop": "0.8.0-next.18" }, "peerDependencies": { "@sveltejs/kit": "^2.0.0", "wrangler": "^4.0.0" } }, "sha512-uD8VlOuGXGuZWL+zbBYSjtmC4WDtlonUodfqAZ/COd5uIy2Z0QptIicB/nkTrGNI9sbmzgf7z0N09CHyWYlUvQ=="],
 
