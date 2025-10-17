@@ -35,5 +35,8 @@ export default ts.config(
                 svelteConfig,
             },
         },
+        rules: {
+            "svelte/prefer-svelte-reactivity": "off",
+        },
     },
 );
