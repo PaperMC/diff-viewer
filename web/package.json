@@ -50,7 +50,7 @@
         "chroma-js": "^3.1.2",
         "diff": "^8.0.2",
         "luxon": "^3.7.2",
-        "runed": "^0.35.1",
+        "runed": "^0.36.0",
         "shiki": "^3.13.0",
         "svelte-toolbelt": "^0.10.5",
         "virtua": "^0.45.3"
