@@ -31,6 +31,17 @@
     }
 
     let patchHeaderDiffOnly = $derived(value.type === "text" && value.patchHeaderDiffOnly);
+
+    let { baseFileUrl, headFileUrl } = $derived.by(() => {
+        if (viewer.diffMetadata?.type === "github") {
+            const ghDetails = viewer.diffMetadata.details;
+            return {
+                baseFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.base}/${value.fromFile}`,
+                headFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.head}/${value.toFile}`,
+            };
+        }
+        return { baseFileUrl: undefined, headFileUrl: undefined };
+    });
 </script>
 
 {#snippet fileName()}
@@ -85,6 +96,12 @@
                         }
                     }
                 />
+                {#if baseFileUrl}
+                    <Button.Root href={baseFileUrl} target="_blank" rel="noopener noreferrer" class="btn-ghost px-2 py-1">View file at base</Button.Root>
+                {/if}
+                {#if headFileUrl}
+                    <Button.Root href={headFileUrl} target="_blank" rel="noopener noreferrer" class="btn-ghost px-2 py-1">View file at head</Button.Root>
+                {/if}
                 <Popover.Arrow class="text-edge" />
             </Popover.Content>
         </Popover.Portal>

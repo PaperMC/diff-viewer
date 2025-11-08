@@ -1,9 +1,11 @@
-import { DEFAULT_THEME_DARK, DEFAULT_THEME_LIGHT } from "$lib/components/diff/concise-diff-view.svelte";
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { watchLocalStorage } from "$lib/util";
 import { Context } from "runed";
+
+export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
+export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
 
 export type SidebarLocation = "left" | "right";
 

@@ -15,9 +15,7 @@ import type { IRawThemeSetting } from "shiki/textmate";
 import chroma from "chroma-js";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { onDestroy } from "svelte";
-
-export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
-export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
+import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
 
 export type DiffViewerPatch = {
     hunks: DiffViewerPatchHunk[];
