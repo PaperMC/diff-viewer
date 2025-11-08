@@ -34,10 +34,5 @@
         "@tailwindcss/vite": "^4.1.17",
         "tailwindcss": "^4.1.17",
         "webextension-polyfill": "^0.12.0"
-    },
-    "bunrc": {
-        "run": {
-            "bun": true
-        }
     }
 }

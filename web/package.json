@@ -54,10 +54,5 @@
         "shiki": "^3.15.0",
         "svelte-toolbelt": "^0.10.6",
         "virtua": "0.46.6"
-    },
-    "bunrc": {
-        "run": {
-            "bun": true
-        }
     }
 }
