@@ -27,14 +27,10 @@
             instance.githubUrl = githubUrlParam;
             await instance.handleGithubUrl();
         } else if (patchUrlParam !== null) {
-            open = true;
-            await tick();
-            if (instance.patchFile) {
-                instance.patchFile.reset();
-                instance.patchFile.mode = "url";
-                instance.patchFile.url = patchUrlParam;
-                await instance.handlePatchFile();
-            }
+            instance.patchFile.reset();
+            instance.patchFile.mode = "url";
+            instance.patchFile.url = patchUrlParam;
+            await instance.handlePatchFile();
         } else {
             open = true;
         }

@@ -29,7 +29,7 @@ export class OpenDiffDialogState {
 
     githubUrl = $state("https://github.com/");
 
-    patchFile = $state<MultimodalFileInputState | undefined>();
+    patchFile = $state(MultimodalFileInputState.createInstance());
 
     fileOne = $state<MultimodalFileInputState | undefined>();
     fileTwo = $state<MultimodalFileInputState | undefined>();

@@ -1,4 +1,4 @@
-import { type ReadableBoxedValues, type WritableBoxedValues } from "svelte-toolbelt";
+import { box, type ReadableBoxedValues, type WritableBoxedValues } from "svelte-toolbelt";
 import { getExtensionForLanguage, lazyPromise } from "$lib/util";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
 import type { Snippet } from "svelte";
@@ -236,6 +236,23 @@ export class MultimodalFileInputState {
     });
     dragActive = $state(false);
 
+    /**
+     * For creating a state instance before the component is mounted.
+     *
+     * @returns new state instance
+     */
+    static createInstance() {
+        return new MultimodalFileInputState({
+            state: undefined,
+
+            // These will be overridden by the component itself. Only the actual input state is inherited.
+            label: box.with(() => ""),
+            required: box.with(() => false),
+            fileTypeOverride: box.with(() => false),
+            defaultMode: box.with(() => "file"),
+        });
+    }
+
     constructor(opts: MultimodalFileInputStateProps) {
         this.opts = opts;
         if (this.opts.state) {
@@ -317,5 +334,6 @@ export class MultimodalFileInputState {
         this.text = "";
         this.file = undefined;
         this.url = "";
+        this.mode = this.opts.defaultMode.current;
     }
 }
