@@ -294,7 +294,7 @@
             <DiffSearch />
         </div>
         <div class="flex flex-1 flex-col border-t">
-            <VList data={viewer.fileDetails} style="height: 100%;" getKey={(_, i) => i} bind:this={viewer.vlist} overscan={3}>
+            <VList data={viewer.fileDetails} style="height: 100%;" getKey={(_, i) => i} bind:this={viewer.vlist}>
                 {#snippet children(value, index)}
                     <div id={`file-${index}`}>
                         <FileHeader {index} {value} />
