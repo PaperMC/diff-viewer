@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getGithubUsername, GITHUB_URL_PARAM, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
+    import { getGithubUsername, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
     import { Button, Dialog, Separator, Popover } from "bits-ui";
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
@@ -7,8 +7,9 @@
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
     import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
     import { flip } from "svelte/animate";
-    import { OpenDiffDialogState, PATCH_URL_PARAM, type OpenDiffDialogProps } from "$lib/open-diff-dialog.svelte";
+    import { OpenDiffDialogState, type OpenDiffDialogProps } from "$lib/open-diff-dialog.svelte";
     import { box } from "svelte-toolbelt";
+    import { GITHUB_URL_PARAM, PATCH_URL_PARAM } from "$lib/diff-viewer-multi-file.svelte";
 
     let { open = $bindable(false) }: OpenDiffDialogProps = $props();
 

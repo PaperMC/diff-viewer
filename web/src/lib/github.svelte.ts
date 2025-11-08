@@ -7,7 +7,6 @@ import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/pub
 export const GITHUB_USERNAME_KEY = "github_username";
 export const GITHUB_TOKEN_KEY = "github_token";
 export const GITHUB_TOKEN_EXPIRES_KEY = "github_token_expires";
-export const GITHUB_URL_PARAM = "github_url";
 
 export const githubUsername: { value: string | null } = $state({ value: null });
 

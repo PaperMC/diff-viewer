@@ -37,6 +37,9 @@ import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 
+export const GITHUB_URL_PARAM = "github_url";
+export const PATCH_URL_PARAM = "patch_url";
+
 export type SidebarLocation = "left" | "right";
 
 export class GlobalOptions {

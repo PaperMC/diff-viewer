@@ -1,14 +1,12 @@
 import type { WritableBoxedValues } from "svelte-toolbelt";
 import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "./components/files/index.svelte";
 import { SvelteSet } from "svelte/reactivity";
-import { type FileStatus, GITHUB_URL_PARAM } from "$lib/github.svelte";
+import { type FileStatus } from "$lib/github.svelte";
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+import { GITHUB_URL_PARAM, makeImageDetails, makeTextDetails, MultiFileDiffViewerState, PATCH_URL_PARAM } from "$lib/diff-viewer-multi-file.svelte";
 import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
-
-export const PATCH_URL_PARAM = "patch_url";
 
 export interface OpenDiffDialogProps {
     open?: boolean;
