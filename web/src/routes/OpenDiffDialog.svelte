@@ -159,7 +159,7 @@
         class="p-4"
         onsubmit={(e) => {
             e.preventDefault();
-            handlePatchFile();
+            instance.handlePatchFile();
         }}
     >
         <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">
