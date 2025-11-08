@@ -3,7 +3,7 @@
     import { Button, Dialog, Separator, Popover } from "bits-ui";
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
-    import { onMount, tick } from "svelte";
+    import { onMount } from "svelte";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
     import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
     import { flip } from "svelte/animate";
