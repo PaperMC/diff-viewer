@@ -1,7 +1,8 @@
 <script lang="ts">
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
     import LabeledCheckbox from "$lib/components/LabeledCheckbox.svelte";
-    import { type FileDetails, GlobalOptions, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { GlobalOptions } from "$lib/global-options.svelte";
     import { Popover, Button } from "bits-ui";
     import { tick } from "svelte";
 

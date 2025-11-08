@@ -2,14 +2,7 @@
     import ConciseDiffView from "$lib/components/diff/ConciseDiffView.svelte";
     import { type FileTreeNodeData } from "$lib/util";
     import { VList } from "virtua/svelte";
-    import {
-        type FileDetails,
-        getFileStatusProps,
-        GlobalOptions,
-        MultiFileDiffViewerState,
-        requireEitherImage,
-        staticSidebar,
-    } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, getFileStatusProps, MultiFileDiffViewerState, requireEitherImage, staticSidebar } from "$lib/diff-viewer-multi-file.svelte";
     import Tree from "$lib/components/tree/Tree.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import { type TreeNode } from "$lib/components/tree/index.svelte";
@@ -34,6 +27,7 @@
     import SidebarToggle from "./SidebarToggle.svelte";
     import type { PageProps } from "./$types";
     import ProgressBar from "$lib/components/progress-bar/ProgressBar.svelte";
+    import { GlobalOptions } from "$lib/global-options.svelte";
 
     let { data }: PageProps = $props();
     const globalOptions = GlobalOptions.init(data.globalOptions);
