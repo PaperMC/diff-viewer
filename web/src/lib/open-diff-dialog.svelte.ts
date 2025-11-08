@@ -11,7 +11,7 @@ import { createTwoFilesPatch } from "diff";
 export const PATCH_URL_PARAM = "patch_url";
 
 export interface OpenDiffDialogProps {
-    open: boolean;
+    open?: boolean;
 }
 
 export type OpenDiffDialogStateProps = WritableBoxedValues<{
