@@ -6,7 +6,7 @@
     import { goto } from "$app/navigation";
     import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
     import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { createTwoFilesPatch } from "diff";
     import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
     import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "$lib/components/files/index.svelte";
@@ -49,11 +49,24 @@
         dirBlacklistInput = "";
     }
 
+    const PATCH_URL_PARAM = "patch_url";
+
     onMount(async () => {
-        const url = page.url.searchParams.get(GITHUB_URL_PARAM);
-        if (url !== null) {
-            githubUrl = url;
+        const githubUrlParam = page.url.searchParams.get(GITHUB_URL_PARAM);
+        const patchUrlParam = page.url.searchParams.get(PATCH_URL_PARAM);
+
+        if (githubUrlParam !== null) {
+            githubUrl = githubUrlParam;
             await handleGithubUrl();
+        } else if (patchUrlParam !== null) {
+            modalOpen = true;
+            await tick();
+            if (patchFile) {
+                patchFile.reset();
+                patchFile.mode = "url";
+                patchFile.url = patchUrlParam;
+                await handlePatchFile();
+            }
         } else {
             modalOpen = true;
         }
@@ -293,7 +306,11 @@
             modalOpen = true;
             return;
         }
-        await updateUrlParams();
+        let patchUrl: string | undefined;
+        if (patchFile.mode === "url") {
+            patchUrl = patchFile.url;
+        }
+        await updateUrlParams({ patchUrl });
     }
 
     async function handleGithubUrl() {
@@ -319,12 +336,17 @@
         modalOpen = true;
     }
 
-    async function updateUrlParams(opts: { githubUrl?: string } = {}) {
+    async function updateUrlParams(opts: { githubUrl?: string; patchUrl?: string } = {}) {
         const newUrl = new URL(page.url);
         if (opts.githubUrl) {
             newUrl.searchParams.set(GITHUB_URL_PARAM, opts.githubUrl);
         } else {
             newUrl.searchParams.delete(GITHUB_URL_PARAM);
+        }
+        if (opts.patchUrl) {
+            newUrl.searchParams.set(PATCH_URL_PARAM, opts.patchUrl);
+        } else {
+            newUrl.searchParams.delete(PATCH_URL_PARAM);
         }
         await goto(`?${newUrl.searchParams}`);
     }
