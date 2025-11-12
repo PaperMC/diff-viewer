@@ -1,4 +1,4 @@
-import { openInPatchRoulette } from "./common.ts";
+import { openInDiffViewer } from "./common.ts";
 import browser from "webextension-polyfill";
 
 function createContextMenu() {
@@ -18,6 +18,6 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
         url = tab.url;
     }
     if (url) {
-        await openInPatchRoulette(url);
+        await openInDiffViewer(url);
     }
 });

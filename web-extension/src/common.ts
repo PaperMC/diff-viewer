@@ -9,13 +9,21 @@ export async function getViewerUrl() {
     return url;
 }
 
-export async function openInPatchRoulette(url: string) {
+export async function openInDiffViewer(url: string) {
     const viewerUrl = await getViewerUrl();
     try {
         if (url.startsWith(viewerUrl)) {
             return;
         }
-        const newUrl = viewerUrl + "?github_url=" + encodeURIComponent(url);
+
+        const parsedUrl = new URL(url);
+        let newUrl: string;
+        if (parsedUrl.hostname === "github.com") {
+            newUrl = viewerUrl + "?github_url=" + encodeURIComponent(url);
+        } else {
+            newUrl = viewerUrl + "?patch_url=" + encodeURIComponent(url);
+        }
+
         const activeTab = await getActiveTab();
         await chrome.tabs.create({
             url: newUrl,

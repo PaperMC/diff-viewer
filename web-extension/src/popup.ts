@@ -1,4 +1,4 @@
-import { getActiveTab, openInPatchRoulette } from "./common.ts";
+import { getActiveTab, openInDiffViewer } from "./common.ts";
 
 const button = document.getElementById("open-button") as HTMLButtonElement;
 const settingsButton = document.getElementById("settings-button") as HTMLButtonElement;
@@ -10,7 +10,7 @@ if (!button || !settingsButton) {
 button.addEventListener("click", async () => {
     const activeTab = await getActiveTab();
     if (activeTab && activeTab.url) {
-        await openInPatchRoulette(activeTab.url);
+        await openInDiffViewer(activeTab.url);
         window.close();
     }
 });
