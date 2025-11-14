@@ -1,4 +1,4 @@
-import { type FileDetails, type ImageFileDetails, LoadingState, makeTextDetails } from "./diff-viewer-multi-file.svelte";
+import { type FileDetails, type ImageFileDetails, LoadingState, makeTextDetails } from "./diff-viewer.svelte";
 import type { FileStatus } from "./github.svelte";
 import type { TreeNode } from "$lib/components/tree/index.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";

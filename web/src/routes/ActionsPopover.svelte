@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { Popover, Button } from "bits-ui";
 
     const viewer = MultiFileDiffViewerState.get();

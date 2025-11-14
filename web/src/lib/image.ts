@@ -1,4 +1,7 @@
-export type ImageDimensions = { width: number; height: number };
+export interface ImageDimensions {
+    width: number;
+    height: number;
+}
 
 export async function getDimensions(src: string): Promise<ImageDimensions> {
     const res = await fetch(src);

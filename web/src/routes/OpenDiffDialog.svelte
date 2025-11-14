@@ -9,7 +9,7 @@
     import { flip } from "svelte/animate";
     import { OpenDiffDialogState, type OpenDiffDialogProps } from "$lib/open-diff-dialog.svelte";
     import { box } from "svelte-toolbelt";
-    import { GITHUB_URL_PARAM, PATCH_URL_PARAM } from "$lib/diff-viewer-multi-file.svelte";
+    import { GITHUB_URL_PARAM, PATCH_URL_PARAM } from "$lib/diff-viewer.svelte";
 
     let { open = $bindable(false) }: OpenDiffDialogProps = $props();
 

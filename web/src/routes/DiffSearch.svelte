@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
 
     const viewer = MultiFileDiffViewerState.get();

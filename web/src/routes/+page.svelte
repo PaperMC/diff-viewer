@@ -2,7 +2,7 @@
     import ConciseDiffView from "$lib/components/diff/ConciseDiffView.svelte";
     import { type FileTreeNodeData } from "$lib/util";
     import { VList } from "virtua/svelte";
-    import { type FileDetails, getFileStatusProps, MultiFileDiffViewerState, requireEitherImage, staticSidebar } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, getFileStatusProps, MultiFileDiffViewerState, requireEitherImage, staticSidebar } from "$lib/diff-viewer.svelte";
     import Tree from "$lib/components/tree/Tree.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import { type TreeNode } from "$lib/components/tree/index.svelte";
@@ -179,12 +179,12 @@
                 {#snippet fileSnippet(value: FileDetails)}
                     <div
                         class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
-                        onclick={(e) => scrollToFileClick(e, viewer.getIndex(value))}
-                        use:focusFileDoubleClick={{ index: viewer.getIndex(value) }}
-                        onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(viewer.getIndex(value))}
+                        onclick={(e) => scrollToFileClick(e, value.index)}
+                        use:focusFileDoubleClick={{ index: value.index }}
+                        onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(value.index)}
                         role="button"
                         tabindex="0"
-                        id={"file-tree-file-" + viewer.getIndex(value)}
+                        id={"file-tree-file-" + value.index}
                     >
                         <span
                             class="{getFileStatusProps(value.status).iconClasses} me-1 flex size-4 shrink-0 items-center justify-center"
@@ -196,8 +196,8 @@
                             class="ms-1 size-4 shrink-0 rounded-sm border"
                             autocomplete="off"
                             aria-label="File viewed"
-                            onchange={() => viewer.toggleChecked(viewer.getIndex(value))}
-                            checked={viewer.checked[viewer.getIndex(value)]}
+                            onchange={() => viewer.toggleChecked(value.index)}
+                            checked={viewer.fileStates[value.index].checked}
                         />
                     </div>
                 {/snippet}
@@ -292,7 +292,7 @@
                 {#snippet children(value, index)}
                     <div id={`file-${index}`}>
                         <FileHeader {index} {value} />
-                        {#if !viewer.collapsed[index] && value.type === "image"}
+                        {#if !viewer.fileStates[index].collapsed && value.type === "image"}
                             {@const image = value.image}
                             <div class="mb border-b text-sm">
                                 {#if image.load}
@@ -322,7 +322,7 @@
                                 {/if}
                             </div>
                         {/if}
-                        {#if !viewer.collapsed[index] && value.type === "text" && (!value.patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks)}
+                        {#if !viewer.fileStates[index].collapsed && value.type === "text" && (!value.patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks)}
                             <div class="mb border-b">
                                 <ConciseDiffView
                                     patch={value.structuredPatch}

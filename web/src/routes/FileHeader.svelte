@@ -1,7 +1,7 @@
 <script lang="ts">
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
     import LabeledCheckbox from "$lib/components/LabeledCheckbox.svelte";
-    import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer-multi-file.svelte";
+    import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
     import { Popover, Button } from "bits-ui";
     import { tick } from "svelte";
@@ -58,7 +58,7 @@
 
 {#snippet collapseToggle()}
     <button
-        title={viewer.collapsed[index] ? "Expand file" : "Collapse file"}
+        title={viewer.fileStates[index].collapsed ? "Expand file" : "Collapse file"}
         type="button"
         class="flex size-6 items-center justify-center rounded-md btn-ghost p-0.5 text-primary"
         onclick={(e) => {
@@ -66,7 +66,7 @@
             e.stopPropagation();
         }}
     >
-        {#if viewer.collapsed[index]}
+        {#if viewer.fileStates[index].collapsed}
             <span aria-label="expand file" class="iconify size-4 shrink-0 text-primary octicon--chevron-right-16" aria-hidden="true"></span>
         {:else}
             <span aria-label="collapse file" class="iconify size-4 shrink-0 text-primary octicon--chevron-down-16" aria-hidden="true"></span>
@@ -89,7 +89,7 @@
                 <LabeledCheckbox
                     labelText="File viewed"
                     bind:checked={
-                        () => viewer.checked[index] ?? false,
+                        () => viewer.fileStates[index].checked,
                         () => {
                             viewer.toggleChecked(index);
                             popoverOpen = false;

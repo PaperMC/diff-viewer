@@ -4,7 +4,7 @@ import { SvelteSet } from "svelte/reactivity";
 import { type FileStatus } from "$lib/github.svelte";
 import { page } from "$app/state";
 import { goto } from "$app/navigation";
-import { GITHUB_URL_PARAM, makeImageDetails, makeTextDetails, MultiFileDiffViewerState, PATCH_URL_PARAM } from "$lib/diff-viewer-multi-file.svelte";
+import { GITHUB_URL_PARAM, makeImageDetails, makeTextDetails, MultiFileDiffViewerState, PATCH_URL_PARAM } from "$lib/diff-viewer.svelte";
 import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
 
@@ -16,10 +16,10 @@ export type OpenDiffDialogStateProps = WritableBoxedValues<{
     open: boolean;
 }>;
 
-type ProtoFileDetails = {
+interface ProtoFileDetails {
     path: string;
     file: File;
-};
+}
 
 export class OpenDiffDialogState {
     private readonly props: OpenDiffDialogStateProps;

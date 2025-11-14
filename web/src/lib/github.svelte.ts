@@ -1,7 +1,7 @@
 import { browser } from "$app/environment";
 import type { components } from "@octokit/openapi-types";
 import { parseMultiFilePatch, trimCommitHash } from "$lib/util";
-import { LoadingState, makeImageDetails } from "$lib/diff-viewer-multi-file.svelte";
+import { LoadingState, makeImageDetails } from "$lib/diff-viewer.svelte";
 import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
 
 export const GITHUB_USERNAME_KEY = "github_username";
@@ -10,19 +10,19 @@ export const GITHUB_TOKEN_EXPIRES_KEY = "github_token_expires";
 
 export const githubUsername: { value: string | null } = $state({ value: null });
 
-export type GithubDiff = {
+export interface GithubDiff {
     owner: string;
     repo: string;
     base: string;
     head: string;
     description: string;
     backlink: string;
-};
+}
 
-export type GithubDiffResult = {
+export interface GithubDiffResult {
     info: Promise<GithubDiff>;
     response: Promise<string>;
-};
+}
 
 if (browser) {
     githubUsername.value = localStorage.getItem(GITHUB_USERNAME_KEY);
@@ -72,12 +72,12 @@ export type GithubPR = components["schemas"]["pull-request"];
 export type FileStatus = "added" | "removed" | "modified" | "renamed" | "renamed_modified";
 export type GithubUser = components["schemas"]["private-user"];
 export type GithubCommitDetails = components["schemas"]["commit"];
-export type GithubTokenResponse = {
+export interface GithubTokenResponse {
     access_token: string;
     token_type: string;
     scope: string;
     expires_in: number;
-};
+}
 
 export async function fetchGithubUserToken(code: string): Promise<GithubTokenResponse> {
     const response = await fetch(new URL(`${window.location.origin}/github-token?code=${code}`), {

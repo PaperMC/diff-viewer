@@ -25,26 +25,28 @@ export const staticSidebar = new MediaQuery("(width >= 64rem)");
 
 export type AddOrRemove = "add" | "remove";
 
-export type CommonFileDetails = {
+export interface CommonFileDetails {
+    index: number;
     fromFile: string;
     toFile: string;
     status: FileStatus;
-};
+}
 
-export type TextFileDetails = CommonFileDetails & {
+export interface TextFileDetails extends CommonFileDetails {
     type: "text";
     structuredPatch: StructuredPatch;
     patchHeaderDiffOnly: boolean;
-};
+}
 
-export type ImageFileDetails = CommonFileDetails & {
+export interface ImageFileDetails extends CommonFileDetails {
     type: "image";
     image: ImageDiffDetails;
-};
+}
 
 export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
     const patch = parseSinglePatch(patchText);
     return {
+        index: -1,
         type: "text",
         fromFile,
         toFile,
@@ -62,6 +64,7 @@ export function makeImageDetails(
     toBlob?: Promise<Blob> | Blob,
 ): ImageFileDetails {
     return {
+        index: -1,
         type: "image",
         fromFile,
         toFile,
@@ -76,11 +79,16 @@ export function makeImageDetails(
 
 export type FileDetails = TextFileDetails | ImageFileDetails;
 
-export type ImageDiffDetails = {
+export interface FileState {
+    checked: boolean;
+    collapsed: boolean;
+}
+
+export interface ImageDiffDetails {
     fileA: LazyPromise<string> | null;
     fileB: LazyPromise<string> | null;
     load: boolean;
-};
+}
 
 export function requireEitherImage(details: ImageDiffDetails) {
     if (details.fileA) return details.fileA;
@@ -128,10 +136,10 @@ function compareFileDetails(a: FileDetails, b: FileDetails): number {
     return aParts.length - bParts.length;
 }
 
-export type FileStatusProps = {
+export interface FileStatusProps {
     iconClasses: string;
     title: string;
-};
+}
 
 const addStatusProps: FileStatusProps = {
     iconClasses: "iconify octicon--file-added-16 text-green-600",
@@ -169,22 +177,22 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
     }
 }
 
-export type ViewerStatistics = {
+export interface ViewerStatistics {
     addedLines: number;
     removedLines: number;
     fileAddedLines: number[];
     fileRemovedLines: number[];
-};
+}
 
-export type GithubDiffMetadata = {
+export interface GithubDiffMetadata {
     type: "github";
     details: GithubDiff;
-};
+}
 
-export type FileDiffMetadata = {
+export interface FileDiffMetadata {
     type: "file";
     fileName: string;
-};
+}
 
 export type DiffMetadata = GithubDiffMetadata | FileDiffMetadata;
 
@@ -199,49 +207,38 @@ export class MultiFileDiffViewerState {
         return MultiFileDiffViewerState.context.get();
     }
 
-    fileTreeFilter: string = $state("");
-    searchQuery: string = $state("");
-    // TODO remove parallel arrays to fix order-dependency issues
-    collapsed: boolean[] = $state([]);
-    checked: boolean[] = $state([]);
-    fileDetails: FileDetails[] = $state([]);
-    diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
-    vlist: VList<FileDetails> | undefined = $state();
-    tree: TreeState<FileTreeNodeData> | undefined = $state();
-    activeSearchResult: ActiveSearchResult | null = $state(null);
-    sidebarCollapsed = $state(false);
+    // Main diff state
     diffMetadata: DiffMetadata | null = $state(null);
-    readonly loadingState: LoadingState = $state(new LoadingState());
-
-    readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
-    readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
+    fileDetails: FileDetails[] = $state([]); // Read-only state
+    fileStates: FileState[] = $state([]); // Mutable state
     readonly stats: ViewerStatistics = $derived(this.countStats());
+
+    // Content search state
+    searchQuery: string = $state("");
+    readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
+    readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
+
+    // File tree state
+    tree: TreeState<FileTreeNodeData> | undefined = $state();
+    fileTreeFilter: string = $state("");
     readonly fileTreeRoots: TreeNode<FileTreeNodeData>[] = $derived(makeFileTree(this.fileDetails));
+    readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
     readonly filteredFileDetails: FileDetails[] = $derived(
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
-    readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
+
+    // Misc. component state
+    diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
+    vlist: VList<FileDetails> | undefined = $state();
+    readonly loadingState: LoadingState = $state(new LoadingState());
+
+    // Transient state
+    sidebarCollapsed = $state(false);
+    activeSearchResult: ActiveSearchResult | null = $state(null);
 
     private constructor() {
-        // Auto-check all patch header diff only diffs
-        $effect(() => {
-            for (let i = 0; i < this.fileDetails.length; i++) {
-                const details = this.fileDetails[i];
-                if (details.type !== "text") {
-                    continue;
-                }
-                if (details.patchHeaderDiffOnly && this.checked[i] === undefined) {
-                    this.checked[i] = true;
-                }
-            }
-        });
-
         // Make sure to revoke object URLs when the component is destroyed
         onDestroy(() => this.clearImages());
-    }
-
-    getIndex(details: FileDetails): number {
-        return this.fileDetails.findIndex((f) => f.fromFile === details.fromFile && f.toFile === details.toFile);
     }
 
     filterFile(file: FileDetails): boolean {
@@ -253,23 +250,29 @@ export class MultiFileDiffViewerState {
         this.fileTreeFilter = "";
     }
 
-    toggleCollapse(index: number) {
-        this.collapsed[index] = !(this.collapsed[index] || false);
+    toggleCollapse(idx: number) {
+        const fileState = this.fileStates[idx];
+        fileState.collapsed = !fileState.collapsed;
     }
 
     expandAll() {
-        this.collapsed = [];
+        for (let i = 0; i < this.fileStates.length; i++) {
+            this.fileStates[i].collapsed = false;
+        }
     }
 
     collapseAll() {
-        this.collapsed = this.fileDetails.map(() => true);
+        for (let i = 0; i < this.fileStates.length; i++) {
+            this.fileStates[i].collapsed = true;
+        }
     }
 
-    toggleChecked(index: number) {
-        this.checked[index] = !this.checked[index];
-        if (this.checked[index]) {
+    toggleChecked(idx: number) {
+        const fileState = this.fileStates[idx];
+        fileState.checked = !fileState.checked;
+        if (fileState.checked) {
             // Auto-collapse on check
-            this.collapsed[index] = true;
+            fileState.collapsed = true;
         }
     }
 
@@ -280,9 +283,10 @@ export class MultiFileDiffViewerState {
         const smooth = options.smooth ?? false;
         const focus = options.focus ?? false;
 
-        if (autoExpand && !this.checked[index]) {
+        const fileState = this.fileStates[index];
+        if (autoExpand && !fileState.checked) {
             // Auto-expand on jump when not checked
-            this.collapsed[index] = false;
+            fileState.collapsed = false;
         }
         this.vlist.scrollToIndex(index, { align: "start", smooth });
         if (focus) {
@@ -297,8 +301,8 @@ export class MultiFileDiffViewerState {
     // https://github.com/inokawa/virtua/discussions/542#discussioncomment-11214618
     async scrollToMatch(file: FileDetails, idx: number) {
         if (!this.vlist) return;
-        const fileIdx = this.getIndex(file);
-        this.collapsed[fileIdx] = false;
+        const fileIdx = file.index;
+        this.fileStates[fileIdx].collapsed = false;
         const startIdx = this.vlist.findStartIndex();
         const endIdx = this.vlist.findEndIndex();
         if (fileIdx < startIdx || fileIdx > endIdx) {
@@ -340,8 +344,7 @@ export class MultiFileDiffViewerState {
 
     private clear(clearMeta: boolean = true) {
         // Reset state
-        this.collapsed = [];
-        this.checked = [];
+        this.fileStates = [];
         if (clearMeta) {
             this.diffMetadata = null;
         }
@@ -382,6 +385,7 @@ export class MultiFileDiffViewerState {
 
             // Load patches
             const tempDetails: FileDetails[] = [];
+            const tempStates = new Map<string, FileState>();
             let lastYield = performance.now();
             let i = 0;
             for await (const details of generator) {
@@ -390,6 +394,16 @@ export class MultiFileDiffViewerState {
 
                 // Pushing directly to the main array causes too many signals to update (lag)
                 tempDetails.push(details);
+
+                let preChecked = false;
+                if (details.type === "text") {
+                    // Pre-check files with only header diff
+                    preChecked = details.patchHeaderDiffOnly;
+                }
+                tempStates.set(details.fromFile, {
+                    collapsed: false,
+                    checked: preChecked,
+                });
 
                 if (performance.now() - lastYield > 50 || i % 100 === 0) {
                     await tick();
@@ -400,8 +414,19 @@ export class MultiFileDiffViewerState {
             if (tempDetails.length === 0) {
                 throw new Error("No valid patches found in the provided data.");
             }
+
             tempDetails.sort(compareFileDetails);
             this.fileDetails.push(...tempDetails);
+
+            for (let i = 0; i < tempDetails.length; i++) {
+                const details = tempDetails[i];
+                details.index = i;
+                const state = tempStates.get(details.fromFile);
+                if (state) {
+                    this.fileStates.push(state);
+                }
+            }
+
             return true;
         } catch (e) {
             this.clear(); // Clear any partially loaded state
@@ -587,10 +612,10 @@ export class LoadingState {
     }
 }
 
-export type ActiveSearchResult = {
+export interface ActiveSearchResult {
     file: FileDetails;
     idx: number;
-};
+}
 
 export class SearchResults {
     static EMPTY = new SearchResults(new Map(), 0, new Map(), new Map());
