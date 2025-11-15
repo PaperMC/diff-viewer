@@ -234,6 +234,8 @@ export class MultiFileDiffViewerState {
 
     // Transient state
     sidebarCollapsed = $state(false);
+    openDiffDialogOpen = $state(false);
+    settingsDialogOpen = $state(false);
     activeSearchResult: ActiveSearchResult | null = $state(null);
 
     private constructor() {
