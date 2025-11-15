@@ -58,9 +58,9 @@
 
 <div class="flex min-h-screen flex-col">
     <MenuBar />
-    <div bind:this={mainContainerRef} class="relative flex grow flex-row justify-center">
+    <div bind:this={mainContainerRef} class="relative flex max-w-full grow flex-row justify-center">
         <Sidebar closeOnClick={mainContainerRef} />
-        <div class="flex grow flex-col">
+        <div class="flex max-w-full grow flex-col">
             {#if viewer.diffMetadata !== null}
                 <div class="flex flex-wrap gap-2 px-3 pt-2">
                     <DiffTitle meta={viewer.diffMetadata} />
@@ -107,7 +107,7 @@
                                 </div>
                             {/if}
                             {#if !viewer.fileStates[index].collapsed && value.type === "text" && (!value.patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks)}
-                                <div class="mb border-b">
+                                <div class="border-b">
                                     <ConciseDiffView
                                         patch={value.structuredPatch}
                                         syntaxHighlighting={globalOptions.syntaxHighlighting}
