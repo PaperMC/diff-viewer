@@ -50,7 +50,7 @@
                 </Menubar.Item>
                 <Menubar.Separator class="h-px w-full bg-edge" />
                 <Menubar.Item
-                    class="flex justify-between gap-2 btn-ghost px-2 py-1"
+                    class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
                         viewer.openSettingsDialog();
                     }}
@@ -66,7 +66,7 @@
         <Menubar.Portal>
             <Menubar.Content class="border bg-neutral text-sm" align="start">
                 <Menubar.Item
-                    class="flex justify-between gap-2 btn-ghost px-2 py-1"
+                    class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
                         viewer.openOpenDiffDialog();
                     }}
@@ -82,7 +82,7 @@
         <Menubar.Portal>
             <Menubar.Content class="border bg-neutral text-sm" align="start">
                 <Menubar.Item
-                    class="btn-ghost px-2 py-1"
+                    class="btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
                         viewer.expandAll();
                     }}
@@ -90,7 +90,7 @@
                     Expand All
                 </Menubar.Item>
                 <Menubar.Item
-                    class="btn-ghost px-2 py-1"
+                    class="btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
                         viewer.collapseAll();
                     }}
