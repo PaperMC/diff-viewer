@@ -4,12 +4,10 @@
 
 <script lang="ts">
     import SettingsGroup from "./SettingsGroup.svelte";
-    import type { RestProps } from "$lib/types";
-    import { mergeProps, Label, Dialog } from "bits-ui";
+    import { Label, Dialog } from "bits-ui";
     import SimpleRadioGroup from "$lib/components/settings/SimpleRadioGroup.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
     import { getGlobalTheme, setGlobalTheme } from "$lib/theme.svelte";
-    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import LabeledCheckbox from "../LabeledCheckbox.svelte";
 
     import ShikiThemeSelector from "./ShikiThemeSelector.svelte";
@@ -19,7 +17,6 @@
 
     let { open = $bindable(false) }: Props = $props();
 
-    const viewer = MultiFileDiffViewerState.get();
     const globalOptions = GlobalOptions.get();
 </script>
 
