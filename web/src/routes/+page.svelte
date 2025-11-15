@@ -118,7 +118,7 @@
             class="absolute top-0 z-10 flex h-full w-full flex-col bg-neutral
                 data-[collapsed=true]:hidden
                 data-[side=left]:left-0 data-[side=left]:border-e data-[side=right]:right-0 data-[side=right]:order-10 data-[side=right]:border-s
-                md:w-[350px] md:shadow-md lg:static
+                md:w-[350px] md:shadow-md lg:static lg:z-0
                 lg:h-auto lg:shadow-none"
             data-side={globalOptions.sidebarLocation}
             data-collapsed={viewer.sidebarCollapsed}
