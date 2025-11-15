@@ -17,6 +17,7 @@ import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
+import { Keybinds } from "./keybinds.svelte";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -241,6 +242,20 @@ export class MultiFileDiffViewerState {
     private constructor() {
         // Make sure to revoke object URLs when the component is destroyed
         onDestroy(() => this.clearImages());
+
+        const keybinds = new Keybinds();
+        keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
+        keybinds.registerModifierBind(",", () => this.openSettingsDialog());
+    }
+
+    openOpenDiffDialog() {
+        this.openDiffDialogOpen = true;
+        this.settingsDialogOpen = false;
+    }
+
+    openSettingsDialog() {
+        this.settingsDialogOpen = true;
+        this.openDiffDialogOpen = false;
     }
 
     filterFile(file: FileDetails): boolean {

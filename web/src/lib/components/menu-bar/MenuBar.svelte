@@ -1,9 +1,14 @@
 <script lang="ts">
     import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
+    import { Keybinds } from "$lib/keybinds.svelte";
     import { Menubar, Button } from "bits-ui";
 
     const viewer = MultiFileDiffViewerState.get();
 </script>
+
+{#snippet keybind(key: string)}
+    <span class="text-em-med">{Keybinds.getModifierKey()}+{key}</span>
+{/snippet}
 
 <Menubar.Root class="flex border-b leading-none">
     <Menubar.Menu>
@@ -45,12 +50,13 @@
                 </Menubar.Item>
                 <Menubar.Separator class="h-px w-full bg-edge" />
                 <Menubar.Item
-                    class="btn-ghost px-2 py-1"
+                    class="flex justify-between gap-2 btn-ghost px-2 py-1"
                     onSelect={() => {
-                        viewer.settingsDialogOpen = true;
+                        viewer.openSettingsDialog();
                     }}
                 >
                     Open Settings
+                    {@render keybind(",")}
                 </Menubar.Item>
             </Menubar.Content>
         </Menubar.Portal>
@@ -60,12 +66,13 @@
         <Menubar.Portal>
             <Menubar.Content class="border bg-neutral text-sm" align="start">
                 <Menubar.Item
-                    class="btn-ghost px-2 py-1"
+                    class="flex justify-between gap-2 btn-ghost px-2 py-1"
                     onSelect={() => {
-                        viewer.openDiffDialogOpen = true;
+                        viewer.openOpenDiffDialog();
                     }}
                 >
                     Open
+                    {@render keybind("O")}
                 </Menubar.Item>
             </Menubar.Content>
         </Menubar.Portal>
