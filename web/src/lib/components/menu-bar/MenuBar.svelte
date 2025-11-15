@@ -14,7 +14,7 @@
     <Menubar.Menu>
         <Menubar.Trigger class="btn-ghost px-2 py-1 text-sm font-medium data-[state=open]:btn-ghost-hover">diffs.dev</Menubar.Trigger>
         <Menubar.Portal>
-            <Menubar.Content class="border bg-neutral text-sm" align="start">
+            <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
                 <Menubar.Item>
                     <Button.Root
                         href="https://github.com/PaperMC/diff-viewer"
@@ -64,7 +64,7 @@
     <Menubar.Menu>
         <Menubar.Trigger class="btn-ghost px-2 py-1 text-sm data-[state=open]:btn-ghost-hover">File</Menubar.Trigger>
         <Menubar.Portal>
-            <Menubar.Content class="border bg-neutral text-sm" align="start">
+            <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
                 <Menubar.Item
                     class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
@@ -80,7 +80,7 @@
     <Menubar.Menu>
         <Menubar.Trigger class="btn-ghost px-2 py-1 text-sm data-[state=open]:btn-ghost-hover">View</Menubar.Trigger>
         <Menubar.Portal>
-            <Menubar.Content class="border bg-neutral text-sm" align="start">
+            <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
                 <Menubar.Item
                     class="btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
