@@ -1,10 +1,6 @@
 <script lang="ts">
-    import ConciseDiffView from "$lib/components/diff/ConciseDiffView.svelte";
     import { VList } from "virtua/svelte";
-    import { MultiFileDiffViewerState, requireEitherImage } from "$lib/diff-viewer.svelte";
-    import Spinner from "$lib/components/Spinner.svelte";
-    import ImageDiff from "$lib/components/diff/ImageDiff.svelte";
-    import AddedOrRemovedImage from "$lib/components/diff/AddedOrRemovedImage.svelte";
+    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
     import DiffSearch from "./DiffSearch.svelte";
     import FileHeader from "./FileHeader.svelte";
@@ -17,9 +13,10 @@
     import MenuBar from "$lib/components/menu-bar/MenuBar.svelte";
     import SettingsDialog from "$lib/components/settings/SettingsDialog.svelte";
     import Sidebar from "./Sidebar.svelte";
+    import DiffWrapper from "./DiffWrapper.svelte";
 
     let { data }: PageProps = $props();
-    const globalOptions = GlobalOptions.init(data.globalOptions);
+    GlobalOptions.init(data.globalOptions);
     const viewer = MultiFileDiffViewerState.init();
 
     function getPageTitle() {
@@ -76,55 +73,7 @@
                     {#snippet children(value, index)}
                         <div id={`file-${index}`}>
                             <FileHeader {index} {value} />
-                            {#if !viewer.fileStates[index].collapsed && value.type === "image"}
-                                {@const image = value.image}
-                                <div class="mb border-b text-sm">
-                                    {#if image.load}
-                                        {#if image.fileA !== null && image.fileB !== null}
-                                            {#await Promise.all([image.fileA.getValue(), image.fileB.getValue()])}
-                                                <div class="flex items-center justify-center bg-neutral-2 p-4"><Spinner /></div>
-                                            {:then images}
-                                                <ImageDiff fileA={images[0]} fileB={images[1]} />
-                                            {/await}
-                                        {:else}
-                                            {#await requireEitherImage(image).getValue()}
-                                                <div class="flex items-center justify-center bg-neutral-2 p-4"><Spinner /></div>
-                                            {:then file}
-                                                <AddedOrRemovedImage {file} mode={image.fileA === null ? "add" : "remove"} />
-                                            {/await}
-                                        {/if}
-                                    {:else}
-                                        <div class="flex justify-center bg-neutral-2 p-4">
-                                            <button
-                                                type="button"
-                                                class=" flex flex-row items-center justify-center gap-1 rounded-md btn-primary px-2 py-1"
-                                                onclick={() => (image.load = true)}
-                                            >
-                                                <span class="iconify size-4 shrink-0 octicon--image-16"></span><span>Load image diff</span>
-                                            </button>
-                                        </div>
-                                    {/if}
-                                </div>
-                            {/if}
-                            {#if !viewer.fileStates[index].collapsed && value.type === "text" && (!value.patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks)}
-                                <div class="border-b">
-                                    <ConciseDiffView
-                                        patch={value.structuredPatch}
-                                        syntaxHighlighting={globalOptions.syntaxHighlighting}
-                                        syntaxHighlightingTheme={globalOptions.syntaxHighlightingTheme}
-                                        omitPatchHeaderOnlyHunks={globalOptions.omitPatchHeaderOnlyHunks}
-                                        wordDiffs={globalOptions.wordDiffs}
-                                        lineWrap={globalOptions.lineWrap}
-                                        searchQuery={viewer.searchQueryDebounced.current}
-                                        searchMatchingLines={() => viewer.searchResults.then((r) => r.lines.get(value))}
-                                        activeSearchResult={viewer.activeSearchResult && viewer.activeSearchResult.file === value
-                                            ? viewer.activeSearchResult.idx
-                                            : undefined}
-                                        cache={viewer.diffViewCache}
-                                        cacheKey={value}
-                                    />
-                                </div>
-                            {/if}
+                            <DiffWrapper {index} {value} />
                         </div>
                     {/snippet}
                 </VList>
