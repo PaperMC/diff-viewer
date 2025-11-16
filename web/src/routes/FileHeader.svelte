@@ -18,12 +18,13 @@
     let popoverOpen = $state(false);
 
     async function showInFileTree() {
+        viewer.layoutState.sidebarCollapsed = false;
+        await tick();
+
         const fileTreeElement = document.getElementById("file-tree-file-" + index);
         if (fileTreeElement) {
             popoverOpen = false;
             viewer.tree?.expandParents((node) => node.data === value);
-            viewer.sidebarCollapsed = false;
-            await tick();
             requestAnimationFrame(() => {
                 fileTreeElement.focus();
             });

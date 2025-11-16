@@ -2,8 +2,11 @@
     import "../app.css";
     import { initThemeHooks } from "$lib/theme.svelte";
     import { Tooltip } from "bits-ui";
+    import { type LayoutProps } from "./$types";
+    import { GlobalOptions } from "$lib/global-options.svelte";
 
-    let { children } = $props();
+    let { children, data }: LayoutProps = $props();
+    GlobalOptions.init(data.globalOptions);
 
     initThemeHooks();
 </script>

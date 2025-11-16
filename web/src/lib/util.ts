@@ -13,6 +13,14 @@ export type MutableValue<T> = {
     value: T;
 };
 
+export function clearCookie(name: string) {
+    document.cookie = name + "=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+}
+
+export function setCookie(name: string, value: string) {
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+}
+
 function isFullCommitHash(s: string): boolean {
     return /^[0-9a-fA-F]{40}$/.test(s);
 }

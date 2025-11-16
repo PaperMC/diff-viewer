@@ -1,7 +1,7 @@
 import type { BundledTheme } from "shiki";
 import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
-import { watchLocalStorage } from "$lib/util";
+import { setCookie, watchLocalStorage } from "$lib/util";
 import { Context } from "runed";
 
 export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
@@ -68,7 +68,7 @@ export class GlobalOptions {
             return;
         }
         localStorage.setItem(GlobalOptions.key, this.serialize());
-        document.cookie = `${GlobalOptions.key}=${encodeURIComponent(this.serializeCookie())}; path=/; max-age=31536000; SameSite=Lax`;
+        setCookie(GlobalOptions.key, this.serializeCookie());
     }
 
     private serialize() {

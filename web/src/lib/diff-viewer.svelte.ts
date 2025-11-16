@@ -18,6 +18,7 @@ import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
+import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -200,8 +201,8 @@ export type DiffMetadata = GithubDiffMetadata | FileDiffMetadata;
 export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
 
-    static init() {
-        return MultiFileDiffViewerState.context.set(new MultiFileDiffViewerState());
+    static init(layoutState: PersistentLayoutState | null) {
+        return MultiFileDiffViewerState.context.set(new MultiFileDiffViewerState(layoutState));
     }
 
     static get() {
@@ -232,20 +233,23 @@ export class MultiFileDiffViewerState {
     diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
     vlist: VList<FileDetails> | undefined = $state();
     readonly loadingState: LoadingState = $state(new LoadingState());
+    readonly layoutState;
 
     // Transient state
-    sidebarCollapsed = $state(false);
     openDiffDialogOpen = $state(false);
     settingsDialogOpen = $state(false);
     activeSearchResult: ActiveSearchResult | null = $state(null);
 
-    private constructor() {
+    private constructor(layoutState: PersistentLayoutState | null) {
+        this.layoutState = new LayoutState(layoutState);
+
         // Make sure to revoke object URLs when the component is destroyed
         onDestroy(() => this.clearImages());
 
         const keybinds = new Keybinds();
         keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
         keybinds.registerModifierBind(",", () => this.openSettingsDialog());
+        keybinds.registerModifierBind("b", () => this.layoutState.toggleSidebar());
     }
 
     openOpenDiffDialog() {
