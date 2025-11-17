@@ -76,6 +76,18 @@ export class LayoutState {
             return;
         }
 
+        /*
+        TODO:
+        *also* persist size in px to avoid sidebar changing size when reopening with
+        a different sized window
+
+        need to keep the proportion for SSR as paneforge does not currently provide
+        a way to preset a size in px (it generally works in proportions only)
+
+        this means there may be a shift on hydration when a new window uses an old cookie
+        
+        see GH:svecosystem/paneforge/issues/91
+        */
         this.lastSidebarWidth = size;
         const rootLayout: PersistentLayoutState = {
             sidebarWidth: this.lastSidebarWidth,
