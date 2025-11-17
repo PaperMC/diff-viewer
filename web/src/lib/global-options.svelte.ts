@@ -98,8 +98,20 @@ export class GlobalOptions {
     }
 
     private deserialize(serialized: string) {
-        const jsonObject = JSON.parse(serialized);
-        if (jsonObject.syntaxHighlighting !== undefined) {
+        try {
+            const jsonObject = JSON.parse(serialized);
+            this.loadFrom(jsonObject);
+        } catch {
+            // Ignore invalid options
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private loadFrom(jsonObject: any) {
+        if (jsonObject === undefined || jsonObject === null) {
+            return;
+        }
+        if (typeof jsonObject.syntaxHighlighting === "boolean") {
             this.syntaxHighlighting = jsonObject.syntaxHighlighting;
         }
         if (jsonObject.syntaxHighlightingThemeLight !== undefined) {
@@ -112,13 +124,13 @@ export class GlobalOptions {
         } else {
             this.syntaxHighlightingThemeDark = DEFAULT_THEME_DARK;
         }
-        if (jsonObject.omitPatchHeaderOnlyHunks !== undefined) {
+        if (typeof jsonObject.omitPatchHeaderOnlyHunks === "boolean") {
             this.omitPatchHeaderOnlyHunks = jsonObject.omitPatchHeaderOnlyHunks;
         }
-        if (jsonObject.wordDiff !== undefined) {
+        if (typeof jsonObject.wordDiff === "boolean") {
             this.wordDiffs = jsonObject.wordDiff;
         }
-        if (jsonObject.lineWrap !== undefined) {
+        if (typeof jsonObject.lineWrap === "boolean") {
             this.lineWrap = jsonObject.lineWrap;
         }
         if (jsonObject.sidebarLocation !== undefined) {

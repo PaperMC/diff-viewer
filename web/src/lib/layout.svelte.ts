@@ -31,8 +31,8 @@ export class LayoutState {
         return undefined;
     });
 
-    constructor(state: PersistentLayoutState | null) {
-        this.lastSidebarWidth = state?.sidebarWidth;
+    constructor(persistentState: PersistentLayoutState | null) {
+        this.loadFrom(persistentState);
 
         // Maintain sidebar size when resizing window
         watch.pre(
@@ -45,6 +45,17 @@ export class LayoutState {
                 }
             },
         );
+    }
+
+    private loadFrom(persistentState: PersistentLayoutState | null) {
+        if (persistentState === null) {
+            return;
+        }
+
+        const sidebarWidth = persistentState.sidebarWidth;
+        if (Number.isFinite(sidebarWidth) && sidebarWidth >= 0 && sidebarWidth <= 100) {
+            this.lastSidebarWidth = sidebarWidth;
+        }
     }
 
     toggleSidebar() {
@@ -85,7 +96,7 @@ export class LayoutState {
         a way to preset a size in px (it generally works in proportions only)
 
         this means there may be a shift on hydration when a new window uses an old cookie
-        
+
         see GH:svecosystem/paneforge/issues/91
         */
         this.lastSidebarWidth = size;
