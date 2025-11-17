@@ -1,6 +1,6 @@
-import { GlobalOptions } from "$lib/global-options.svelte";
 import type { Pane } from "paneforge";
 import { clearCookie, setCookie } from "./util";
+import { watch } from "runed";
 
 export const ROOT_LAYOUT_KEY = "diff-viewer-root-layout";
 export interface PersistentLayoutState {
@@ -8,8 +8,6 @@ export interface PersistentLayoutState {
 }
 
 export class LayoutState {
-    private readonly globalOptions: GlobalOptions;
-
     sidebarCollapsed = $state(false);
 
     windowInnerWidth: number | undefined = $state();
@@ -17,13 +15,13 @@ export class LayoutState {
     lastSidebarWidth: number | undefined = $state();
 
     minSidebarWidth = $derived.by(() => {
-        return this.getProportion(200, 0);
+        return this.getContainerProportion(200, 0);
     });
     defaultSidebarWidth = $derived.by(() => {
         if (this.lastSidebarWidth !== undefined) {
             return this.lastSidebarWidth;
         }
-        return this.getProportion(350, 0.25);
+        return this.getContainerProportion(350, 0.25);
     });
 
     defaultMainWidth = $derived.by(() => {
@@ -35,18 +33,33 @@ export class LayoutState {
 
     constructor(state: PersistentLayoutState | null) {
         this.lastSidebarWidth = state?.sidebarWidth;
-        this.globalOptions = GlobalOptions.get();
+
+        // Maintain sidebar size when resizing window
+        watch.pre(
+            () => this.windowInnerWidth,
+            (newValue, oldValue) => {
+                if (oldValue !== undefined && newValue !== undefined && this.sidebarPane) {
+                    const oldPx = (this.sidebarPane.getSize() / 100) * oldValue;
+                    const newProportion = this.getProportion(oldPx, newValue);
+                    this.sidebarPane.resize(newProportion);
+                }
+            },
+        );
     }
 
     toggleSidebar() {
         this.sidebarCollapsed = !this.sidebarCollapsed;
     }
 
-    private getProportion(px: number, defaultValue: number) {
+    private getContainerProportion(px: number, defaultValue: number) {
         if (this.windowInnerWidth === undefined) {
             return defaultValue;
         }
-        return Math.max(0, Math.min(100, Math.ceil((px / this.windowInnerWidth) * 100)));
+        return this.getProportion(px, this.windowInnerWidth);
+    }
+
+    private getProportion(px: number, max: number) {
+        return Math.max(0, Math.min(100, (px / max) * 100));
     }
 
     resetLayout() {
