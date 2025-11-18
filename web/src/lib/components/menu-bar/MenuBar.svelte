@@ -2,12 +2,13 @@
     import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { Keybinds } from "$lib/keybinds.svelte";
     import { Menubar, Button } from "bits-ui";
+    import SidebarToggle from "$lib/components/SidebarToggle.svelte";
 
     const viewer = MultiFileDiffViewerState.get();
 </script>
 
 {#snippet keybind(key: string)}
-    <span class="text-em-med">{Keybinds.getModifierKey()}+{key}</span>
+    <span class="text-em-med">{Keybinds.formatModifierBind(key)}</span>
 {/snippet}
 
 <Menubar.Root class="flex border-b leading-none">
@@ -97,7 +98,25 @@
                 >
                     Collapse All
                 </Menubar.Item>
+                <Menubar.Item
+                    class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
+                    onSelect={() => {
+                        viewer.layoutState.toggleSidebar();
+                    }}
+                >
+                    Toggle Sidebar
+                    {@render keybind("B")}
+                </Menubar.Item>
+                <Menubar.Item
+                    class="btn-ghost px-2 py-1 select-none"
+                    onSelect={() => {
+                        viewer.layoutState.resetLayout();
+                    }}
+                >
+                    Reset Layout
+                </Menubar.Item>
             </Menubar.Content>
         </Menubar.Portal>
     </Menubar.Menu>
+    <SidebarToggle class="my-auto mr-2 ml-auto" />
 </Menubar.Root>

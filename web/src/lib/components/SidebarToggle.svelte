@@ -12,6 +12,7 @@
     let mergedProps = $derived(
         mergeProps(
             {
+                title: viewer.layoutState.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar",
                 class: "flex size-6 items-center justify-center rounded-md btn-ghost text-primary",
             },
             restProps,
@@ -19,18 +20,11 @@
     );
 </script>
 
-<Button.Root
-    title={viewer.sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-    type="button"
-    data-side={globalOptions.sidebarLocation}
-    onclick={() => (viewer.sidebarCollapsed = !viewer.sidebarCollapsed)}
-    data-sidebar-toggle
-    {...mergedProps}
->
+<Button.Root type="button" data-side={globalOptions.sidebarLocation} onclick={() => viewer.layoutState.toggleSidebar()} data-sidebar-toggle {...mergedProps}>
     <span
         class="iconify size-4 shrink-0 octicon--sidebar-collapse-16 data-[collapsed=false]:octicon--sidebar-expand-16 data-[side=right]:scale-x-[-1]"
         aria-hidden="true"
-        data-collapsed={viewer.sidebarCollapsed}
+        data-collapsed={viewer.layoutState.sidebarCollapsed}
         data-side={globalOptions.sidebarLocation}
     ></span>
 </Button.Root>

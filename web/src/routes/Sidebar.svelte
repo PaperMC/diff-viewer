@@ -5,37 +5,8 @@
     import { type TreeNode } from "$lib/components/tree/index.svelte";
     import { type Action } from "svelte/action";
     import { on } from "svelte/events";
-    import SidebarToggle from "./SidebarToggle.svelte";
-    import { GlobalOptions } from "$lib/global-options.svelte";
-    import { onClickOutside } from "runed";
-
-    interface Props {
-        closeOnClick?: HTMLDivElement | null;
-    }
-
-    let { closeOnClick }: Props = $props();
 
     const viewer = MultiFileDiffViewerState.get();
-    const globalOptions = GlobalOptions.get();
-
-    let sidebarElement: HTMLDivElement | undefined = $state();
-
-    onClickOutside(
-        () => sidebarElement,
-        (e) => {
-            if (e.target instanceof HTMLElement && e.target.closest("[data-sidebar-toggle]")) {
-                // Ignore toggle button clicks
-                return;
-            }
-            if (closeOnClick && !(e.target instanceof HTMLElement && closeOnClick.contains(e.target))) {
-                // Only act if the click was inside the closeOnClick element
-                return;
-            }
-            if (!staticSidebar.current) {
-                viewer.sidebarCollapsed = true;
-            }
-        },
-    );
 
     function filterFileNode(file: TreeNode<FileTreeNodeData>): boolean {
         return file.data.type === "file" && viewer.filterFile(file.data.data as FileDetails);
@@ -55,7 +26,7 @@
             if (element.tagName.toLowerCase() !== "input") {
                 viewer.scrollToFile(index, { focus: true });
                 if (!staticSidebar.current) {
-                    viewer.sidebarCollapsed = true;
+                    viewer.layoutState.sidebarCollapsed = true;
                 }
             }
         });
@@ -75,16 +46,7 @@
     };
 </script>
 
-<div
-    bind:this={sidebarElement}
-    class="absolute top-0 z-10 flex h-full w-full flex-col bg-neutral
-        data-[collapsed=true]:hidden
-        data-[side=left]:left-0 data-[side=left]:border-e data-[side=right]:right-0 data-[side=right]:order-10 data-[side=right]:border-s
-        md:w-[350px] md:shadow-md lg:static lg:z-0
-        lg:h-auto lg:shadow-none"
-    data-side={globalOptions.sidebarLocation}
-    data-collapsed={viewer.sidebarCollapsed}
->
+<div class="flex h-full max-w-full min-w-[200px] flex-col bg-neutral">
     <div class="m-2 flex flex-row items-center gap-2">
         <div class="relative grow">
             <input
@@ -103,7 +65,6 @@
                 ></button>
             {/if}
         </div>
-        <SidebarToggle class="lg:hidden" />
     </div>
     {#if viewer.filteredFileDetails.length !== viewer.fileDetails.length}
         <div class="ms-2 mb-2 text-sm text-gray-600">
@@ -188,7 +149,6 @@
         top: 0;
         left: 1rem;
         background-color: var(--color-gray-500);
-        z-index: 50;
         display: block;
     }
 </style>

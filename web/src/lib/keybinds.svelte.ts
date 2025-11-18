@@ -4,8 +4,12 @@ import { on } from "svelte/events";
 export class Keybinds {
     private static readonly IS_MAC = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac");
 
-    static getModifierKey() {
+    private static formatModifierKey() {
         return Keybinds.IS_MAC ? "⌘" : "Ctrl";
+    }
+
+    static formatModifierBind(key: string) {
+        return `${Keybinds.formatModifierKey()}+${key}`;
     }
 
     private readonly binds = new Map<string, () => void>();
