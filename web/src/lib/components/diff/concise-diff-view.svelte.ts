@@ -73,17 +73,13 @@ export function parseLineRef(string: string): UnresolvedLineRef | null {
     if (prefix !== "R" && prefix !== "L") {
         return null;
     }
-    const isNew = string.startsWith("R");
+    const isNew = prefix === "R";
     const numberString = string.substring(1);
-    try {
-        const number = parseInt(numberString);
-        if (!Number.isFinite(number)) {
-            return null;
-        }
-        return { no: number, new: isNew };
-    } catch {
+    const number = Number.parseInt(numberString);
+    if (!Number.isFinite(number)) {
         return null;
     }
+    return { no: number, new: isNew };
 }
 
 export function resolveLineRef(ref: UnresolvedLineRef, hunks: DiffViewerPatchHunk[]): HunkIndexedLineRef | null {
