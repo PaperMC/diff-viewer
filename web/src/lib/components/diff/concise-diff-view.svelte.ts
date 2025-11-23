@@ -1258,7 +1258,7 @@ export class ConciseDiffViewState<K> {
                 return;
             }
 
-            const destroyClick = on(element, "click", async (e) => {
+            const destroyClick = on(element, "click", (e) => {
                 this.updateSelection(hunk, hunkIdx, line, lineIdx, e.shiftKey);
             });
             return () => {
