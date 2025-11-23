@@ -2,6 +2,7 @@
     import {
         type ConciseDiffViewProps,
         ConciseDiffViewState,
+        type DiffViewerPatchHunk,
         innerPatchLineTypeProps,
         type InnerPatchLineTypeProps,
         makeSearchSegments,
@@ -13,9 +14,10 @@
         type SearchSegment,
     } from "$lib/components/diff/concise-diff-view.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
-    import { onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
+    import { boolAttr } from "runed";
 
     let {
         rawPatchContent,
@@ -28,8 +30,12 @@
         searchQuery,
         searchMatchingLines,
         activeSearchResult = -1,
+        jumpToSearchResult = $bindable(false),
         cache,
         cacheKey,
+        unresolvedSelection,
+        selection = $bindable(),
+        jumpToSelection = $bindable(false),
     }: ConciseDiffViewProps<K> = $props();
 
     const parsedPatch = $derived.by(() => {
@@ -48,6 +54,12 @@
         omitPatchHeaderOnlyHunks: box.with(() => omitPatchHeaderOnlyHunks),
         wordDiffs: box.with(() => wordDiffs),
 
+        unresolvedSelection: box.with(() => unresolvedSelection),
+        selection: box.with(
+            () => selection,
+            (v) => (selection = v),
+        ),
+
         cache: box.with(() => cache),
         cacheKey: box.with(() => cacheKey),
     });
@@ -59,39 +71,6 @@
             return num ?? " ";
         }
     }
-
-    let searchResultElements: HTMLSpanElement[] = $state([]);
-    let didInitialJump = $state(false);
-    let scheduledJump: ReturnType<typeof setTimeout> | undefined = undefined;
-    $effect(() => {
-        if (didInitialJump) {
-            return;
-        }
-        if (activeSearchResult >= 0 && searchResultElements[activeSearchResult] !== undefined) {
-            const element = searchResultElements[activeSearchResult];
-            const anchorElement = element.closest("tr");
-            // This is an exceptionally stupid and unreliable hack, but at least
-            // jumping to a result in a not-yet-loaded file works most of the time with a delay
-            // instead of never.
-            scheduledJump = setTimeout(() => {
-                if (scheduledJump !== undefined) {
-                    clearTimeout(scheduledJump);
-                    scheduledJump = undefined;
-                }
-
-                if (anchorElement !== null) {
-                    anchorElement.scrollIntoView({ block: "center", inline: "center" });
-                }
-            }, 200);
-            didInitialJump = true;
-        }
-    });
-    onDestroy(() => {
-        if (scheduledJump !== undefined) {
-            clearTimeout(scheduledJump);
-            scheduledJump = undefined;
-        }
-    });
 
     let searchSegments: Promise<SearchSegment[][][]> = $derived.by(async () => {
         if (!searchQuery || !searchMatchingLines) {
@@ -134,6 +113,13 @@
         }
         return segments;
     });
+
+    let selectionMidpoint = $derived.by(() => {
+        if (!selection) return null;
+        const startIdx = selection.start.idx;
+        const endIdx = selection.end.idx;
+        return Math.floor((startIdx + endIdx) / 2);
+    });
 </script>
 
 {#snippet lineContent(line: PatchLine, lineType: PatchLineTypeProps, innerLineType: InnerPatchLineTypeProps)}
@@ -165,7 +151,20 @@
                         <span class="inline leading-[0.875rem]">
                             {#each lineSearchSegments as searchSegment, index (index)}
                                 {#if searchSegment.highlighted}<span
-                                        bind:this={searchResultElements[searchSegment.id ?? -1]}
+                                        {@attach (element) => {
+                                            onMount(() => {
+                                                if (jumpToSearchResult && searchSegment.id === activeSearchResult) {
+                                                    jumpToSearchResult = false;
+                                                    // See similar code & comment below around jumping to selections
+                                                    const scheduledJump = setTimeout(() => {
+                                                        element.scrollIntoView({ block: "center", inline: "center" });
+                                                    }, 100);
+                                                    return () => {
+                                                        clearTimeout(scheduledJump);
+                                                    };
+                                                }
+                                            });
+                                        }}
                                         class={{
                                             "bg-[#d4a72c66]": searchSegment.id !== activeSearchResult,
                                             "bg-[#ff9632]": searchSegment.id === activeSearchResult,
@@ -186,15 +185,42 @@
     {/await}
 {/snippet}
 
-{#snippet renderLine(line: PatchLine, hunkIndex: number, lineIndex: number)}
+{#snippet renderLine(line: PatchLine, hunk: DiffViewerPatchHunk, hunkIndex: number, lineIndex: number)}
     {@const lineType = patchLineTypeProps[line.type]}
-    <div class="bg-[var(--hunk-header-bg)]">
+    <div class="bg-[var(--hunk-header-bg)]" {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
         <div class="line-number h-full px-2 select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
     </div>
-    <div class="bg-[var(--hunk-header-bg)]">
-        <div class="line-number h-full px-2 select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.newLineNo)}</div>
+    <div class="bg-[var(--hunk-header-bg)]" {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
+        <div
+            class="selected-indicator line-number h-full px-2 select-none {lineType.lineNoClasses}"
+            data-selected={boolAttr(view.isSelected(hunkIndex, lineIndex))}
+        >
+            {getDisplayLineNo(line, line.newLineNo)}
+        </div>
     </div>
-    <div class="w-full pl-[1rem] {lineType.classes}">
+    <div
+        class="selected-indicator w-full pl-[1rem] {lineType.classes}"
+        data-selection-start={boolAttr(view.isSelectionStart(hunkIndex, lineIndex))}
+        data-selection-end={boolAttr(view.isSelectionEnd(hunkIndex, lineIndex))}
+        {@attach (element) => {
+            onMount(() => {
+                if (jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
+                    jumpToSelection = false;
+                    // Need to schedule because otherwise the vlist rendering surrounding elements may shift things
+                    // and cause the element to scroll to the wrong position
+                    // This is not 100% reliable but is good enough for now
+                    const scheduledJump = setTimeout(() => {
+                        element.scrollIntoView({ block: "center", inline: "center" });
+                    }, 200);
+                    return () => {
+                        if (scheduledJump) {
+                            clearTimeout(scheduledJump);
+                        }
+                    };
+                }
+            });
+        }}
+    >
         {@render lineContentWrapper(line, hunkIndex, lineIndex, lineType, innerPatchLineTypeProps[line.innerPatchLineType])}
     </div>
 {/snippet}
@@ -209,7 +235,7 @@
     >
         {#each diffViewerPatch.hunks as hunk, hunkIndex (hunkIndex)}
             {#each hunk.lines as line, lineIndex (lineIndex)}
-                {@render renderLine(line, hunkIndex, lineIndex)}
+                {@render renderLine(line, hunk, hunkIndex, lineIndex)}
             {/each}
         {/each}
     </div>
@@ -265,5 +291,20 @@
         position: absolute;
         left: -0.75rem;
         top: 0;
+    }
+
+    .selected-indicator[data-selected] {
+        box-shadow: inset -4px 0 0 0 var(--hunk-header-fg);
+    }
+    .selected-indicator[data-selection-start] {
+        box-shadow: inset 0 1px 0 0 var(--hunk-header-fg);
+    }
+    .selected-indicator[data-selection-end] {
+        box-shadow: inset 0 -1px 0 0 var(--hunk-header-fg);
+    }
+    .selected-indicator[data-selection-start][data-selection-end] {
+        box-shadow:
+            inset 0 1px 0 0 var(--hunk-header-fg),
+            inset 0 -1px 0 0 var(--hunk-header-fg);
     }
 </style>

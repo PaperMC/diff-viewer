@@ -20,17 +20,17 @@
 
 <Select.Root type="single" scrollAlignment="center" bind:value>
     <Select.Trigger aria-labelledby={labelId} id={triggerId} class="group flex cursor-pointer items-center justify-between gap-1 px-2 py-1">
-        <Label.Root id={labelId} for={triggerId} class="cursor-pointer text-sm">{capitalizeFirstLetter(mode)} theme</Label.Root>
+        <Label.Root id={labelId} for={triggerId} class="cursor-pointer">{capitalizeFirstLetter(mode)} theme</Label.Root>
         <div
             class="flex w-44 items-center gap-1 rounded-sm border btn-ghost bg-neutral px-2 py-0.5 text-sm select-none group-hover:btn-ghost-hover group-active:btn-ghost-active"
             bind:this={anchor}
         >
             <div bind:clientWidth={triggerLabelContainerW} class="flex grow overflow-hidden" class:reveal-right={scrollDistance !== 0}>
                 <div
-                    use:resizeObserver={(e) => (triggerLabelW = e[0].target.scrollWidth)}
                     aria-label="Current {mode} syntax highlighting theme"
                     class="scrolling-text grow text-left text-nowrap"
                     style="--scroll-distance: -{scrollDistance}px;"
+                    {@attach resizeObserver((e) => (triggerLabelW = e[0].target.scrollWidth))}
                 >
                     {value}
                 </div>

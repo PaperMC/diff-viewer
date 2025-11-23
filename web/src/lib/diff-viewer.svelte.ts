@@ -9,9 +9,18 @@ import {
     parseMultiFilePatchGithub,
 } from "./github.svelte";
 import { type StructuredPatch } from "diff";
-import { ConciseDiffViewCachedState, isNoNewlineAtEofLine, parseSinglePatch, patchHeaderDiffOnly } from "$lib/components/diff/concise-diff-view.svelte";
+import {
+    ConciseDiffViewCachedState,
+    isNoNewlineAtEofLine,
+    parseSinglePatch,
+    patchHeaderDiffOnly,
+    type LineSelection,
+    writeLineRef,
+    parseLineRef,
+    type UnresolvedLineSelection,
+} from "$lib/components/diff/concise-diff-view.svelte";
 import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
-import { onDestroy, tick } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
@@ -19,6 +28,8 @@ import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
 import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
+import { page } from "$app/state";
+import { goto } from "$app/navigation";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -84,6 +95,46 @@ export type FileDetails = TextFileDetails | ImageFileDetails;
 export interface FileState {
     checked: boolean;
     collapsed: boolean;
+}
+
+export interface Selection {
+    file: FileDetails;
+    lines?: LineSelection;
+    unresolvedLines?: UnresolvedLineSelection;
+}
+
+function makeUrlHashValue(selection: Selection): string {
+    let hash = encodeURIComponent(selection.file.toFile);
+    if (selection.lines) {
+        hash += ":";
+        hash += writeLineRef(selection.lines.start);
+        hash += ":";
+        hash += writeLineRef(selection.lines.end);
+    }
+    return hash;
+}
+
+interface UnresolvedSelection {
+    file: string;
+    lines?: UnresolvedLineSelection;
+}
+
+function parseUrlHashValue(hash: string): UnresolvedSelection | null {
+    const parts = hash.split(":");
+    if (parts.length === 1) {
+        return {
+            file: decodeURIComponent(parts[0]),
+        };
+    }
+    if (parts.length !== 3) return null;
+    const file = decodeURIComponent(parts[0]);
+    const start = parseLineRef(parts[1]);
+    const end = parseLineRef(parts[2]);
+    if (!start || !end) return null;
+    return {
+        file,
+        lines: { start, end },
+    };
 }
 
 export interface ImageDiffDetails {
@@ -186,12 +237,16 @@ export interface ViewerStatistics {
     fileRemovedLines: number[];
 }
 
-export interface GithubDiffMetadata {
+export interface BaseDiffMetadata {
+    linkable: boolean;
+}
+
+export interface GithubDiffMetadata extends BaseDiffMetadata {
     type: "github";
     details: GithubDiff;
 }
 
-export interface FileDiffMetadata {
+export interface FileDiffMetadata extends BaseDiffMetadata {
     type: "file";
     fileName: string;
 }
@@ -213,12 +268,18 @@ export class MultiFileDiffViewerState {
     diffMetadata: DiffMetadata | null = $state(null);
     fileDetails: FileDetails[] = $state([]); // Read-only state
     fileStates: FileState[] = $state([]); // Mutable state
-    readonly stats: ViewerStatistics = $derived(this.countStats());
+    stats: ViewerStatistics = $state({
+        addedLines: 0,
+        removedLines: 0,
+        fileAddedLines: [],
+        fileRemovedLines: [],
+    });
 
     // Content search state
     searchQuery: string = $state("");
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
     readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
+    jumpToSearchResult: boolean = $state(false);
 
     // File tree state
     tree: TreeState<FileTreeNodeData> | undefined = $state();
@@ -229,10 +290,15 @@ export class MultiFileDiffViewerState {
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
 
+    // Selection state
+    urlSelection: UnresolvedSelection | undefined = $state();
+    selection: Selection | undefined = $state();
+    jumpToSelection: boolean = $state(false);
+
     // Misc. component state
     diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
     vlist: VList<FileDetails> | undefined = $state();
-    readonly loadingState: LoadingState = $state(new LoadingState());
+    readonly loadingState = new LoadingState();
     readonly layoutState;
 
     // Transient state
@@ -245,6 +311,14 @@ export class MultiFileDiffViewerState {
 
         // Make sure to revoke object URLs when the component is destroyed
         onDestroy(() => this.clearImages());
+
+        onMount(() => {
+            let hash = page.url.hash;
+            if (hash.startsWith("#")) hash = hash.substring(1);
+            if (hash) {
+                this.urlSelection = parseUrlHashValue(hash) ?? undefined;
+            }
+        });
 
         const keybinds = new Keybinds();
         keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
@@ -297,6 +371,29 @@ export class MultiFileDiffViewerState {
         }
     }
 
+    getSelection(file: FileDetails) {
+        if (this.selection?.file.index === file.index) {
+            return this.selection;
+        }
+        return null;
+    }
+
+    setSelection(file: FileDetails, lines: LineSelection | undefined) {
+        this.selection = { file, lines };
+
+        goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
+            keepFocus: true,
+        });
+    }
+
+    clearSelection() {
+        this.selection = undefined;
+
+        goto(`?${page.url.searchParams}`, {
+            keepFocus: true,
+        });
+    }
+
     scrollToFile(index: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
         if (!this.vlist) return;
 
@@ -333,7 +430,10 @@ export class MultiFileDiffViewerState {
         requestAnimationFrame(() => {
             const fileElement = document.getElementById(`file-${fileIdx}`);
             const resultElement = fileElement?.querySelector(`[data-match-id='${idx}']`) as HTMLElement | null | undefined;
-            if (!resultElement) return;
+            if (!resultElement) {
+                this.jumpToSearchResult = true;
+                return;
+            }
             resultElement.scrollIntoView({ block: "center", inline: "center" });
         });
     }
@@ -365,6 +465,8 @@ export class MultiFileDiffViewerState {
 
     private clear(clearMeta: boolean = true) {
         // Reset state
+        this.selection = undefined;
+        this.jumpToSelection = false;
         this.fileStates = [];
         if (clearMeta) {
             this.diffMetadata = null;
@@ -437,16 +539,44 @@ export class MultiFileDiffViewerState {
             }
 
             tempDetails.sort(compareFileDetails);
-            this.fileDetails.push(...tempDetails);
 
+            const statesArray: FileState[] = [];
             for (let i = 0; i < tempDetails.length; i++) {
                 const details = tempDetails[i];
                 details.index = i;
                 const state = tempStates.get(details.fromFile);
                 if (state) {
-                    this.fileStates.push(state);
+                    statesArray.push(state);
                 }
             }
+
+            this.fileDetails = tempDetails;
+            this.fileStates = statesArray;
+
+            if (this.urlSelection) {
+                const urlSelection = this.urlSelection;
+                this.urlSelection = undefined;
+                const file = this.fileDetails.find((f) => f.toFile === urlSelection.file);
+                if (file && this.diffMetadata.linkable) {
+                    this.jumpToSelection = true;
+                    this.selection = {
+                        file,
+                        unresolvedLines: urlSelection.lines,
+                    };
+                    await goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
+                        keepFocus: true,
+                    });
+                    this.scrollToFile(file.index, {
+                        focus: urlSelection.lines === undefined,
+                    });
+                } else {
+                    await goto(`?${page.url.searchParams}`, {
+                        keepFocus: true,
+                    });
+                }
+            }
+
+            this.stats = this.countStats();
 
             return true;
         } catch (e) {
@@ -467,7 +597,7 @@ export class MultiFileDiffViewerState {
         return await this.loadPatches(
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
-                return { type: "github", details: await result.info };
+                return { linkable: true, type: "github", details: await result.info };
             },
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;

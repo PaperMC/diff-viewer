@@ -79,7 +79,7 @@ export class OpenDiffDialogState {
         this.props.open.current = false;
         const success = await this.viewer.loadPatches(
             async () => {
-                return { type: "file", fileName: `${fileAMeta.name}...${fileBMeta.name}.patch` };
+                return { linkable: false, type: "file", fileName: `${fileAMeta.name}...${fileBMeta.name}.patch` };
             },
             async () => {
                 const isImageDiff = isImageFile(fileAMeta.name) && isImageFile(fileBMeta.name);
@@ -152,7 +152,7 @@ export class OpenDiffDialogState {
         this.props.open.current = false;
         const success = await this.viewer.loadPatches(
             async () => {
-                return { type: "file", fileName: `${dirA.fileName}...${dirB.fileName}.patch` };
+                return { linkable: false, type: "file", fileName: `${dirA.fileName}...${dirB.fileName}.patch` };
             },
             async () => {
                 return this.generateDirPatches(dirA, dirB);
@@ -276,7 +276,7 @@ export class OpenDiffDialogState {
         this.props.open.current = false;
         const success = await this.viewer.loadPatches(
             async () => {
-                return { type: "file", fileName: meta.name };
+                return { linkable: this.patchFile.mode === "url", type: "file", fileName: meta.name };
             },
             async () => {
                 return parseMultiFilePatch(text, this.viewer.loadingState);
@@ -328,6 +328,12 @@ export class OpenDiffDialogState {
         } else {
             newUrl.searchParams.delete(PATCH_URL_PARAM);
         }
-        await goto(`?${newUrl.searchParams}`);
+        let params = `?${newUrl.searchParams}`;
+        if (newUrl.hash) {
+            params += newUrl.hash;
+        }
+        await goto(params, {
+            keepFocus: true,
+        });
     }
 }
