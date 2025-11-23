@@ -32,7 +32,7 @@
                     }
                 }
             });
-            const destoryMousedown = on(div, "mousedown", (event) => {
+            const destroyMousedown = on(div, "mousedown", (event) => {
                 const element: HTMLElement = event.target as HTMLElement;
                 if (element.tagName.toLowerCase() !== "input" && event.detail === 2) {
                     // Don't select text on double click
@@ -41,7 +41,7 @@
             });
             return () => {
                 destroyDblclick();
-                destoryMousedown();
+                destroyMousedown();
             };
         };
     }
