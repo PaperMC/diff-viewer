@@ -16,32 +16,120 @@ import chroma from "chroma-js";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { onDestroy } from "svelte";
 import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
+import type { WritableBoxedValues } from "svelte-toolbelt";
+import type { Attachment } from "svelte/attachments";
+import { on } from "svelte/events";
 
-export type DiffViewerPatch = {
+export interface UnresolvedLineRef {
+    /**
+     * line number in the patch data
+     */
+    no: number;
+    /**
+     * - true: added or context line
+     * - false: removed line
+     */
+    new: boolean;
+}
+
+export interface LineRef extends UnresolvedLineRef {
+    /**
+     * line index in the diff viewer patch hunk
+     */
+    idx: number;
+}
+
+export interface HunkIndexedLineRef extends LineRef {
+    /**
+     * hunk index in the diff viewer patch
+     */
+    hunkIdx: number;
+}
+
+export interface LineSelection {
+    /**
+     * hunk index in the diff viewer patch
+     */
+    hunk: number;
+    start: LineRef;
+    end: LineRef;
+}
+
+export interface UnresolvedLineSelection {
+    start: UnresolvedLineRef;
+    end: UnresolvedLineRef;
+}
+
+export function writeLineRef(ref: LineRef): string {
+    const prefix = ref.new ? "R" : "L";
+    return prefix + ref.no.toString();
+}
+
+export function parseLineRef(string: string): UnresolvedLineRef | null {
+    if (string.length < 2) {
+        return null;
+    }
+    const prefix = string.substring(0, 1).toUpperCase();
+    if (prefix !== "R" && prefix !== "L") {
+        return null;
+    }
+    const isNew = string.startsWith("R");
+    const numberString = string.substring(1);
+    try {
+        const number = parseInt(numberString);
+        if (!Number.isFinite(number)) {
+            return null;
+        }
+        return { no: number, new: isNew };
+    } catch {
+        return null;
+    }
+}
+
+export function resolveLineRef(ref: UnresolvedLineRef, hunks: DiffViewerPatchHunk[]): HunkIndexedLineRef | null {
+    for (let i = 0; i < hunks.length; i++) {
+        const hunk = hunks[i];
+        for (let j = 0; j < hunk.lines.length; j++) {
+            const line = hunk.lines[j];
+            if (line.type === PatchLineType.HEADER || line.type === PatchLineType.SPACER) {
+                continue;
+            }
+            if (line.oldLineNo === ref.no && !ref.new) {
+                return { hunkIdx: i, idx: j, no: line.oldLineNo, new: false };
+            }
+            if (line.newLineNo === ref.no && ref.new) {
+                return { hunkIdx: i, idx: j, no: line.newLineNo, new: true };
+            }
+        }
+    }
+    return null;
+}
+
+export interface DiffViewerPatch {
     hunks: DiffViewerPatchHunk[];
-};
+}
 
-export type DiffViewerPatchHunk = {
+export interface DiffViewerPatchHunk {
     lines: PatchLine[];
     innerPatchHeaderChangesOnly?: boolean;
-};
+}
 
-export type PatchLine = {
+export interface PatchLine {
     type: PatchLineType;
     content: LineSegment[];
     lineBreak?: boolean;
     innerPatchLineType: InnerPatchLineType;
     oldLineNo?: number;
     newLineNo?: number;
-};
+}
 
-export type LineSegment = {
+export interface LineSegment {
     text?: string | null;
     iconClass?: string | null;
     caption?: string | null;
     classes?: string;
     style?: string;
-};
+}
 
 export enum PatchLineType {
     HEADER,
@@ -57,11 +145,11 @@ export enum InnerPatchLineType {
     NONE,
 }
 
-export type PatchLineTypeProps = {
+export interface PatchLineTypeProps {
     classes: string;
     lineNoClasses: string;
     prefix: string;
-};
+}
 
 export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
     [PatchLineType.HEADER]: {
@@ -91,9 +179,9 @@ export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
     },
 };
 
-export type InnerPatchLineTypeProps = {
+export interface InnerPatchLineTypeProps {
     style: string;
-};
+}
 
 export const innerPatchLineTypeProps: Record<InnerPatchLineType, InnerPatchLineTypeProps> = {
     [InnerPatchLineType.ADD]: {
@@ -1035,9 +1123,14 @@ export interface ConciseDiffViewProps<K> {
     searchQuery?: string;
     searchMatchingLines?: () => Promise<number[][] | undefined>;
     activeSearchResult?: number;
+    jumpToSearchResult?: boolean;
 
     cache?: Map<K, ConciseDiffViewCachedState>;
     cacheKey?: K;
+
+    unresolvedSelection?: UnresolvedLineSelection;
+    selection?: LineSelection;
+    jumpToSelection?: boolean;
 }
 
 export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
@@ -1050,7 +1143,12 @@ export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
 
     cache: Map<K, ConciseDiffViewCachedState> | undefined;
     cacheKey: K | undefined;
-}>;
+
+    unresolvedSelection: UnresolvedLineSelection | undefined;
+}> &
+    WritableBoxedValues<{
+        selection: LineSelection | undefined;
+    }>;
 
 export class ConciseDiffViewState<K> {
     diffViewerPatch: Promise<DiffViewerPatch> = $state(new Promise<DiffViewerPatch>(() => []));
@@ -1109,9 +1207,10 @@ export class ConciseDiffViewState<K> {
         );
         this.cachedState = new ConciseDiffViewCachedState(promise, this.props);
         promise.then(
-            () => {
+            (patch) => {
                 // Don't replace a potentially completed promise with a pending one, wait until the replacement is ready for smooth transitions
                 this.diffViewerPatch = promise;
+                this.resolveOrUpdateSelection(patch);
             },
             () => {
                 // Propagate errors
@@ -1120,9 +1219,152 @@ export class ConciseDiffViewState<K> {
         );
     }
 
+    private resolveOrUpdateSelection(patch: DiffViewerPatch) {
+        if (this.props.unresolvedSelection.current) {
+            const unresolved = this.props.unresolvedSelection.current;
+            const start = resolveLineRef(unresolved.start, patch.hunks);
+            const end = resolveLineRef(unresolved.end, patch.hunks);
+            if (start && end && start.hunkIdx === end.hunkIdx) {
+                this.props.selection.current = {
+                    hunk: start.hunkIdx,
+                    start: start,
+                    end: end,
+                };
+            }
+        } else if (this.props.selection.current) {
+            const current = this.props.selection.current;
+            const start = resolveLineRef(current.start, patch.hunks);
+            const end = resolveLineRef(current.end, patch.hunks);
+            if (start && end && start.hunkIdx === end.hunkIdx) {
+                this.props.selection.current = {
+                    hunk: start.hunkIdx,
+                    start: start,
+                    end: end,
+                };
+            } else {
+                this.props.selection.current = undefined;
+            }
+        }
+    }
+
     restore(state: ConciseDiffViewCachedState) {
         this.diffViewerPatch = state.diffViewerPatch;
         this.cachedState = state;
+    }
+
+    selectable(hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number): Attachment<HTMLElement> {
+        return (element) => {
+            if (line.type === PatchLineType.SPACER || line.type === PatchLineType.HEADER) {
+                return;
+            }
+
+            const destroyClick = on(element, "click", async (e) => {
+                this.updateSelection(hunk, hunkIdx, line, lineIdx, e.shiftKey);
+            });
+            return () => {
+                destroyClick();
+            };
+        };
+    }
+
+    updateSelection(hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number, shift: boolean) {
+        const existingSelection = this.props.selection.current;
+
+        const clicked: LineRef = {
+            idx: lineIdx,
+            no: line.newLineNo ?? line.oldLineNo!,
+            new: line.newLineNo !== undefined,
+        };
+
+        // New selection
+        if (!shift || existingSelection === undefined || existingSelection.hunk !== hunkIdx) {
+            this.props.selection.current = {
+                hunk: hunkIdx,
+                start: clicked,
+                end: clicked,
+            };
+            return;
+        }
+
+        // Shift click idx == start == end: clear selection
+        if (existingSelection.start.idx === existingSelection.end.idx && lineIdx === existingSelection.start.idx) {
+            this.props.selection.current = undefined;
+            return;
+        }
+
+        // Shift click outside selection: expand selection
+        if (lineIdx < existingSelection.start.idx) {
+            this.props.selection.current = {
+                ...existingSelection,
+                start: clicked,
+            };
+            return;
+        }
+        if (lineIdx > existingSelection.end.idx) {
+            this.props.selection.current = {
+                ...existingSelection,
+                end: clicked,
+            };
+            return;
+        }
+
+        // Shift click inside selection: shrink closest side (start/end) of selection to exclude clicked
+        const distToStart = lineIdx - existingSelection.start.idx;
+        const distToEnd = existingSelection.end.idx - lineIdx;
+
+        if (distToStart <= distToEnd) {
+            // Shrink from start: move start to line after clicked
+            const newStartIdx = lineIdx + 1;
+            if (newStartIdx > existingSelection.end.idx) {
+                // Selection would be empty, clear it
+                this.props.selection.current = undefined;
+                return;
+            }
+            const newStartLine = hunk.lines[newStartIdx];
+            this.props.selection.current = {
+                ...existingSelection,
+                start: {
+                    idx: newStartIdx,
+                    no: newStartLine.newLineNo ?? newStartLine.oldLineNo!,
+                    new: newStartLine.newLineNo !== undefined,
+                },
+            };
+        } else {
+            // Shrink from end: move end to line before clicked
+            const newEndIdx = lineIdx - 1;
+            if (newEndIdx < existingSelection.start.idx) {
+                // Selection would be empty, clear it
+                this.props.selection.current = undefined;
+                return;
+            }
+            const newEndLine = hunk.lines[newEndIdx];
+            this.props.selection.current = {
+                ...existingSelection,
+                end: {
+                    idx: newEndIdx,
+                    no: newEndLine.newLineNo ?? newEndLine.oldLineNo!,
+                    new: newEndLine.newLineNo !== undefined,
+                },
+            };
+        }
+    }
+
+    isSelected(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx >= selection.start.idx && lineIdx <= selection.end.idx;
+    }
+
+    isSelectionStart(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx === selection.start.idx;
+    }
+
+    isSelectionEnd(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx === selection.end.idx;
     }
 }
 

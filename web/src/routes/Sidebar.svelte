@@ -3,8 +3,8 @@
     import { type FileDetails, getFileStatusProps, MultiFileDiffViewerState, staticSidebar } from "$lib/diff-viewer.svelte";
     import Tree from "$lib/components/tree/Tree.svelte";
     import { type TreeNode } from "$lib/components/tree/index.svelte";
-    import { type Action } from "svelte/action";
     import { on } from "svelte/events";
+    import { type Attachment } from "svelte/attachments";
 
     const viewer = MultiFileDiffViewerState.get();
 
@@ -20,30 +20,31 @@
         }
     }
 
-    const focusFileDoubleClick: Action<HTMLDivElement, { index: number }> = (div, { index }) => {
-        const destroyDblclick = on(div, "dblclick", (event) => {
-            const element: HTMLElement = event.target as HTMLElement;
-            if (element.tagName.toLowerCase() !== "input") {
-                viewer.scrollToFile(index, { focus: true });
-                if (!staticSidebar.current) {
-                    viewer.layoutState.sidebarCollapsed = true;
+    function focusFileDoubleClick(value: FileDetails): Attachment<HTMLElement> {
+        return (div) => {
+            const destroyDblclick = on(div, "dblclick", (event) => {
+                const element: HTMLElement = event.target as HTMLElement;
+                if (element.tagName.toLowerCase() !== "input") {
+                    viewer.scrollToFile(value.index, { focus: true });
+                    viewer.setSelection(value, undefined);
+                    if (!staticSidebar.current) {
+                        viewer.layoutState.sidebarCollapsed = true;
+                    }
                 }
-            }
-        });
-        const destoryMousedown = on(div, "mousedown", (event) => {
-            const element: HTMLElement = event.target as HTMLElement;
-            if (element.tagName.toLowerCase() !== "input" && event.detail === 2) {
-                // Don't select text on double click
-                event.preventDefault();
-            }
-        });
-        return {
-            destroy() {
+            });
+            const destoryMousedown = on(div, "mousedown", (event) => {
+                const element: HTMLElement = event.target as HTMLElement;
+                if (element.tagName.toLowerCase() !== "input" && event.detail === 2) {
+                    // Don't select text on double click
+                    event.preventDefault();
+                }
+            });
+            return () => {
                 destroyDblclick();
                 destoryMousedown();
-            },
+            };
         };
-    };
+    }
 </script>
 
 <div class="flex h-full max-w-full min-w-[200px] flex-col bg-neutral">
@@ -77,7 +78,7 @@
                 <div
                     class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
                     onclick={(e) => scrollToFileClick(e, value.index)}
-                    use:focusFileDoubleClick={{ index: value.index }}
+                    {@attach focusFileDoubleClick(value)}
                     onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(value.index)}
                     role="button"
                     tabindex="0"
