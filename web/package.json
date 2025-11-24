@@ -17,7 +17,7 @@
         "lint": "prettier --check . && eslint ."
     },
     "devDependencies": {
-        "@eslint/compat": "^1.4.1",
+        "@eslint/compat": "^2.0.0",
         "@eslint/js": "^9.39.1",
         "@iconify-json/octicon": "^1.2.17",
         "@iconify/tailwind4": "^1.1.0",
@@ -56,6 +56,6 @@
         "runed": "^0.36.0",
         "shiki": "^3.15.0",
         "svelte-toolbelt": "^0.10.6",
-        "virtua": "0.46.7"
+        "virtua": "0.47.1"
     }
 }
