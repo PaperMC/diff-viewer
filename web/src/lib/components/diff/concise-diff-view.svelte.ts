@@ -1155,8 +1155,8 @@ export class ConciseDiffViewState<K> {
 
     private readonly props: ConciseDiffViewStateProps<K>;
 
-    // Drag selection state
-    private dragState: { hunk: DiffViewerPatchHunk; hunkIdx: number; line: PatchLine; lineIdx: number; didMove: boolean } | null = null;
+    private selectionAnchor: { hunkIdx: number; lineIdx: number } | null = null;
+    private dragSelectionState: { hunk: DiffViewerPatchHunk; didMove: boolean } | null = null;
     private suppressNextClick = false;
 
     constructor(props: ConciseDiffViewStateProps<K>) {
@@ -1284,7 +1284,8 @@ export class ConciseDiffViewState<K> {
     }
 
     private startDrag(element: HTMLElement, pointerId: number, hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number) {
-        this.dragState = { hunk, hunkIdx, line, lineIdx, didMove: false };
+        this.selectionAnchor = { hunkIdx, lineIdx };
+        this.dragSelectionState = { hunk, didMove: false };
 
         // Set initial selection
         this.props.selection.current = {
@@ -1303,7 +1304,7 @@ export class ConciseDiffViewState<K> {
             element,
             "pointermove",
             (e: PointerEvent) => {
-                if (!this.dragState) return;
+                if (!this.dragSelectionState || !this.selectionAnchor) return;
 
                 // Get the root element for this diff view
                 const rootElement = document.getElementById(this.props.rootElementId);
@@ -1323,12 +1324,12 @@ export class ConciseDiffViewState<K> {
                 const currentLineIdx = Number(lineElement.dataset.lineIdx);
 
                 // Only allow dragging within the same hunk
-                if (currentHunkIdx !== this.dragState.hunkIdx || !Number.isFinite(currentHunkIdx) || !Number.isFinite(currentLineIdx)) {
+                if (currentHunkIdx !== this.selectionAnchor.hunkIdx || !Number.isFinite(currentHunkIdx) || !Number.isFinite(currentLineIdx)) {
                     return;
                 }
 
-                if (this.dragState) {
-                    this.dragState.didMove = true;
+                if (this.dragSelectionState) {
+                    this.dragSelectionState.didMove = true;
                 }
                 this.updateDragSelection(currentLineIdx);
             },
@@ -1340,10 +1341,10 @@ export class ConciseDiffViewState<K> {
             abortController.abort();
 
             // Suppress the click event only if we actually moved during the drag
-            if (this.dragState?.didMove) {
+            if (this.dragSelectionState?.didMove) {
                 this.suppressNextClick = true;
             }
-            this.dragState = null;
+            this.dragSelectionState = null;
         };
 
         on(element, "pointerup", onDragEnd, { signal });
@@ -1359,17 +1360,18 @@ export class ConciseDiffViewState<K> {
     }
 
     private updateDragSelection(currentLineIdx: number) {
-        if (!this.dragState) return;
+        if (!this.dragSelectionState || !this.selectionAnchor) return;
 
-        const { hunk, hunkIdx, lineIdx: startIdx } = this.dragState;
+        const { hunk } = this.dragSelectionState;
+        const { hunkIdx, lineIdx: anchorIdx } = this.selectionAnchor;
         const currentLine = hunk.lines[currentLineIdx];
 
         if (currentLine.type === PatchLineType.SPACER || currentLine.type === PatchLineType.HEADER) {
             return;
         }
 
-        const minIdx = Math.min(startIdx, currentLineIdx);
-        const maxIdx = Math.max(startIdx, currentLineIdx);
+        const minIdx = Math.min(anchorIdx, currentLineIdx);
+        const maxIdx = Math.max(anchorIdx, currentLineIdx);
 
         this.props.selection.current = {
             hunk: hunkIdx,
@@ -1385,52 +1387,36 @@ export class ConciseDiffViewState<K> {
         // New selection (no shift or different hunk)
         if (!shift || !existingSelection || existingSelection.hunk !== hunkIdx) {
             this.props.selection.current = { hunk: hunkIdx, start: clicked, end: clicked };
+            this.selectionAnchor = { hunkIdx, lineIdx };
             return;
         }
 
         // Shift click on single-line selection: clear selection
         if (existingSelection.start.idx === existingSelection.end.idx && lineIdx === existingSelection.start.idx) {
             this.props.selection.current = undefined;
+            this.selectionAnchor = null;
             return;
         }
 
-        // Shift click outside selection: expand selection
-        if (lineIdx < existingSelection.start.idx) {
-            this.props.selection.current = { ...existingSelection, start: clicked };
-            return;
-        }
-        if (lineIdx > existingSelection.end.idx) {
-            this.props.selection.current = { ...existingSelection, end: clicked };
-            return;
-        }
-
-        // Shift click inside selection: shrink closest side
-        const distToStart = lineIdx - existingSelection.start.idx;
-        const distToEnd = existingSelection.end.idx - lineIdx;
-
-        if (distToStart <= distToEnd) {
-            // Shrink from start: move start to line after clicked
-            const newStartIdx = lineIdx + 1;
-            if (newStartIdx > existingSelection.end.idx) {
-                this.props.selection.current = undefined;
-                return;
-            }
-            this.props.selection.current = {
-                ...existingSelection,
-                start: this.createLineRef(hunk.lines[newStartIdx], newStartIdx),
-            };
+        // Determine anchor point: use existing anchor, or default to start of selection
+        let anchorIdx: number;
+        if (this.selectionAnchor && this.selectionAnchor.hunkIdx === hunkIdx) {
+            anchorIdx = this.selectionAnchor.lineIdx;
         } else {
-            // Shrink from end: move end to line before clicked
-            const newEndIdx = lineIdx - 1;
-            if (newEndIdx < existingSelection.start.idx) {
-                this.props.selection.current = undefined;
-                return;
-            }
-            this.props.selection.current = {
-                ...existingSelection,
-                end: this.createLineRef(hunk.lines[newEndIdx], newEndIdx),
-            };
+            // No anchor or anchor is in different hunk, default to start of selection
+            anchorIdx = existingSelection.start.idx;
+            this.selectionAnchor = { hunkIdx, lineIdx: anchorIdx };
         }
+
+        // Shift click: create selection from anchor to clicked line
+        const minIdx = Math.min(anchorIdx, lineIdx);
+        const maxIdx = Math.max(anchorIdx, lineIdx);
+
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(hunk.lines[minIdx], minIdx),
+            end: this.createLineRef(hunk.lines[maxIdx], maxIdx),
+        };
     }
 
     isSelected(hunkIdx: number, lineIdx: number): boolean {
