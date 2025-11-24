@@ -38,6 +38,8 @@
         jumpToSelection = $bindable(false),
     }: ConciseDiffViewProps<K> = $props();
 
+    const uid = $props.id();
+
     const parsedPatch = $derived.by(() => {
         if (rawPatchContent !== undefined) {
             return parseSinglePatch(rawPatchContent);
@@ -48,6 +50,8 @@
     });
 
     const view = new ConciseDiffViewState({
+        rootElementId: uid,
+
         patch: box.with(() => parsedPatch),
         syntaxHighlighting: box.with(() => syntaxHighlighting),
         syntaxHighlightingTheme: box.with(() => syntaxHighlightingTheme),
@@ -187,10 +191,10 @@
 
 {#snippet renderLine(line: PatchLine, hunk: DiffViewerPatchHunk, hunkIndex: number, lineIndex: number)}
     {@const lineType = patchLineTypeProps[line.type]}
-    <div class="bg-[var(--hunk-header-bg)]" {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
+    <div class="bg-[var(--hunk-header-bg)]" data-hunk-idx={hunkIndex} data-line-idx={lineIndex} {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
         <div class="line-number h-full px-2 select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
     </div>
-    <div class="bg-[var(--hunk-header-bg)]" {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
+    <div class="bg-[var(--hunk-header-bg)]" data-hunk-idx={hunkIndex} data-line-idx={lineIndex} {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
         <div
             class="selected-indicator line-number h-full px-2 select-none {lineType.lineNoClasses}"
             data-selected={boolAttr(view.isSelected(hunkIndex, lineIndex))}
@@ -200,6 +204,8 @@
     </div>
     <div
         class="selected-indicator w-full pl-[1rem] {lineType.classes}"
+        data-hunk-idx={hunkIndex}
+        data-line-idx={lineIndex}
         data-selection-start={boolAttr(view.isSelectionStart(hunkIndex, lineIndex))}
         data-selection-end={boolAttr(view.isSelectionEnd(hunkIndex, lineIndex))}
         {@attach (element) => {
@@ -229,6 +235,7 @@
     <div class="flex items-center justify-center bg-neutral-2 p-4"><Spinner /></div>
 {:then [rootStyle, diffViewerPatch]}
     <div
+        id={uid}
         style={rootStyle}
         class="diff-content text-patch-line w-full bg-[var(--editor-bg)] font-mono text-xs leading-[1.25rem] text-[var(--editor-fg)] selection:bg-[var(--select-bg)]"
         data-wrap={lineWrap}
@@ -264,6 +271,7 @@
 
         display: grid;
         grid-template-columns: min-content min-content auto;
+        contain: layout style paint;
     }
     .diff-content[data-wrap="true"] {
         word-break: break-all;

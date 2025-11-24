@@ -1129,7 +1129,9 @@ export interface ConciseDiffViewProps<K> {
     jumpToSelection?: boolean;
 }
 
-export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
+export type ConciseDiffViewStateProps<K> = {
+    rootElementId: string;
+} & ReadableBoxedValues<{
     patch: StructuredPatch;
 
     syntaxHighlighting: boolean;
@@ -1152,6 +1154,10 @@ export class ConciseDiffViewState<K> {
     rootStyle: Promise<string> = $state(new Promise<string>(() => []));
 
     private readonly props: ConciseDiffViewStateProps<K>;
+
+    // Drag selection state
+    private dragState: { hunk: DiffViewerPatchHunk; hunkIdx: number; line: PatchLine; lineIdx: number; didMove: boolean } | null = null;
+    private suppressNextClick = false;
 
     constructor(props: ConciseDiffViewStateProps<K>) {
         this.props = props;
@@ -1255,34 +1261,134 @@ export class ConciseDiffViewState<K> {
             }
 
             const destroyClick = on(element, "click", (e) => {
+                // Only handle click if we didn't just finish dragging
+                if (this.suppressNextClick) {
+                    this.suppressNextClick = false;
+                    return;
+                }
                 this.updateSelection(hunk, hunkIdx, line, lineIdx, e.shiftKey);
             });
+
+            const destroyPointerDown = on(element, "pointerdown", (e: PointerEvent) => {
+                // Only start drag on left click without shift key
+                if (e.button === 0 && !e.shiftKey) {
+                    this.startDrag(element, e.pointerId, hunk, hunkIdx, line, lineIdx);
+                }
+            });
+
             return () => {
                 destroyClick();
+                destroyPointerDown();
             };
+        };
+    }
+
+    private startDrag(element: HTMLElement, pointerId: number, hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number) {
+        this.dragState = { hunk, hunkIdx, line, lineIdx, didMove: false };
+
+        // Set initial selection
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(line, lineIdx),
+            end: this.createLineRef(line, lineIdx),
+        };
+
+        // Capture pointer events to this element
+        element.setPointerCapture(pointerId);
+
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
+        on(
+            element,
+            "pointermove",
+            (e: PointerEvent) => {
+                if (!this.dragState) return;
+
+                // Get the root element for this diff view
+                const rootElement = document.getElementById(this.props.rootElementId);
+                if (!rootElement) return;
+
+                // Get the element at the pointer position
+                const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+                if (!elementAtPoint) return;
+
+                // Only process if the element is within this diff view's root element
+                if (!rootElement.contains(elementAtPoint)) return;
+
+                const lineElement = elementAtPoint.closest("[data-hunk-idx][data-line-idx]") as HTMLElement | null;
+                if (!lineElement) return;
+
+                const currentHunkIdx = Number(lineElement.dataset.hunkIdx);
+                const currentLineIdx = Number(lineElement.dataset.lineIdx);
+
+                // Only allow dragging within the same hunk
+                if (currentHunkIdx !== this.dragState.hunkIdx || !Number.isFinite(currentHunkIdx) || !Number.isFinite(currentLineIdx)) {
+                    return;
+                }
+
+                if (this.dragState) {
+                    this.dragState.didMove = true;
+                }
+                this.updateDragSelection(currentLineIdx);
+            },
+            { signal },
+        );
+
+        const onDragEnd = (e: PointerEvent) => {
+            element.releasePointerCapture(e.pointerId);
+            abortController.abort();
+
+            // Suppress the click event only if we actually moved during the drag
+            if (this.dragState?.didMove) {
+                this.suppressNextClick = true;
+            }
+            this.dragState = null;
+        };
+
+        on(element, "pointerup", onDragEnd, { signal });
+        on(element, "pointercancel", onDragEnd, { signal });
+    }
+
+    private createLineRef(line: PatchLine, lineIdx: number): LineRef {
+        return {
+            idx: lineIdx,
+            no: line.newLineNo ?? line.oldLineNo!,
+            new: line.newLineNo !== undefined,
+        };
+    }
+
+    private updateDragSelection(currentLineIdx: number) {
+        if (!this.dragState) return;
+
+        const { hunk, hunkIdx, lineIdx: startIdx } = this.dragState;
+        const currentLine = hunk.lines[currentLineIdx];
+
+        if (currentLine.type === PatchLineType.SPACER || currentLine.type === PatchLineType.HEADER) {
+            return;
+        }
+
+        const minIdx = Math.min(startIdx, currentLineIdx);
+        const maxIdx = Math.max(startIdx, currentLineIdx);
+
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(hunk.lines[minIdx], minIdx),
+            end: this.createLineRef(hunk.lines[maxIdx], maxIdx),
         };
     }
 
     updateSelection(hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number, shift: boolean) {
         const existingSelection = this.props.selection.current;
+        const clicked = this.createLineRef(line, lineIdx);
 
-        const clicked: LineRef = {
-            idx: lineIdx,
-            no: line.newLineNo ?? line.oldLineNo!,
-            new: line.newLineNo !== undefined,
-        };
-
-        // New selection
-        if (!shift || existingSelection === undefined || existingSelection.hunk !== hunkIdx) {
-            this.props.selection.current = {
-                hunk: hunkIdx,
-                start: clicked,
-                end: clicked,
-            };
+        // New selection (no shift or different hunk)
+        if (!shift || !existingSelection || existingSelection.hunk !== hunkIdx) {
+            this.props.selection.current = { hunk: hunkIdx, start: clicked, end: clicked };
             return;
         }
 
-        // Shift click idx == start == end: clear selection
+        // Shift click on single-line selection: clear selection
         if (existingSelection.start.idx === existingSelection.end.idx && lineIdx === existingSelection.start.idx) {
             this.props.selection.current = undefined;
             return;
@@ -1290,21 +1396,15 @@ export class ConciseDiffViewState<K> {
 
         // Shift click outside selection: expand selection
         if (lineIdx < existingSelection.start.idx) {
-            this.props.selection.current = {
-                ...existingSelection,
-                start: clicked,
-            };
+            this.props.selection.current = { ...existingSelection, start: clicked };
             return;
         }
         if (lineIdx > existingSelection.end.idx) {
-            this.props.selection.current = {
-                ...existingSelection,
-                end: clicked,
-            };
+            this.props.selection.current = { ...existingSelection, end: clicked };
             return;
         }
 
-        // Shift click inside selection: shrink closest side (start/end) of selection to exclude clicked
+        // Shift click inside selection: shrink closest side
         const distToStart = lineIdx - existingSelection.start.idx;
         const distToEnd = existingSelection.end.idx - lineIdx;
 
@@ -1312,35 +1412,23 @@ export class ConciseDiffViewState<K> {
             // Shrink from start: move start to line after clicked
             const newStartIdx = lineIdx + 1;
             if (newStartIdx > existingSelection.end.idx) {
-                // Selection would be empty, clear it
                 this.props.selection.current = undefined;
                 return;
             }
-            const newStartLine = hunk.lines[newStartIdx];
             this.props.selection.current = {
                 ...existingSelection,
-                start: {
-                    idx: newStartIdx,
-                    no: newStartLine.newLineNo ?? newStartLine.oldLineNo!,
-                    new: newStartLine.newLineNo !== undefined,
-                },
+                start: this.createLineRef(hunk.lines[newStartIdx], newStartIdx),
             };
         } else {
             // Shrink from end: move end to line before clicked
             const newEndIdx = lineIdx - 1;
             if (newEndIdx < existingSelection.start.idx) {
-                // Selection would be empty, clear it
                 this.props.selection.current = undefined;
                 return;
             }
-            const newEndLine = hunk.lines[newEndIdx];
             this.props.selection.current = {
                 ...existingSelection,
-                end: {
-                    idx: newEndIdx,
-                    no: newEndLine.newLineNo ?? newEndLine.oldLineNo!,
-                    new: newEndLine.newLineNo !== undefined,
-                },
+                end: this.createLineRef(hunk.lines[newEndIdx], newEndIdx),
             };
         }
     }
