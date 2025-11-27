@@ -55,6 +55,12 @@ export interface LineSelection {
     end: LineRef;
 }
 
+export function lineSelectionsEqual(a: LineSelection | undefined, b: LineSelection | undefined): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    return a.hunk === b.hunk && a.start.idx === b.start.idx && a.end.idx === b.end.idx;
+}
+
 export interface UnresolvedLineSelection {
     start: UnresolvedLineRef;
     end: UnresolvedLineRef;
