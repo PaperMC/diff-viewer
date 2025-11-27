@@ -18,6 +18,7 @@ import {
     writeLineRef,
     parseLineRef,
     type UnresolvedLineSelection,
+    lineSelectionsEqual,
 } from "$lib/components/diff/concise-diff-view.svelte";
 import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
@@ -422,21 +423,28 @@ export class MultiFileDiffViewerState {
     }
 
     setSelection(file: FileDetails, lines: LineSelection | undefined) {
+        const oldSelection = this.selection;
         this.selection = { file, lines };
+        const selectionChanged = oldSelection?.file.index !== file.index || !lineSelectionsEqual(oldSelection?.lines, lines);
 
-        goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
-            keepFocus: true,
-            state: this.createPageState(),
-        });
+        if (selectionChanged) {
+            goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
+                keepFocus: true,
+                state: this.createPageState(),
+            });
+        }
     }
 
     clearSelection() {
+        const oldSelection = this.selection;
         this.selection = undefined;
 
-        goto(`?${page.url.searchParams}`, {
-            keepFocus: true,
-            state: this.createPageState(),
-        });
+        if (oldSelection !== undefined) {
+            goto(`?${page.url.searchParams}`, {
+                keepFocus: true,
+                state: this.createPageState(),
+            });
+        }
     }
 
     scrollToFile(index: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
@@ -604,7 +612,7 @@ export class MultiFileDiffViewerState {
 
             if (this.urlSelection) {
                 // TODO: This does store store the proper scroll offset on initial load
-                
+
                 const urlSelection = this.urlSelection;
                 this.urlSelection = undefined;
                 const file = this.fileDetails.find((f) => f.toFile === urlSelection.file);
