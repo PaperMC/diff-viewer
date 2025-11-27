@@ -562,7 +562,7 @@ export class MultiFileDiffViewerState {
                 this.urlSelection = undefined;
                 const file = this.fileDetails.find((f) => f.toFile === urlSelection.file);
                 if (file && this.diffMetadata.linkable) {
-                    this.jumpToSelection = true;
+                    this.jumpToSelection = urlSelection.lines !== undefined;
                     this.selection = {
                         file,
                         unresolvedLines: urlSelection.lines,
