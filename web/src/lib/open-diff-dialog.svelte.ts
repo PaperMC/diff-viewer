@@ -311,8 +311,10 @@ export class OpenDiffDialogState {
         this.githubUrl = match[0];
         this.props.open.current = false;
         const success = await this.viewer.loadFromGithubApi(match);
-        if (success && !fromUrl) {
-            await this.updateUrlParams({ githubUrl: this.githubUrl });
+        if (success) {
+            if (!fromUrl) {
+                await this.updateUrlParams({ githubUrl: this.githubUrl });
+            }
             return;
         }
         this.props.open.current = true;
