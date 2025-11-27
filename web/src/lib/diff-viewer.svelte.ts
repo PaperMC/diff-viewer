@@ -552,6 +552,10 @@ export class MultiFileDiffViewerState {
 
             this.fileDetails = tempDetails;
             this.fileStates = statesArray;
+            this.stats = this.countStats();
+
+            await tick();
+            await animationFramePromise();
 
             if (this.urlSelection) {
                 const urlSelection = this.urlSelection;
@@ -567,7 +571,7 @@ export class MultiFileDiffViewerState {
                         keepFocus: true,
                     });
                     this.scrollToFile(file.index, {
-                        focus: urlSelection.lines === undefined,
+                        focus: !urlSelection.lines,
                     });
                 } else {
                     await goto(`?${page.url.searchParams}`, {
@@ -575,8 +579,6 @@ export class MultiFileDiffViewerState {
                     });
                 }
             }
-
-            this.stats = this.countStats();
 
             return true;
         } catch (e) {

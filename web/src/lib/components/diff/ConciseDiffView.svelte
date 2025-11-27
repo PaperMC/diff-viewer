@@ -14,7 +14,6 @@
         type SearchSegment,
     } from "$lib/components/diff/concise-diff-view.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
-    import { onMount } from "svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
     import { boolAttr } from "runed";
@@ -124,6 +123,14 @@
         const endIdx = selection.end.idx;
         return Math.floor((startIdx + endIdx) / 2);
     });
+
+    let heightEstimateRem = $derived.by(() => {
+        if (!parsedPatch) return 1.25;
+        const rawLineCount = parsedPatch.hunks.reduce((sum, hunk) => sum + hunk.lines.length, 0);
+        const headerAndSpacerLines = parsedPatch.hunks.length * 2;
+        const totalLines = rawLineCount + headerAndSpacerLines;
+        return totalLines * 1.25;
+    });
 </script>
 
 {#snippet lineContent(line: PatchLine, lineType: PatchLineTypeProps, innerLineType: InnerPatchLineTypeProps)}
@@ -156,18 +163,16 @@
                             {#each lineSearchSegments as searchSegment, index (index)}
                                 {#if searchSegment.highlighted}<span
                                         {@attach (element) => {
-                                            onMount(() => {
-                                                if (jumpToSearchResult && searchSegment.id === activeSearchResult) {
-                                                    jumpToSearchResult = false;
-                                                    // See similar code & comment below around jumping to selections
-                                                    const scheduledJump = setTimeout(() => {
-                                                        element.scrollIntoView({ block: "center", inline: "center" });
-                                                    }, 100);
-                                                    return () => {
-                                                        clearTimeout(scheduledJump);
-                                                    };
-                                                }
-                                            });
+                                            if (jumpToSearchResult && searchSegment.id === activeSearchResult) {
+                                                jumpToSearchResult = false;
+                                                // See similar code & comment below around jumping to selections
+                                                const scheduledJump = setTimeout(() => {
+                                                    element.scrollIntoView({ block: "center", inline: "center" });
+                                                }, 200);
+                                                return () => {
+                                                    clearTimeout(scheduledJump);
+                                                };
+                                            }
                                         }}
                                         class={{
                                             "bg-[#d4a72c66]": searchSegment.id !== activeSearchResult,
@@ -209,22 +214,20 @@
         data-selection-start={boolAttr(view.isSelectionStart(hunkIndex, lineIndex))}
         data-selection-end={boolAttr(view.isSelectionEnd(hunkIndex, lineIndex))}
         {@attach (element) => {
-            onMount(() => {
-                if (jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
-                    jumpToSelection = false;
-                    // Need to schedule because otherwise the vlist rendering surrounding elements may shift things
-                    // and cause the element to scroll to the wrong position
-                    // This is not 100% reliable but is good enough for now
-                    const scheduledJump = setTimeout(() => {
-                        element.scrollIntoView({ block: "center", inline: "center" });
-                    }, 200);
-                    return () => {
-                        if (scheduledJump) {
-                            clearTimeout(scheduledJump);
-                        }
-                    };
-                }
-            });
+            if (jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
+                jumpToSelection = false;
+                // Need to schedule because otherwise the vlist rendering surrounding elements may shift things
+                // and cause the element to scroll to the wrong position
+                // This is not 100% reliable but is good enough for now
+                const scheduledJump = setTimeout(() => {
+                    element.scrollIntoView({ block: "center", inline: "center" });
+                }, 200);
+                return () => {
+                    if (scheduledJump) {
+                        clearTimeout(scheduledJump);
+                    }
+                };
+            }
         }}
     >
         {@render lineContentWrapper(line, hunkIndex, lineIndex, lineType, innerPatchLineTypeProps[line.innerPatchLineType])}
@@ -232,7 +235,12 @@
 {/snippet}
 
 {#await Promise.all([view.rootStyle, view.diffViewerPatch])}
-    <div class="flex items-center justify-center bg-neutral-2 p-4"><Spinner /></div>
+    <div class="relative bg-neutral-2" style="min-height: {heightEstimateRem}rem;">
+        <!-- 2.25 rem for file header offset -->
+        <div class="sticky top-[2.25rem] flex items-center justify-center p-4">
+            <Spinner />
+        </div>
+    </div>
 {:then [rootStyle, diffViewerPatch]}
     <div
         id={uid}
@@ -271,7 +279,6 @@
 
         display: grid;
         grid-template-columns: min-content min-content auto;
-        contain: layout style paint;
     }
     .diff-content[data-wrap="true"] {
         word-break: break-all;
