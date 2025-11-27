@@ -258,7 +258,7 @@ export class OpenDiffDialogState {
         return into;
     }
 
-    async handlePatchFile() {
+    async handlePatchFile(fromUrl: boolean) {
         if (!this.patchFile || !this.patchFile.metadata) {
             alert("No patch file selected.");
             return;
@@ -290,10 +290,12 @@ export class OpenDiffDialogState {
         if (this.patchFile.mode === "url") {
             patchUrl = this.patchFile.url;
         }
-        await this.updateUrlParams({ patchUrl });
+        if (!fromUrl) {
+            await this.updateUrlParams({ patchUrl });
+        }
     }
 
-    async handleGithubUrl() {
+    async handleGithubUrl(fromUrl: boolean) {
         const url = new URL(this.githubUrl);
         // exclude hash + query params
         const test = url.protocol + "//" + url.hostname + url.pathname;
@@ -309,7 +311,7 @@ export class OpenDiffDialogState {
         this.githubUrl = match[0];
         this.props.open.current = false;
         const success = await this.viewer.loadFromGithubApi(match);
-        if (success) {
+        if (success && !fromUrl) {
             await this.updateUrlParams({ githubUrl: this.githubUrl });
             return;
         }

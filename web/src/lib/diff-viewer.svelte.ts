@@ -18,7 +18,6 @@ import {
     writeLineRef,
     parseLineRef,
     type UnresolvedLineSelection,
-    lineSelectionsEqual,
 } from "$lib/components/diff/concise-diff-view.svelte";
 import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
@@ -30,7 +29,7 @@ import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
 import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
 import { page } from "$app/state";
-import { afterNavigate, goto } from "$app/navigation";
+import { afterNavigate, goto, replaceState } from "$app/navigation";
 import { type AfterNavigate } from "@sveltejs/kit";
 
 export const GITHUB_URL_PARAM = "github_url";
@@ -103,6 +102,25 @@ export interface Selection {
     file: FileDetails;
     lines?: LineSelection;
     unresolvedLines?: UnresolvedLineSelection;
+}
+
+/**
+ * Checks whether two selections refer to the same unresolved lines
+ * in the same file.
+ *
+ * @param a selection a
+ * @param b selection b
+ * @returns true if the selections are semantically equal
+ */
+export function selectionsSemanticallyEqual(a: Selection | undefined, b: Selection | undefined): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    const linesA = a.lines ?? a.unresolvedLines!;
+    const linesB = b.lines ?? b.unresolvedLines!;
+    const startEquals = linesA.start.no === linesB.start.no && linesA.start.new === linesB.start.new;
+    if (!startEquals) return false;
+    const endEquals = linesA.end.no === linesB.end.no && linesA.end.new === linesB.end.new;
+    return endEquals;
 }
 
 function makeUrlHashValue(selection: Selection): string {
@@ -425,9 +443,8 @@ export class MultiFileDiffViewerState {
     setSelection(file: FileDetails, lines: LineSelection | undefined) {
         const oldSelection = this.selection;
         this.selection = { file, lines };
-        const selectionChanged = oldSelection?.file.index !== file.index || !lineSelectionsEqual(oldSelection?.lines, lines);
 
-        if (selectionChanged) {
+        if (!selectionsSemanticallyEqual(oldSelection, this.selection)) {
             goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
                 keepFocus: true,
                 state: this.createPageState(),
@@ -626,10 +643,8 @@ export class MultiFileDiffViewerState {
                         focus: !urlSelection.lines,
                     });
                     await animationFramePromise();
-                    await goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
-                        keepFocus: true,
-                        state: this.createPageState(),
-                    });
+                    // TODO: restoring an unresolved selection does not work until something triggers resolveOrUpdateSelection
+                    replaceState(page.url, this.createPageState());
                 } else {
                     await goto(`?${page.url.searchParams}`, {
                         keepFocus: true,
