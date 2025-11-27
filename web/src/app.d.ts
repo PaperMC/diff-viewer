@@ -5,7 +5,14 @@ declare global {
         // interface Error {}
         // interface Locals {}
         // interface PageData {}
-        // interface PageState {}
+        interface PageState {
+            scrollOffset?: number;
+            selection?: {
+                fileIdx: number;
+                lines?: LineSelection;
+                unresolvedLines?: UnresolvedLineSelection;
+            };
+        }
         // interface Platform {}
     }
 }

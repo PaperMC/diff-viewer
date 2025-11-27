@@ -1260,24 +1260,19 @@ export class ConciseDiffViewState<K> {
                 return;
             }
 
-            const destroyClick = on(element, "click", (e) => {
-                // Only handle click if we didn't just finish dragging
-                if (this.suppressNextClick) {
-                    this.suppressNextClick = false;
-                    return;
-                }
-                this.updateSelection(hunk, hunkIdx, line, lineIdx, e.shiftKey);
-            });
-
             const destroyPointerDown = on(element, "pointerdown", (e: PointerEvent) => {
-                // Only start drag on left click without shift key
-                if (e.button === 0 && !e.shiftKey) {
+                if (e.button !== 0) return; // only handle left click
+
+                if (e.shiftKey) {
+                    // Handle shift+click for adjusting selection
+                    this.updateSelection(hunk, hunkIdx, line, lineIdx, true);
+                } else {
+                    // Handle regular click with drag support
                     this.startDrag(element, e.pointerId, hunk, hunkIdx, line, lineIdx);
                 }
             });
 
             return () => {
-                destroyClick();
                 destroyPointerDown();
             };
         };

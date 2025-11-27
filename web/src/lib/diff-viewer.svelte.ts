@@ -29,7 +29,8 @@ import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
 import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
 import { page } from "$app/state";
-import { goto } from "$app/navigation";
+import { afterNavigate, goto } from "$app/navigation";
+import { type AfterNavigate } from "@sveltejs/kit";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -320,10 +321,41 @@ export class MultiFileDiffViewerState {
             }
         });
 
+        afterNavigate((nav) => {
+            this.afterNavigate(nav);
+        });
+
+        this.registerKeybinds();
+    }
+
+    private registerKeybinds() {
         const keybinds = new Keybinds();
         keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
         keybinds.registerModifierBind(",", () => this.openSettingsDialog());
         keybinds.registerModifierBind("b", () => this.layoutState.toggleSidebar());
+    }
+
+    private afterNavigate(nav: AfterNavigate) {
+        if (!this.vlist) return;
+
+        if (nav.type === "popstate") {
+            const selection = page.state.selection;
+            const file = selection ? this.fileDetails[selection.fileIdx] : undefined;
+            if (selection && file) {
+                this.selection = {
+                    file,
+                    lines: selection.lines,
+                    unresolvedLines: selection.unresolvedLines,
+                };
+            } else {
+                this.selection = undefined;
+            }
+
+            const scrollOffset = page.state.scrollOffset;
+            if (scrollOffset !== undefined) {
+                this.vlist.scrollTo(scrollOffset);
+            }
+        }
     }
 
     openOpenDiffDialog() {
@@ -378,11 +410,25 @@ export class MultiFileDiffViewerState {
         return null;
     }
 
+    private createPageState(): App.PageState {
+        return {
+            scrollOffset: this.vlist?.getScrollOffset(),
+            selection: this.selection
+                ? {
+                      fileIdx: this.selection.file.index,
+                      lines: $state.snapshot(this.selection.lines),
+                      unresolvedLines: $state.snapshot(this.selection.unresolvedLines),
+                  }
+                : undefined,
+        };
+    }
+
     setSelection(file: FileDetails, lines: LineSelection | undefined) {
         this.selection = { file, lines };
 
         goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
             keepFocus: true,
+            state: this.createPageState(),
         });
     }
 
@@ -391,6 +437,7 @@ export class MultiFileDiffViewerState {
 
         goto(`?${page.url.searchParams}`, {
             keepFocus: true,
+            state: this.createPageState(),
         });
     }
 
@@ -567,11 +614,13 @@ export class MultiFileDiffViewerState {
                         file,
                         unresolvedLines: urlSelection.lines,
                     };
-                    await goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
-                        keepFocus: true,
-                    });
                     this.scrollToFile(file.index, {
                         focus: !urlSelection.lines,
+                    });
+                    await animationFramePromise();
+                    await goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
+                        keepFocus: true,
+                        state: this.createPageState(),
                     });
                 } else {
                     await goto(`?${page.url.searchParams}`, {
