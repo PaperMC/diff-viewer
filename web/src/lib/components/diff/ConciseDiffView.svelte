@@ -164,14 +164,17 @@
                                 {#if searchSegment.highlighted}<span
                                         {@attach (element) => {
                                             if (jumpToSearchResult && searchSegment.id === activeSearchResult) {
+                                                element.scrollIntoView({ block: "center", inline: "center" });
                                                 jumpToSearchResult = false;
                                                 // See similar code & comment below around jumping to selections
-                                                const scheduledJump = setTimeout(() => {
-                                                    element.scrollIntoView({ block: "center", inline: "center" });
-                                                }, 200);
-                                                return () => {
-                                                    clearTimeout(scheduledJump);
-                                                };
+                                                //const scheduledJump = setTimeout(() => {
+                                                //    jumpToSearchResult = false;
+                                                //    element.scrollIntoView({ block: "center", inline: "center" });
+                                                //}, 200);
+                                                //return () => {
+                                                //    jumpToSearchResult = false;
+                                                //    clearTimeout(scheduledJump);
+                                                //};
                                             }
                                         }}
                                         class={{
@@ -215,18 +218,21 @@
         data-selection-end={boolAttr(view.isSelectionEnd(hunkIndex, lineIndex))}
         {@attach (element) => {
             if (jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
+                element.scrollIntoView({ block: "center", inline: "center" });
                 jumpToSelection = false;
                 // Need to schedule because otherwise the vlist rendering surrounding elements may shift things
                 // and cause the element to scroll to the wrong position
                 // This is not 100% reliable but is good enough for now
-                const scheduledJump = setTimeout(() => {
-                    element.scrollIntoView({ block: "center", inline: "center" });
-                }, 200);
-                return () => {
-                    if (scheduledJump) {
-                        clearTimeout(scheduledJump);
-                    }
-                };
+                //const scheduledJump = setTimeout(() => {
+                //    jumpToSelection = false;
+                //    element.scrollIntoView({ block: "center", inline: "center" });
+                //}, 200);
+                //return () => {
+                //    if (scheduledJump) {
+                //        jumpToSelection = false;
+                //        clearTimeout(scheduledJump);
+                //    }
+                //};
             }
         }}
     >
