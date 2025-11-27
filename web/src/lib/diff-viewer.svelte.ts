@@ -321,9 +321,7 @@ export class MultiFileDiffViewerState {
             }
         });
 
-        afterNavigate((nav) => {
-            this.afterNavigate(nav);
-        });
+        afterNavigate((nav) => this.afterNavigate(nav));
 
         this.registerKeybinds();
     }
@@ -605,6 +603,8 @@ export class MultiFileDiffViewerState {
             await animationFramePromise();
 
             if (this.urlSelection) {
+                // TODO: This does store store the proper scroll offset on initial load
+                
                 const urlSelection = this.urlSelection;
                 this.urlSelection = undefined;
                 const file = this.fileDetails.find((f) => f.toFile === urlSelection.file);
@@ -625,6 +625,7 @@ export class MultiFileDiffViewerState {
                 } else {
                     await goto(`?${page.url.searchParams}`, {
                         keepFocus: true,
+                        state: this.createPageState(),
                     });
                 }
             }
