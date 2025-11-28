@@ -60,7 +60,7 @@ export interface UnresolvedLineSelection {
     end: UnresolvedLineRef;
 }
 
-export function writeLineRef(ref: LineRef): string {
+export function writeLineRef(ref: UnresolvedLineRef): string {
     const prefix = ref.new ? "R" : "L";
     return prefix + ref.no.toString();
 }

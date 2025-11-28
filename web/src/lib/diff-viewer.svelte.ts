@@ -128,11 +128,12 @@ export function selectionsSemanticallyEqual(a: Selection | undefined, b: Selecti
 
 function makeUrlHashValue(selection: Selection): string {
     let hash = encodeURIComponent(selection.file.toFile);
-    if (selection.lines) {
+    const lines = selection.lines ?? selection.unresolvedLines;
+    if (lines) {
         hash += ":";
-        hash += writeLineRef(selection.lines.start);
+        hash += writeLineRef(lines.start);
         hash += ":";
-        hash += writeLineRef(selection.lines.end);
+        hash += writeLineRef(lines.end);
     }
     return hash;
 }
