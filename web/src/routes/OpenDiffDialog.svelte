@@ -26,12 +26,12 @@
 
         if (githubUrlParam !== null) {
             instance.githubUrl = githubUrlParam;
-            await instance.handleGithubUrl(true);
+            await instance.handleGithubUrl({ state: "replace" });
         } else if (patchUrlParam !== null) {
             instance.patchFile.reset();
             instance.patchFile.mode = "url";
             instance.patchFile.url = patchUrlParam;
-            await instance.handlePatchFile(true);
+            await instance.handlePatchFile({ state: "replace" });
         } else {
             open = true;
         }
@@ -100,7 +100,7 @@
             class="flex flex-row"
             onsubmit={(e) => {
                 e.preventDefault();
-                instance.handleGithubUrl(false);
+                instance.handleGithubUrl();
             }}
         >
             <input
@@ -156,7 +156,7 @@
         class="p-4"
         onsubmit={(e) => {
             e.preventDefault();
-            instance.handlePatchFile(false);
+            instance.handlePatchFile();
         }}
     >
         <h3 class="mb-4 flex items-center gap-1 text-lg font-semibold">

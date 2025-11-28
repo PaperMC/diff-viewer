@@ -2,9 +2,7 @@ import type { WritableBoxedValues } from "svelte-toolbelt";
 import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "./components/files/index.svelte";
 import { SvelteSet } from "svelte/reactivity";
 import { type FileStatus } from "$lib/github.svelte";
-import { page } from "$app/state";
-import { goto } from "$app/navigation";
-import { GITHUB_URL_PARAM, makeImageDetails, makeTextDetails, MultiFileDiffViewerState, PATCH_URL_PARAM } from "$lib/diff-viewer.svelte";
+import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
 import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
 
@@ -107,7 +105,6 @@ export class OpenDiffDialogState {
             this.props.open.current = true;
             return;
         }
-        await this.updateUrlParams();
     }
 
     async *generateSingleImagePatch(fileAMeta: MultimodalFileInputValueMetadata, fileBMeta: MultimodalFileInputValueMetadata, blobA: Blob, blobB: Blob) {
@@ -162,7 +159,6 @@ export class OpenDiffDialogState {
             this.props.open.current = true;
             return;
         }
-        await this.updateUrlParams();
     }
 
     async *generateDirPatches(dirA: DirectoryEntry, dirB: DirectoryEntry) {
@@ -258,7 +254,7 @@ export class OpenDiffDialogState {
         return into;
     }
 
-    async handlePatchFile(fromUrl: boolean) {
+    async handlePatchFile(opts?: LoadPatchesOptions) {
         if (!this.patchFile || !this.patchFile.metadata) {
             alert("No patch file selected.");
             return;
@@ -276,26 +272,25 @@ export class OpenDiffDialogState {
         this.props.open.current = false;
         const success = await this.viewer.loadPatches(
             async () => {
-                return { linkable: this.patchFile.mode === "url", type: "file", fileName: meta.name };
+                return {
+                    linkable: this.patchFile.mode === "url",
+                    type: "file",
+                    fileName: meta.name,
+                    url: this.patchFile.mode === "url" ? this.patchFile.url : undefined,
+                };
             },
             async () => {
                 return parseMultiFilePatch(text, this.viewer.loadingState);
             },
+            opts,
         );
         if (!success) {
             this.props.open.current = true;
             return;
         }
-        let patchUrl: string | undefined;
-        if (this.patchFile.mode === "url") {
-            patchUrl = this.patchFile.url;
-        }
-        if (!fromUrl) {
-            await this.updateUrlParams({ patchUrl });
-        }
     }
 
-    async handleGithubUrl(fromUrl: boolean) {
+    async handleGithubUrl(opts?: LoadPatchesOptions) {
         const url = new URL(this.githubUrl);
         // exclude hash + query params
         const test = url.protocol + "//" + url.hostname + url.pathname;
@@ -310,34 +305,10 @@ export class OpenDiffDialogState {
 
         this.githubUrl = match[0];
         this.props.open.current = false;
-        const success = await this.viewer.loadFromGithubApi(match);
+        const success = await this.viewer.loadFromGithubApi(match, opts);
         if (success) {
-            if (!fromUrl) {
-                await this.updateUrlParams({ githubUrl: this.githubUrl });
-            }
             return;
         }
         this.props.open.current = true;
-    }
-
-    async updateUrlParams(opts: { githubUrl?: string; patchUrl?: string } = {}) {
-        const newUrl = new URL(page.url);
-        if (opts.githubUrl) {
-            newUrl.searchParams.set(GITHUB_URL_PARAM, opts.githubUrl);
-        } else {
-            newUrl.searchParams.delete(GITHUB_URL_PARAM);
-        }
-        if (opts.patchUrl) {
-            newUrl.searchParams.set(PATCH_URL_PARAM, opts.patchUrl);
-        } else {
-            newUrl.searchParams.delete(PATCH_URL_PARAM);
-        }
-        let params = `?${newUrl.searchParams}`;
-        if (newUrl.hash) {
-            params += newUrl.hash;
-        }
-        await goto(params, {
-            keepFocus: true,
-        });
     }
 }
