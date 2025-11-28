@@ -5,6 +5,7 @@
     import { type TreeNode } from "$lib/components/tree/index.svelte";
     import { on } from "svelte/events";
     import { type Attachment } from "svelte/attachments";
+    import { boolAttr } from "runed";
 
     const viewer = MultiFileDiffViewerState.get();
 
@@ -76,13 +77,14 @@
         <div class="h-100">
             {#snippet fileSnippet(value: FileDetails)}
                 <div
-                    class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
+                    class="file flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
                     onclick={(e) => scrollToFileClick(e, value.index)}
                     {@attach focusFileDoubleClick(value)}
                     onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(value.index)}
                     role="button"
                     tabindex="0"
                     id={"file-tree-file-" + value.index}
+                    data-selected={boolAttr(viewer.selection?.file.index === value.index)}
                 >
                     <span
                         class="{getFileStatusProps(value.status).iconClasses} me-1 flex size-4 shrink-0 items-center justify-center"
@@ -151,5 +153,17 @@
         left: 1rem;
         background-color: var(--color-gray-500);
         display: block;
+    }
+    .file[data-selected] {
+        position: relative;
+        &::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            box-shadow: inset 4px 0 0 0 var(--color-primary);
+        }
     }
 </style>
