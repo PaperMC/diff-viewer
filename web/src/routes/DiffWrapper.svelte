@@ -66,8 +66,21 @@
             searchQuery={viewer.searchQueryDebounced.current}
             searchMatchingLines={() => viewer.searchResults.then((r) => r.lines.get(value))}
             activeSearchResult={viewer.activeSearchResult && viewer.activeSearchResult.file === value ? viewer.activeSearchResult.idx : undefined}
+            bind:jumpToSearchResult={viewer.jumpToSearchResult}
             cache={viewer.diffViewCache}
             cacheKey={value}
+            unresolvedSelection={viewer.getSelection(value)?.unresolvedLines}
+            bind:selection={
+                () => viewer.getSelection(value)?.lines,
+                (lines) => {
+                    if (lines === undefined && viewer.selection?.file === value) {
+                        viewer.clearSelection();
+                    } else {
+                        viewer.setSelection(value, lines);
+                    }
+                }
+            }
+            bind:jumpToSelection={viewer.jumpToSelection}
         />
     </div>
 {/if}

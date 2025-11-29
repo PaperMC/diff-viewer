@@ -4,6 +4,7 @@
     import { type FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
     import { Popover, Button } from "bits-ui";
+    import { boolAttr } from "runed";
     import { tick } from "svelte";
 
     interface Props {
@@ -42,6 +43,16 @@
             };
         }
         return { baseFileUrl: undefined, headFileUrl: undefined };
+    });
+
+    function selectHeader() {
+        viewer.scrollToFile(index, { autoExpand: false, smooth: true });
+        viewer.setSelection(value, undefined);
+    }
+
+    let selected = $derived.by(() => {
+        const sel = viewer.getSelection(value);
+        return sel && sel.lines === undefined && sel.unresolvedLines === undefined;
     });
 </script>
 
@@ -111,11 +122,15 @@
 
 <div
     id="file-header-{index}"
-    class="sticky top-0 z-10 flex flex-row items-center gap-2 border-b bg-neutral px-2 py-1 text-sm shadow-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
+    class={[
+        "sticky top-0 z-10 flex flex-row items-center gap-2 border-b bg-neutral px-2 py-1 text-sm shadow-sm",
+        "focus-and-selected-styles focus:outline-none",
+    ]}
     tabindex={0}
     role="button"
-    onclick={() => viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
-    onkeyup={(event) => event.key === "Enter" && viewer.scrollToFile(index, { autoExpand: false, smooth: true })}
+    onclick={() => selectHeader()}
+    onkeyup={(event) => event.key === "Enter" && selectHeader()}
+    data-selected={boolAttr(selected)}
 >
     {#if value.type === "text"}
         <DiffStats brief add={viewer.stats.fileAddedLines[index]} remove={viewer.stats.fileRemovedLines[index]} />
@@ -131,3 +146,24 @@
         {/if}
     </div>
 </div>
+
+<style>
+    .focus-and-selected-styles {
+        &:focus {
+            box-shadow:
+                var(--tw-shadow),
+                inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
+        }
+        &[data-selected] {
+            box-shadow:
+                var(--tw-shadow),
+                inset 4px 0 0 0 var(--color-primary);
+        }
+        &:focus[data-selected] {
+            box-shadow:
+                var(--tw-shadow),
+                inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent),
+                inset 4px 0 0 0 var(--color-primary);
+        }
+    }
+</style>

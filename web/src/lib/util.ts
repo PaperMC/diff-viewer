@@ -3,9 +3,9 @@ import type { FileStatus } from "./github.svelte";
 import type { TreeNode } from "$lib/components/tree/index.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
 import { onMount } from "svelte";
-import type { Action } from "svelte/action";
 import type { ReadableBox } from "svelte-toolbelt";
 import { on } from "svelte/events";
+import { type Attachment } from "svelte/attachments";
 
 export type Getter<T> = () => T;
 
@@ -463,15 +463,15 @@ export function watchLocalStorage(key: string, callback: (newValue: string | nul
     });
 }
 
-export const resizeObserver: Action<HTMLElement, ResizeObserverCallback> = (node, callback) => {
-    const observer = new ResizeObserver(callback);
-    observer.observe(node);
-    return {
-        destroy() {
+export function resizeObserver(callback: ResizeObserverCallback): Attachment<HTMLElement> {
+    return (element) => {
+        const observer = new ResizeObserver(callback);
+        observer.observe(element);
+        return () => {
             observer.disconnect();
-        },
+        };
     };
-};
+}
 
 export function animationFramePromise() {
     return new Promise((resolve) => {
