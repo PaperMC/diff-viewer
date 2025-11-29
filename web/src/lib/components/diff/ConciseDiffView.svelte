@@ -199,10 +199,23 @@
 
 {#snippet renderLine(line: PatchLine, hunk: DiffViewerPatchHunk, hunkIndex: number, lineIndex: number)}
     {@const lineType = patchLineTypeProps[line.type]}
-    <div class="bg-[var(--hunk-header-bg)]" data-hunk-idx={hunkIndex} data-line-idx={lineIndex} {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
+    {@const lineTypeSelectable = line.type !== PatchLineType.HEADER && line.type !== PatchLineType.SPACER}
+    <div
+        class="bg-[var(--hunk-header-bg)] data-selectable:cursor-pointer"
+        data-hunk-idx={hunkIndex}
+        data-line-idx={lineIndex}
+        data-selectable={boolAttr(lineTypeSelectable)}
+        {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}
+    >
         <div class="line-number h-full px-2 select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
     </div>
-    <div class="bg-[var(--hunk-header-bg)]" data-hunk-idx={hunkIndex} data-line-idx={lineIndex} {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}>
+    <div
+        class="bg-[var(--hunk-header-bg)] data-selectable:cursor-pointer"
+        data-hunk-idx={hunkIndex}
+        data-line-idx={lineIndex}
+        data-selectable={boolAttr(lineTypeSelectable)}
+        {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}
+    >
         <div
             class="selected-indicator line-number h-full px-2 select-none {lineType.lineNoClasses}"
             data-selected={boolAttr(view.isSelected(hunkIndex, lineIndex))}
