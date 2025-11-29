@@ -150,13 +150,18 @@
 <style>
     .focus-and-selected-styles {
         &:focus {
-            box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
+            box-shadow:
+                var(--tw-shadow),
+                inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
         }
         &[data-selected] {
-            box-shadow: inset 4px 0 0 0 var(--color-primary);
+            box-shadow:
+                var(--tw-shadow),
+                inset 4px 0 0 0 var(--color-primary);
         }
         &:focus[data-selected] {
             box-shadow:
+                var(--tw-shadow),
                 inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent),
                 inset 4px 0 0 0 var(--color-primary);
         }
