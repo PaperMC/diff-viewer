@@ -324,8 +324,8 @@ export class MultiFileDiffViewerState {
         if (!this.vlist) return;
         const fileIdx = file.index;
         this.fileStates[fileIdx].collapsed = false;
-        const startIdx = this.vlist.findStartIndex();
-        const endIdx = this.vlist.findEndIndex();
+        const startIdx = this.vlist.findItemIndex(this.vlist.scrollOffset);
+        const endIdx = this.vlist.findItemIndex(this.vlist.scrollOffset + this.vlist.viewportSize);
         if (fileIdx < startIdx || fileIdx > endIdx) {
             this.vlist.scrollToIndex(fileIdx, { align: "start" });
         }
