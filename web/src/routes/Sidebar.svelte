@@ -77,7 +77,7 @@
         <div class="h-100">
             {#snippet fileSnippet(value: FileDetails)}
                 <div
-                    class="file flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
+                    class="file flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
                     onclick={(e) => scrollToFileClick(e, value.index)}
                     {@attach focusFileDoubleClick(value)}
                     onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(value.index)}
@@ -108,7 +108,7 @@
                         {@render fileSnippet(node.data.data as FileDetails)}
                     {:else}
                         <div
-                            class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary focus:outline-none focus:ring-inset"
+                            class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
                             onclick={toggleCollapse}
                             onkeydown={(e) => e.key === "Enter" && toggleCollapse()}
                             role="button"
@@ -161,9 +161,9 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: 4px;
             height: 100%;
-            box-shadow: inset 4px 0 0 0 var(--color-primary);
+            background-color: var(--color-primary);
         }
     }
 </style>
