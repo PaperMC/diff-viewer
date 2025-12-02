@@ -131,6 +131,7 @@
                                 focus: !viewer.selection.lines,
                             });
                             if (viewer.selection.lines) {
+                                viewer.fileStates[viewer.selection.file.index].collapsed = false;
                                 viewer.jumpToSelection = true;
                             }
                         }
