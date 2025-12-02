@@ -26,12 +26,12 @@
 
         if (githubUrlParam !== null) {
             instance.githubUrl = githubUrlParam;
-            await instance.handleGithubUrl();
+            await instance.handleGithubUrl({ state: "replace" });
         } else if (patchUrlParam !== null) {
             instance.patchFile.reset();
             instance.patchFile.mode = "url";
             instance.patchFile.url = patchUrlParam;
-            await instance.handlePatchFile();
+            await instance.handlePatchFile({ state: "replace" });
         } else {
             open = true;
         }

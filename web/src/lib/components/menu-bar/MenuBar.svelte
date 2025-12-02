@@ -118,5 +118,29 @@
             </Menubar.Content>
         </Menubar.Portal>
     </Menubar.Menu>
+    <Menubar.Menu>
+        <Menubar.Trigger class="btn-ghost px-2 py-1 text-sm data-[state=open]:btn-ghost-hover">Go</Menubar.Trigger>
+        <Menubar.Portal>
+            <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
+                <Menubar.Item
+                    class="data-disabled:cursor-notallowed btn-ghost px-2 py-1 select-none data-disabled:pointer-events-none data-disabled:text-em-disabled"
+                    disabled={viewer.selection === undefined}
+                    onSelect={() => {
+                        if (viewer.selection) {
+                            viewer.scrollToFile(viewer.selection.file.index, {
+                                focus: !viewer.selection.lines,
+                            });
+                            if (viewer.selection.lines) {
+                                viewer.fileStates[viewer.selection.file.index].collapsed = false;
+                                viewer.jumpToSelection = true;
+                            }
+                        }
+                    }}
+                >
+                    Go to Selection
+                </Menubar.Item>
+            </Menubar.Content>
+        </Menubar.Portal>
+    </Menubar.Menu>
     <SidebarToggle class="my-auto mr-2 ml-auto" />
 </Menubar.Root>

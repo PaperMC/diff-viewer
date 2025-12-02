@@ -9,9 +9,18 @@ import {
     parseMultiFilePatchGithub,
 } from "./github.svelte";
 import { type StructuredPatch } from "diff";
-import { ConciseDiffViewCachedState, isNoNewlineAtEofLine, parseSinglePatch, patchHeaderDiffOnly } from "$lib/components/diff/concise-diff-view.svelte";
+import {
+    ConciseDiffViewCachedState,
+    isNoNewlineAtEofLine,
+    parseSinglePatch,
+    patchHeaderDiffOnly,
+    type LineSelection,
+    writeLineRef,
+    parseLineRef,
+    type UnresolvedLineSelection,
+} from "$lib/components/diff/concise-diff-view.svelte";
 import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
-import { onDestroy, tick } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
 import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
@@ -19,6 +28,9 @@ import { MediaQuery } from "svelte/reactivity";
 import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
 import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
+import { page } from "$app/state";
+import { afterNavigate, goto, pushState, replaceState } from "$app/navigation";
+import { type AfterNavigate } from "@sveltejs/kit";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -84,6 +96,69 @@ export type FileDetails = TextFileDetails | ImageFileDetails;
 export interface FileState {
     checked: boolean;
     collapsed: boolean;
+}
+
+export interface Selection {
+    file: FileDetails;
+    lines?: LineSelection;
+    unresolvedLines?: UnresolvedLineSelection;
+}
+
+/**
+ * Checks whether two selections refer to the same unresolved lines
+ * in the same file.
+ *
+ * @param a selection a
+ * @param b selection b
+ * @returns true if the selections are semantically equal
+ */
+export function selectionsSemanticallyEqual(a: Selection | undefined, b: Selection | undefined): boolean {
+    if (!a && !b) return true;
+    if (!a || !b) return false;
+    if (a.file !== b.file) return false;
+    const linesA = a.lines ?? a.unresolvedLines;
+    const linesB = b.lines ?? b.unresolvedLines;
+    if (!linesA && !linesB) return true;
+    if (!linesA || !linesB) return false;
+    const startEquals = linesA.start.no === linesB.start.no && linesA.start.new === linesB.start.new;
+    if (!startEquals) return false;
+    const endEquals = linesA.end.no === linesB.end.no && linesA.end.new === linesB.end.new;
+    return endEquals;
+}
+
+function makeUrlHashValue(selection: Selection): string {
+    let hash = encodeURIComponent(selection.file.toFile);
+    const lines = selection.lines ?? selection.unresolvedLines;
+    if (lines) {
+        hash += ":";
+        hash += writeLineRef(lines.start);
+        hash += ":";
+        hash += writeLineRef(lines.end);
+    }
+    return hash;
+}
+
+interface UnresolvedSelection {
+    file: string;
+    lines?: UnresolvedLineSelection;
+}
+
+function parseUrlHashValue(hash: string): UnresolvedSelection | null {
+    const parts = hash.split(":");
+    if (parts.length === 1) {
+        return {
+            file: decodeURIComponent(parts[0]),
+        };
+    }
+    if (parts.length !== 3) return null;
+    const file = decodeURIComponent(parts[0]);
+    const start = parseLineRef(parts[1]);
+    const end = parseLineRef(parts[2]);
+    if (!start || !end) return null;
+    return {
+        file,
+        lines: { start, end },
+    };
 }
 
 export interface ImageDiffDetails {
@@ -186,17 +261,42 @@ export interface ViewerStatistics {
     fileRemovedLines: number[];
 }
 
-export interface GithubDiffMetadata {
+export interface BaseDiffMetadata {
+    linkable: boolean;
+}
+
+export interface GithubDiffMetadata extends BaseDiffMetadata {
     type: "github";
     details: GithubDiff;
 }
 
-export interface FileDiffMetadata {
+export interface FileDiffMetadata extends BaseDiffMetadata {
     type: "file";
     fileName: string;
+    url?: string;
 }
 
 export type DiffMetadata = GithubDiffMetadata | FileDiffMetadata;
+
+export function updateSearchParams(params: URLSearchParams, metadata: DiffMetadata) {
+    if (metadata.type === "github") {
+        params.set(GITHUB_URL_PARAM, metadata.details.backlink);
+    } else {
+        params.delete(GITHUB_URL_PARAM);
+    }
+    if (metadata.type === "file" && metadata.url) {
+        params.set(PATCH_URL_PARAM, metadata.url);
+    } else {
+        params.delete(PATCH_URL_PARAM);
+    }
+}
+
+export interface LoadPatchesOptions {
+    /**
+     * default: push
+     */
+    state?: "push" | "replace";
+}
 
 export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
@@ -213,12 +313,18 @@ export class MultiFileDiffViewerState {
     diffMetadata: DiffMetadata | null = $state(null);
     fileDetails: FileDetails[] = $state([]); // Read-only state
     fileStates: FileState[] = $state([]); // Mutable state
-    readonly stats: ViewerStatistics = $derived(this.countStats());
+    stats: ViewerStatistics = $state({
+        addedLines: 0,
+        removedLines: 0,
+        fileAddedLines: [],
+        fileRemovedLines: [],
+    });
 
     // Content search state
     searchQuery: string = $state("");
     readonly searchQueryDebounced = new Debounced(() => this.searchQuery, 500);
     readonly searchResults: Promise<SearchResults> = $derived(this.findSearchResults());
+    jumpToSearchResult: boolean = $state(false);
 
     // File tree state
     tree: TreeState<FileTreeNodeData> | undefined = $state();
@@ -229,10 +335,15 @@ export class MultiFileDiffViewerState {
         this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
     );
 
+    // Selection state
+    urlSelection: UnresolvedSelection | undefined = $state();
+    selection: Selection | undefined = $state();
+    jumpToSelection: boolean = $state(false);
+
     // Misc. component state
     diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
     vlist: VList<FileDetails> | undefined = $state();
-    readonly loadingState: LoadingState = $state(new LoadingState());
+    readonly loadingState = new LoadingState();
     readonly layoutState;
 
     // Transient state
@@ -246,10 +357,61 @@ export class MultiFileDiffViewerState {
         // Make sure to revoke object URLs when the component is destroyed
         onDestroy(() => this.clearImages());
 
+        onMount(() => {
+            let hash = page.url.hash;
+            if (hash.startsWith("#")) hash = hash.substring(1);
+            if (hash) {
+                this.urlSelection = parseUrlHashValue(hash) ?? undefined;
+            }
+        });
+
+        afterNavigate((nav) => this.afterNavigate(nav));
+
+        this.registerKeybinds();
+    }
+
+    private registerKeybinds() {
         const keybinds = new Keybinds();
         keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
         keybinds.registerModifierBind(",", () => this.openSettingsDialog());
         keybinds.registerModifierBind("b", () => this.layoutState.toggleSidebar());
+    }
+
+    private afterNavigate(nav: AfterNavigate) {
+        if (!this.vlist) return;
+
+        if (nav.type === "popstate") {
+            const selection = page.state.selection;
+            const file = selection ? this.fileDetails[selection.fileIdx] : undefined;
+            if (selection && file) {
+                this.selection = {
+                    file,
+                    lines: selection.lines,
+                    unresolvedLines: selection.unresolvedLines,
+                };
+            } else {
+                this.selection = undefined;
+            }
+
+            if (page.state.initialLoad ?? false) {
+                if (this.selection) {
+                    const hasLines = this.selection.lines || this.selection.unresolvedLines;
+                    this.scrollToFile(this.selection.file.index, {
+                        focus: !hasLines,
+                    });
+                    if (hasLines) {
+                        this.jumpToSelection = true;
+                    }
+                } else {
+                    this.vlist.scrollTo(0);
+                }
+            } else {
+                const scrollOffset = page.state.scrollOffset;
+                if (scrollOffset !== undefined) {
+                    this.vlist.scrollTo(scrollOffset);
+                }
+            }
+        }
     }
 
     openOpenDiffDialog() {
@@ -297,6 +459,51 @@ export class MultiFileDiffViewerState {
         }
     }
 
+    getSelection(file: FileDetails) {
+        if (this.selection?.file.index === file.index) {
+            return this.selection;
+        }
+        return null;
+    }
+
+    private createPageState(opts?: { initialLoad?: boolean }): App.PageState {
+        return {
+            initialLoad: opts?.initialLoad ?? false,
+            scrollOffset: this.vlist?.getScrollOffset(),
+            selection: this.selection
+                ? {
+                      fileIdx: this.selection.file.index,
+                      lines: $state.snapshot(this.selection.lines),
+                      unresolvedLines: $state.snapshot(this.selection.unresolvedLines),
+                  }
+                : undefined,
+        };
+    }
+
+    setSelection(file: FileDetails, lines: LineSelection | undefined) {
+        const oldSelection = this.selection;
+        this.selection = { file, lines };
+
+        if (!selectionsSemanticallyEqual(oldSelection, this.selection)) {
+            goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
+                keepFocus: true,
+                state: this.createPageState(),
+            });
+        }
+    }
+
+    clearSelection() {
+        const oldSelection = this.selection;
+        this.selection = undefined;
+
+        if (oldSelection !== undefined) {
+            goto(`?${page.url.searchParams}`, {
+                keepFocus: true,
+                state: this.createPageState(),
+            });
+        }
+    }
+
     scrollToFile(index: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
         if (!this.vlist) return;
 
@@ -333,7 +540,10 @@ export class MultiFileDiffViewerState {
         requestAnimationFrame(() => {
             const fileElement = document.getElementById(`file-${fileIdx}`);
             const resultElement = fileElement?.querySelector(`[data-match-id='${idx}']`) as HTMLElement | null | undefined;
-            if (!resultElement) return;
+            if (!resultElement) {
+                this.jumpToSearchResult = true;
+                return;
+            }
             resultElement.scrollIntoView({ block: "center", inline: "center" });
         });
     }
@@ -365,6 +575,8 @@ export class MultiFileDiffViewerState {
 
     private clear(clearMeta: boolean = true) {
         // Reset state
+        this.selection = undefined;
+        this.jumpToSelection = false;
         this.fileStates = [];
         if (clearMeta) {
             this.diffMetadata = null;
@@ -374,7 +586,7 @@ export class MultiFileDiffViewerState {
         this.vlist?.scrollToIndex(0, { align: "start" });
     }
 
-    async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>) {
+    async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>, opts?: LoadPatchesOptions) {
         if (this.loadingState.loading) {
             alert("Already loading patches, please wait.");
             return false;
@@ -437,15 +649,52 @@ export class MultiFileDiffViewerState {
             }
 
             tempDetails.sort(compareFileDetails);
-            this.fileDetails.push(...tempDetails);
 
+            const statesArray: FileState[] = [];
             for (let i = 0; i < tempDetails.length; i++) {
                 const details = tempDetails[i];
                 details.index = i;
                 const state = tempStates.get(details.fromFile);
                 if (state) {
-                    this.fileStates.push(state);
+                    statesArray.push(state);
                 }
+            }
+
+            this.fileDetails = tempDetails;
+            this.fileStates = statesArray;
+            this.stats = this.countStats();
+
+            await tick();
+            await animationFramePromise();
+
+            const urlSelection = this.urlSelection;
+            this.urlSelection = undefined;
+            const selectedFile = urlSelection !== undefined ? this.fileDetails.find((f) => f.toFile === urlSelection.file) : undefined;
+
+            // for a variety of reasons jumping to files/lines doesn't work as consistently as I'd like,
+            // at best it doesn't matter, but it can lead to inconsistency between navigation and initial load, and sometimes not work at all
+            if (urlSelection && selectedFile && this.diffMetadata.linkable) {
+                this.jumpToSelection = urlSelection.lines !== undefined;
+                this.selection = {
+                    file: selectedFile,
+                    unresolvedLines: urlSelection.lines,
+                };
+                this.scrollToFile(selectedFile.index, {
+                    focus: !urlSelection.lines,
+                });
+                await animationFramePromise();
+            }
+
+            const newUrl = new URL(page.url);
+            updateSearchParams(newUrl.searchParams, this.diffMetadata);
+            if (this.selection) {
+                newUrl.hash = makeUrlHashValue(this.selection);
+            }
+            const link = `${newUrl.search}${newUrl.hash}`;
+            if (opts?.state === "replace") {
+                replaceState(link, this.createPageState({ initialLoad: true }));
+            } else {
+                pushState(link, this.createPageState({ initialLoad: true }));
             }
 
             return true;
@@ -463,30 +712,31 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    private async loadPatchesGithub(resultOrPromise: Promise<GithubDiffResult> | GithubDiffResult) {
+    private async loadPatchesGithub(resultOrPromise: Promise<GithubDiffResult> | GithubDiffResult, opts?: LoadPatchesOptions) {
         return await this.loadPatches(
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
-                return { type: "github", details: await result.info };
+                return { linkable: true, type: "github", details: await result.info };
             },
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
                 return parseMultiFilePatchGithub(await result.info, await result.response, this.loadingState);
             },
+            opts,
         );
     }
 
     // TODO fails for initial commit?
     // handle matched github url
-    async loadFromGithubApi(match: Array<string>): Promise<boolean> {
+    async loadFromGithubApi(match: Array<string>, opts?: LoadPatchesOptions): Promise<boolean> {
         const [url, owner, repo, type, id] = match;
         const token = getGithubToken();
 
         try {
             if (type === "commit") {
-                return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]));
+                return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]), opts);
             } else if (type === "pull") {
-                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, id.split("/")[0]));
+                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, id.split("/")[0]), opts);
             } else if (type === "compare") {
                 let refs = id.split("...");
                 if (refs.length !== 2) {
@@ -498,7 +748,7 @@ export class MultiFileDiffViewerState {
                 }
                 const base = refs[0];
                 const head = refs[1];
-                return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, base, head));
+                return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, base, head), opts);
             }
         } catch (error) {
             console.error(error);

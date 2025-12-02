@@ -16,32 +16,117 @@ import chroma from "chroma-js";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { onDestroy } from "svelte";
 import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
+import type { WritableBoxedValues } from "svelte-toolbelt";
+import type { Attachment } from "svelte/attachments";
+import { on } from "svelte/events";
+import { watch } from "runed";
 
-export type DiffViewerPatch = {
+export interface UnresolvedLineRef {
+    /**
+     * line number in the patch data
+     */
+    no: number;
+    /**
+     * - true: added or context line
+     * - false: removed line
+     */
+    new: boolean;
+}
+
+export interface LineRef extends UnresolvedLineRef {
+    /**
+     * line index in the diff viewer patch hunk
+     */
+    idx: number;
+}
+
+export interface HunkIndexedLineRef extends LineRef {
+    /**
+     * hunk index in the diff viewer patch
+     */
+    hunkIdx: number;
+}
+
+export interface LineSelection {
+    /**
+     * hunk index in the diff viewer patch
+     */
+    hunk: number;
+    start: LineRef;
+    end: LineRef;
+}
+
+export interface UnresolvedLineSelection {
+    start: UnresolvedLineRef;
+    end: UnresolvedLineRef;
+}
+
+export function writeLineRef(ref: UnresolvedLineRef): string {
+    const prefix = ref.new ? "R" : "L";
+    return prefix + ref.no.toString();
+}
+
+export function parseLineRef(string: string): UnresolvedLineRef | null {
+    if (string.length < 2) {
+        return null;
+    }
+    const prefix = string.substring(0, 1).toUpperCase();
+    if (prefix !== "R" && prefix !== "L") {
+        return null;
+    }
+    const isNew = prefix === "R";
+    const numberString = string.substring(1);
+    const number = Number.parseInt(numberString);
+    if (!Number.isFinite(number)) {
+        return null;
+    }
+    return { no: number, new: isNew };
+}
+
+export function resolveLineRef(ref: UnresolvedLineRef, hunks: DiffViewerPatchHunk[]): HunkIndexedLineRef | null {
+    for (let i = 0; i < hunks.length; i++) {
+        const hunk = hunks[i];
+        for (let j = 0; j < hunk.lines.length; j++) {
+            const line = hunk.lines[j];
+            if (line.type === PatchLineType.HEADER || line.type === PatchLineType.SPACER) {
+                continue;
+            }
+            if (line.oldLineNo === ref.no && !ref.new) {
+                return { hunkIdx: i, idx: j, no: line.oldLineNo, new: false };
+            }
+            if (line.newLineNo === ref.no && ref.new) {
+                return { hunkIdx: i, idx: j, no: line.newLineNo, new: true };
+            }
+        }
+    }
+    return null;
+}
+
+export interface DiffViewerPatch {
     hunks: DiffViewerPatchHunk[];
-};
+}
 
-export type DiffViewerPatchHunk = {
+export interface DiffViewerPatchHunk {
     lines: PatchLine[];
     innerPatchHeaderChangesOnly?: boolean;
-};
+}
 
-export type PatchLine = {
+export interface PatchLine {
     type: PatchLineType;
     content: LineSegment[];
     lineBreak?: boolean;
     innerPatchLineType: InnerPatchLineType;
     oldLineNo?: number;
     newLineNo?: number;
-};
+}
 
-export type LineSegment = {
+export interface LineSegment {
     text?: string | null;
     iconClass?: string | null;
     caption?: string | null;
     classes?: string;
     style?: string;
-};
+}
 
 export enum PatchLineType {
     HEADER,
@@ -57,11 +142,11 @@ export enum InnerPatchLineType {
     NONE,
 }
 
-export type PatchLineTypeProps = {
+export interface PatchLineTypeProps {
     classes: string;
     lineNoClasses: string;
     prefix: string;
-};
+}
 
 export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
     [PatchLineType.HEADER]: {
@@ -91,9 +176,9 @@ export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
     },
 };
 
-export type InnerPatchLineTypeProps = {
+export interface InnerPatchLineTypeProps {
     style: string;
-};
+}
 
 export const innerPatchLineTypeProps: Record<InnerPatchLineType, InnerPatchLineTypeProps> = {
     [InnerPatchLineType.ADD]: {
@@ -1035,12 +1120,19 @@ export interface ConciseDiffViewProps<K> {
     searchQuery?: string;
     searchMatchingLines?: () => Promise<number[][] | undefined>;
     activeSearchResult?: number;
+    jumpToSearchResult?: boolean;
 
     cache?: Map<K, ConciseDiffViewCachedState>;
     cacheKey?: K;
+
+    unresolvedSelection?: UnresolvedLineSelection;
+    selection?: LineSelection;
+    jumpToSelection?: boolean;
 }
 
-export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
+export type ConciseDiffViewStateProps<K> = {
+    rootElementId: string;
+} & ReadableBoxedValues<{
     patch: StructuredPatch;
 
     syntaxHighlighting: boolean;
@@ -1050,7 +1142,12 @@ export type ConciseDiffViewStateProps<K> = ReadableBoxedValues<{
 
     cache: Map<K, ConciseDiffViewCachedState> | undefined;
     cacheKey: K | undefined;
-}>;
+
+    unresolvedSelection: UnresolvedLineSelection | undefined;
+}> &
+    WritableBoxedValues<{
+        selection: LineSelection | undefined;
+    }>;
 
 export class ConciseDiffViewState<K> {
     diffViewerPatch: Promise<DiffViewerPatch> = $state(new Promise<DiffViewerPatch>(() => []));
@@ -1059,11 +1156,23 @@ export class ConciseDiffViewState<K> {
 
     private readonly props: ConciseDiffViewStateProps<K>;
 
+    private selectionAnchor: { hunkIdx: number; lineIdx: number } | null = null;
+    private dragSelectionState: { hunk: DiffViewerPatchHunk; didMove: boolean } | null = null;
+
     constructor(props: ConciseDiffViewStateProps<K>) {
         this.props = props;
 
         $effect(() => {
             this.update();
+        });
+
+        watch([() => this.diffViewerPatch, () => this.props.unresolvedSelection.current], ([patchPromise, unresolvedSelection], [oldPatchPromise]) => {
+            // Update or resolve the selection whenever the patch changes or unresolvedSelection is set
+            if (patchPromise !== oldPatchPromise || unresolvedSelection !== undefined) {
+                patchPromise.then((patch) => {
+                    this.resolveOrUpdateSelection(patch);
+                });
+            }
         });
 
         $effect(() => {
@@ -1120,9 +1229,210 @@ export class ConciseDiffViewState<K> {
         );
     }
 
+    private resolveOrUpdateSelection(patch: DiffViewerPatch) {
+        if (this.props.unresolvedSelection.current) {
+            const unresolved = this.props.unresolvedSelection.current;
+            const start = resolveLineRef(unresolved.start, patch.hunks);
+            const end = resolveLineRef(unresolved.end, patch.hunks);
+            if (start && end && start.hunkIdx === end.hunkIdx) {
+                this.props.selection.current = {
+                    hunk: start.hunkIdx,
+                    start: start,
+                    end: end,
+                };
+            }
+        } else if (this.props.selection.current) {
+            const current = this.props.selection.current;
+            const start = resolveLineRef(current.start, patch.hunks);
+            const end = resolveLineRef(current.end, patch.hunks);
+            if (start && end && start.hunkIdx === end.hunkIdx) {
+                this.props.selection.current = {
+                    hunk: start.hunkIdx,
+                    start: start,
+                    end: end,
+                };
+            } else {
+                this.props.selection.current = undefined;
+            }
+        }
+    }
+
     restore(state: ConciseDiffViewCachedState) {
         this.diffViewerPatch = state.diffViewerPatch;
         this.cachedState = state;
+    }
+
+    selectable(hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number): Attachment<HTMLElement> {
+        return (element) => {
+            if (line.type === PatchLineType.SPACER || line.type === PatchLineType.HEADER) {
+                return;
+            }
+
+            const destroyPointerDown = on(element, "pointerdown", (e: PointerEvent) => {
+                if (e.button !== 0) return; // only handle left click
+
+                if (e.shiftKey) {
+                    // Handle shift+click for adjusting selection
+                    this.updateSelection(hunk, hunkIdx, line, lineIdx, true);
+                } else {
+                    // Handle regular click with drag support
+                    this.startDrag(element, e.pointerId, hunk, hunkIdx, line, lineIdx);
+                }
+            });
+
+            return () => {
+                destroyPointerDown();
+            };
+        };
+    }
+
+    private startDrag(element: HTMLElement, pointerId: number, hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number) {
+        this.selectionAnchor = { hunkIdx, lineIdx };
+        this.dragSelectionState = { hunk, didMove: false };
+
+        // Set initial selection
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(line, lineIdx),
+            end: this.createLineRef(line, lineIdx),
+        };
+
+        // Capture pointer events to this element
+        element.setPointerCapture(pointerId);
+
+        const abortController = new AbortController();
+        const { signal } = abortController;
+
+        on(
+            element,
+            "pointermove",
+            (e: PointerEvent) => {
+                if (!this.dragSelectionState || !this.selectionAnchor) return;
+
+                // Get the root element for this diff view
+                const rootElement = document.getElementById(this.props.rootElementId);
+                if (!rootElement) return;
+
+                // Get the element at the pointer position
+                const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+                if (!elementAtPoint) return;
+
+                // Only process if the element is within this diff view's root element
+                if (!rootElement.contains(elementAtPoint)) return;
+
+                const lineElement = elementAtPoint.closest("[data-hunk-idx][data-line-idx]") as HTMLElement | null;
+                if (!lineElement) return;
+
+                const currentHunkIdx = Number(lineElement.dataset.hunkIdx);
+                const currentLineIdx = Number(lineElement.dataset.lineIdx);
+
+                // Only allow dragging within the same hunk
+                if (currentHunkIdx !== this.selectionAnchor.hunkIdx || !Number.isFinite(currentHunkIdx) || !Number.isFinite(currentLineIdx)) {
+                    return;
+                }
+
+                if (this.dragSelectionState) {
+                    this.dragSelectionState.didMove = true;
+                }
+                this.updateDragSelection(currentLineIdx);
+            },
+            { signal },
+        );
+
+        const onDragEnd = (e: PointerEvent) => {
+            element.releasePointerCapture(e.pointerId);
+            abortController.abort();
+            this.dragSelectionState = null;
+        };
+
+        on(element, "pointerup", onDragEnd, { signal });
+        on(element, "pointercancel", onDragEnd, { signal });
+    }
+
+    private createLineRef(line: PatchLine, lineIdx: number): LineRef {
+        return {
+            idx: lineIdx,
+            no: line.newLineNo ?? line.oldLineNo!,
+            new: line.newLineNo !== undefined,
+        };
+    }
+
+    private updateDragSelection(currentLineIdx: number) {
+        if (!this.dragSelectionState || !this.selectionAnchor) return;
+
+        const { hunk } = this.dragSelectionState;
+        const { hunkIdx, lineIdx: anchorIdx } = this.selectionAnchor;
+        const currentLine = hunk.lines[currentLineIdx];
+
+        if (currentLine.type === PatchLineType.SPACER || currentLine.type === PatchLineType.HEADER) {
+            return;
+        }
+
+        const minIdx = Math.min(anchorIdx, currentLineIdx);
+        const maxIdx = Math.max(anchorIdx, currentLineIdx);
+
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(hunk.lines[minIdx], minIdx),
+            end: this.createLineRef(hunk.lines[maxIdx], maxIdx),
+        };
+    }
+
+    updateSelection(hunk: DiffViewerPatchHunk, hunkIdx: number, line: PatchLine, lineIdx: number, shift: boolean) {
+        const existingSelection = this.props.selection.current;
+        const clicked = this.createLineRef(line, lineIdx);
+
+        // New selection (no shift or different hunk)
+        if (!shift || !existingSelection || existingSelection.hunk !== hunkIdx) {
+            this.props.selection.current = { hunk: hunkIdx, start: clicked, end: clicked };
+            this.selectionAnchor = { hunkIdx, lineIdx };
+            return;
+        }
+
+        // Shift click on single-line selection: clear selection
+        if (existingSelection.start.idx === existingSelection.end.idx && lineIdx === existingSelection.start.idx) {
+            this.props.selection.current = undefined;
+            this.selectionAnchor = null;
+            return;
+        }
+
+        // Determine anchor point: use existing anchor, or default to start of selection
+        let anchorIdx: number;
+        if (this.selectionAnchor && this.selectionAnchor.hunkIdx === hunkIdx) {
+            anchorIdx = this.selectionAnchor.lineIdx;
+        } else {
+            // No anchor or anchor is in different hunk, default to start of selection
+            anchorIdx = existingSelection.start.idx;
+            this.selectionAnchor = { hunkIdx, lineIdx: anchorIdx };
+        }
+
+        // Shift click: create selection from anchor to clicked line
+        const minIdx = Math.min(anchorIdx, lineIdx);
+        const maxIdx = Math.max(anchorIdx, lineIdx);
+
+        this.props.selection.current = {
+            hunk: hunkIdx,
+            start: this.createLineRef(hunk.lines[minIdx], minIdx),
+            end: this.createLineRef(hunk.lines[maxIdx], maxIdx),
+        };
+    }
+
+    isSelected(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx >= selection.start.idx && lineIdx <= selection.end.idx;
+    }
+
+    isSelectionStart(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx === selection.start.idx;
+    }
+
+    isSelectionEnd(hunkIdx: number, lineIdx: number): boolean {
+        const selection = this.props.selection.current;
+        if (selection === undefined || selection.hunk !== hunkIdx) return false;
+        return lineIdx === selection.end.idx;
     }
 }
 
