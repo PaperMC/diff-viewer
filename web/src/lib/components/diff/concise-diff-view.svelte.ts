@@ -19,6 +19,7 @@ import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
 import type { WritableBoxedValues } from "svelte-toolbelt";
 import type { Attachment } from "svelte/attachments";
 import { on } from "svelte/events";
+import { watch } from "runed";
 
 export interface UnresolvedLineRef {
     /**
@@ -1157,13 +1158,21 @@ export class ConciseDiffViewState<K> {
 
     private selectionAnchor: { hunkIdx: number; lineIdx: number } | null = null;
     private dragSelectionState: { hunk: DiffViewerPatchHunk; didMove: boolean } | null = null;
-    private suppressNextClick = false;
 
     constructor(props: ConciseDiffViewStateProps<K>) {
         this.props = props;
 
         $effect(() => {
             this.update();
+        });
+
+        watch([() => this.diffViewerPatch, () => this.props.unresolvedSelection.current], ([patchPromise, unresolvedSelection], [oldPatchPromise]) => {
+            // Update or resolve the selection whenever the patch changes or unresolvedSelection is set
+            if (patchPromise !== oldPatchPromise || unresolvedSelection !== undefined) {
+                patchPromise.then((patch) => {
+                    this.resolveOrUpdateSelection(patch);
+                });
+            }
         });
 
         $effect(() => {
@@ -1209,10 +1218,9 @@ export class ConciseDiffViewState<K> {
         );
         this.cachedState = new ConciseDiffViewCachedState(promise, this.props);
         promise.then(
-            (patch) => {
+            () => {
                 // Don't replace a potentially completed promise with a pending one, wait until the replacement is ready for smooth transitions
                 this.diffViewerPatch = promise;
-                this.resolveOrUpdateSelection(patch);
             },
             () => {
                 // Propagate errors
@@ -1334,11 +1342,6 @@ export class ConciseDiffViewState<K> {
         const onDragEnd = (e: PointerEvent) => {
             element.releasePointerCapture(e.pointerId);
             abortController.abort();
-
-            // Suppress the click event only if we actually moved during the drag
-            if (this.dragSelectionState?.didMove) {
-                this.suppressNextClick = true;
-            }
             this.dragSelectionState = null;
         };
 

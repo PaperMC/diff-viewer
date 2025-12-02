@@ -395,7 +395,6 @@ export class MultiFileDiffViewerState {
 
             if (page.state.initialLoad ?? false) {
                 if (this.selection) {
-                    // TODO: restoring an unresolved selection does not work until something triggers resolveOrUpdateSelection
                     const hasLines = this.selection.lines || this.selection.unresolvedLines;
                     this.scrollToFile(this.selection.file.index, {
                         focus: !hasLines,
@@ -672,6 +671,8 @@ export class MultiFileDiffViewerState {
             this.urlSelection = undefined;
             const selectedFile = urlSelection !== undefined ? this.fileDetails.find((f) => f.toFile === urlSelection.file) : undefined;
 
+            // for a variety of reasons jumping to files/lines doesn't work as consistently as I'd like,
+            // at best it doesn't matter, but it can lead to inconsistency between navigation and initial load, and sometimes not work at all
             if (urlSelection && selectedFile && this.diffMetadata.linkable) {
                 this.jumpToSelection = urlSelection.lines !== undefined;
                 this.selection = {
