@@ -29,7 +29,7 @@ import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
 import { Keybinds } from "./keybinds.svelte";
 import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
 import { page } from "$app/state";
-import { afterNavigate, goto, pushState, replaceState } from "$app/navigation";
+import { afterNavigate, goto, replaceState } from "$app/navigation";
 import { type AfterNavigate } from "@sveltejs/kit";
 
 export const GITHUB_URL_PARAM = "github_url";
@@ -694,7 +694,12 @@ export class MultiFileDiffViewerState {
             if (opts?.state === "replace") {
                 replaceState(link, this.createPageState({ initialLoad: true }));
             } else {
-                pushState(link, this.createPageState({ initialLoad: true }));
+                // We must use goto instead of replaceState, otherwise page.url will not be updated.
+                // This is fine for loadPatches, but may be heavy handed in other cases. Do not blindly copy this strategy.
+                // https://github.com/sveltejs/kit/issues/13569
+                await goto(link, {
+                    state: this.createPageState({ initialLoad: true }),
+                });
             }
 
             return true;
