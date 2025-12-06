@@ -167,6 +167,7 @@
         background-color: var(--color-em-disabled);
         display: block;
         z-index: 1;
+        pointer-events: none;
     }
     [data-selected] .file {
         position: relative;
