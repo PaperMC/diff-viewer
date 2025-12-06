@@ -10,10 +10,10 @@
     const viewer = MultiFileDiffViewerState.get();
 
     function filterFileNode(file: TreeNode<FileTreeNodeData>): boolean {
-        return file.data.type === "file" && viewer.filterFile(file.data.file as FileDetails);
+        return file.data.type === "file" && viewer.filterFile(file.data.file);
     }
 
-    function ignoreInteraction(nodeInteractionEvent: Event): boolean {
+    function shouldScrollToFile(nodeInteractionEvent: Event): boolean {
         const element: HTMLElement = nodeInteractionEvent.target as HTMLElement;
         // Don't scroll/etc. if we clicked the inner checkbox
         return element.tagName.toLowerCase() !== "input";
@@ -22,7 +22,7 @@
     function focusFileDoubleClick(value: FileDetails): Attachment<HTMLElement> {
         return (div) => {
             const destroyDblclick = on(div, "dblclick", (event) => {
-                if (!ignoreInteraction(event)) return;
+                if (!shouldScrollToFile(event)) return;
                 viewer.scrollToFile(value.index, { focus: true });
                 viewer.setSelection(value, undefined);
                 if (!staticSidebar.current) {
@@ -30,7 +30,7 @@
                 }
             });
             const destroyMousedown = on(div, "mousedown", (event) => {
-                if (!ignoreInteraction(event)) return;
+                if (!shouldScrollToFile(event)) return;
                 if (event.detail === 2) {
                     // Don't select text on double click
                     event.preventDefault();
@@ -43,20 +43,21 @@
         };
     }
 
-    function nodeProps(data: FileTreeNodeData, toggleCollapse: () => void) {
+    function nodeProps(data: FileTreeNodeData, collapsed: boolean, toggleCollapse: () => void) {
         if (data.type === "file") {
             const file = data.file;
             return {
                 id: `file-tree-file-${file.index}`,
                 "data-selected": boolAttr(viewer.selection?.file.index === file.index),
-                onclick: (e: MouseEvent) => ignoreInteraction(e) && viewer.scrollToFile(file.index),
-                onkeydown: (e: KeyboardEvent) => e.key === "Enter" && ignoreInteraction(e) && viewer.scrollToFile(file.index),
+                onclick: (e: MouseEvent) => shouldScrollToFile(e) && viewer.scrollToFile(file.index),
+                onkeydown: (e: KeyboardEvent) => e.key === "Enter" && shouldScrollToFile(e) && viewer.scrollToFile(file.index),
                 [createAttachmentKey()]: focusFileDoubleClick(file),
             };
         } else if (data.type === "directory") {
             return {
                 onclick: toggleCollapse,
                 onkeydown: (e: KeyboardEvent) => e.key === "Enter" && toggleCollapse(),
+                "aria-expanded": !collapsed,
             };
         }
         return {};
@@ -128,7 +129,7 @@
                         tabindex="0"
                         class="btn-ghost focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
                         style="padding-left: {node.depth}rem;"
-                        {...nodeProps(node.data, toggleCollapse)}
+                        {...nodeProps(node.data, collapsed, toggleCollapse)}
                     >
                         {#if node.data.type === "file"}
                             {@render renderFileNode(node.data.file)}
@@ -139,12 +140,7 @@
                 {/snippet}
                 {#snippet childWrapper({ node, collapsed, children })}
                     {#if node.visibleChildren.length > 0}
-                        <div
-                            class="collapsible dir-header"
-                            data-collapsed={boolAttr(collapsed || node.visibleChildren.length <= 0)}
-                            data-type={node.data.type}
-                            style="--tree-depth: {node.depth};"
-                        >
+                        <div class="collapsible dir-header" data-collapsed={boolAttr(collapsed)} data-type={node.data.type} style="--tree-depth: {node.depth};">
                             {@render children({ node })}
                         </div>
                     {/if}
