@@ -61,7 +61,7 @@
         autocomplete="off"
         style="padding-inline-end: {0.5 + controlsWidth / 16}rem;"
     />
-    <span aria-hidden="true" class="absolute top-1/2 left-1 iconify size-4 -translate-y-1/2 text-em-med octicon--search-16"></span>
+    <span aria-hidden="true" class="absolute top-1/2 left-1.25 iconify size-4 -translate-y-1/2 text-em-med octicon--search-16"></span>
     <div class="absolute top-1/2 right-1 flex -translate-y-1/2 flex-row" bind:clientWidth={controlsWidth}>
         {#if viewer.searchQueryDebounced.current}
             {#await viewer.searchResults}

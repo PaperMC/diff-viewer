@@ -4,38 +4,34 @@
     import Tree from "$lib/components/tree/Tree.svelte";
     import { type TreeNode } from "$lib/components/tree/index.svelte";
     import { on } from "svelte/events";
-    import { type Attachment } from "svelte/attachments";
+    import { createAttachmentKey, type Attachment } from "svelte/attachments";
     import { boolAttr } from "runed";
 
     const viewer = MultiFileDiffViewerState.get();
 
     function filterFileNode(file: TreeNode<FileTreeNodeData>): boolean {
-        return file.data.type === "file" && viewer.filterFile(file.data.data as FileDetails);
+        return file.data.type === "file" && viewer.filterFile(file.data.file);
     }
 
-    function scrollToFileClick(event: Event, index: number) {
-        const element: HTMLElement = event.target as HTMLElement;
-        // Don't scroll if we clicked the inner checkbox
-        if (element.tagName.toLowerCase() !== "input") {
-            viewer.scrollToFile(index);
-        }
+    function shouldScrollToFile(nodeInteractionEvent: Event): boolean {
+        const element: HTMLElement = nodeInteractionEvent.target as HTMLElement;
+        // Don't scroll/etc. if we clicked the inner checkbox
+        return element.tagName.toLowerCase() !== "input";
     }
 
     function focusFileDoubleClick(value: FileDetails): Attachment<HTMLElement> {
         return (div) => {
             const destroyDblclick = on(div, "dblclick", (event) => {
-                const element: HTMLElement = event.target as HTMLElement;
-                if (element.tagName.toLowerCase() !== "input") {
-                    viewer.scrollToFile(value.index, { focus: true });
-                    viewer.setSelection(value, undefined);
-                    if (!staticSidebar.current) {
-                        viewer.layoutState.sidebarCollapsed = true;
-                    }
+                if (!shouldScrollToFile(event)) return;
+                viewer.scrollToFile(value.index, { focus: true });
+                viewer.setSelection(value, undefined);
+                if (!staticSidebar.current) {
+                    viewer.layoutState.sidebarCollapsed = true;
                 }
             });
             const destroyMousedown = on(div, "mousedown", (event) => {
-                const element: HTMLElement = event.target as HTMLElement;
-                if (element.tagName.toLowerCase() !== "input" && event.detail === 2) {
+                if (!shouldScrollToFile(event)) return;
+                if (event.detail === 2) {
                     // Don't select text on double click
                     event.preventDefault();
                 }
@@ -46,7 +42,58 @@
             };
         };
     }
+
+    function nodeProps(data: FileTreeNodeData, collapsed: boolean, toggleCollapse: () => void) {
+        if (data.type === "file") {
+            const file = data.file;
+            return {
+                id: `file-tree-file-${file.index}`,
+                "data-selected": boolAttr(viewer.selection?.file.index === file.index),
+                onclick: (e: MouseEvent) => shouldScrollToFile(e) && viewer.scrollToFile(file.index),
+                onkeydown: (e: KeyboardEvent) => e.key === "Enter" && shouldScrollToFile(e) && viewer.scrollToFile(file.index),
+                [createAttachmentKey()]: focusFileDoubleClick(file),
+            };
+        } else if (data.type === "directory") {
+            return {
+                onclick: toggleCollapse,
+                onkeydown: (e: KeyboardEvent) => e.key === "Enter" && toggleCollapse(),
+                "aria-expanded": !collapsed,
+            };
+        }
+        return {};
+    }
 </script>
+
+{#snippet renderFileNode(value: FileDetails)}
+    <div class="file flex items-center justify-between px-2 py-1 text-sm">
+        <span
+            class="{getFileStatusProps(value.status).iconClasses} me-1 flex size-4 shrink-0 items-center justify-center"
+            aria-label={getFileStatusProps(value.status).title}
+        ></span>
+        <span class="grow overflow-hidden break-all">{value.toFile.substring(value.toFile.lastIndexOf("/") + 1)}</span>
+        <input
+            type="checkbox"
+            class="ms-1 size-4 shrink-0 rounded-sm border"
+            autocomplete="off"
+            aria-label="File viewed"
+            onchange={() => viewer.toggleChecked(value.index)}
+            checked={viewer.fileStates[value.index].checked}
+        />
+    </div>
+{/snippet}
+
+{#snippet renderFolderNode(name: string, collapsed: boolean)}
+    {@const folderIcon = collapsed ? "octicon--file-directory-fill-16" : "octicon--file-directory-open-fill-16"}
+    <div class="flex items-center justify-between px-2 py-1 text-sm">
+        <span class="me-1 iconify size-4 shrink-0 text-em-med {folderIcon}"></span>
+        <span class="grow overflow-hidden break-all">{name}</span>
+        {#if collapsed}
+            <span class="iconify size-4 shrink-0 text-em-med octicon--chevron-right-16"></span>
+        {:else}
+            <span class="iconify size-4 shrink-0 text-em-med octicon--chevron-down-16"></span>
+        {/if}
+    </div>
+{/snippet}
 
 <div class="flex h-full max-w-full min-w-[200px] flex-col bg-neutral">
     <div class="m-2 flex flex-row items-center gap-2">
@@ -75,65 +122,28 @@
     {/if}
     <div class="flex h-full flex-col overflow-y-auto border-t">
         <div class="h-100">
-            {#snippet fileSnippet(value: FileDetails)}
-                <div
-                    class="file flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
-                    onclick={(e) => scrollToFileClick(e, value.index)}
-                    {@attach focusFileDoubleClick(value)}
-                    onkeydown={(e) => e.key === "Enter" && viewer.scrollToFile(value.index)}
-                    role="button"
-                    tabindex="0"
-                    id={"file-tree-file-" + value.index}
-                    data-selected={boolAttr(viewer.selection?.file.index === value.index)}
-                >
-                    <span
-                        class="{getFileStatusProps(value.status).iconClasses} me-1 flex size-4 shrink-0 items-center justify-center"
-                        aria-label={getFileStatusProps(value.status).title}
-                    ></span>
-                    <span class="grow overflow-hidden break-all">{value.toFile.substring(value.toFile.lastIndexOf("/") + 1)}</span>
-                    <input
-                        type="checkbox"
-                        class="ms-1 size-4 shrink-0 rounded-sm border"
-                        autocomplete="off"
-                        aria-label="File viewed"
-                        onchange={() => viewer.toggleChecked(value.index)}
-                        checked={viewer.fileStates[value.index].checked}
-                    />
-                </div>
-            {/snippet}
             <Tree roots={viewer.fileTreeRoots} filter={filterFileNode} bind:instance={viewer.tree}>
                 {#snippet nodeRenderer({ node, collapsed, toggleCollapse })}
-                    {@const folderIcon = collapsed ? "octicon--file-directory-fill-16" : "octicon--file-directory-open-fill-16"}
-                    {#if node.data.type === "file"}
-                        {@render fileSnippet(node.data.data as FileDetails)}
-                    {:else}
-                        <div
-                            class="flex cursor-pointer items-center justify-between btn-ghost px-2 py-1 text-sm focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
-                            onclick={toggleCollapse}
-                            onkeydown={(e) => e.key === "Enter" && toggleCollapse()}
-                            role="button"
-                            tabindex="0"
-                        >
-                            <span class="me-1 iconify size-4 shrink-0 text-primary {folderIcon}"></span>
-                            <span class="grow overflow-hidden break-all">{node.data.data}</span>
-                            {#if collapsed}
-                                <span class="iconify size-4 shrink-0 text-primary octicon--chevron-right-16"></span>
-                            {:else}
-                                <span class="iconify size-4 shrink-0 text-primary octicon--chevron-down-16"></span>
-                            {/if}
-                        </div>
-                    {/if}
+                    <div
+                        role="button"
+                        tabindex="0"
+                        class="cursor-pointer btn-ghost focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
+                        style="padding-left: {node.depth}rem;"
+                        {...nodeProps(node.data, collapsed, toggleCollapse)}
+                    >
+                        {#if node.data.type === "file"}
+                            {@render renderFileNode(node.data.file)}
+                        {:else}
+                            {@render renderFolderNode(node.data.name, collapsed)}
+                        {/if}
+                    </div>
                 {/snippet}
                 {#snippet childWrapper({ node, collapsed, children })}
-                    <div
-                        class={{
-                            hidden: collapsed || node.visibleChildren.length <= 0,
-                            "dir-header": node.data.type === "directory" && !collapsed,
-                            "ps-4": true,
-                        }}
-                    >
-                        {@render children({ node })}
-                    </div>
+                    {#if node.visibleChildren.length > 0}
+                        <div class="collapsible dir-header" data-collapsed={boolAttr(collapsed)} data-type={node.data.type} style="--tree-depth: {node.depth};">
+                            {@render children({ node })}
+                        </div>
+                    {/if}
                 {/snippet}
             </Tree>
         </div>
@@ -141,6 +151,9 @@
 </div>
 
 <style>
+    .collapsible[data-collapsed] {
+        display: none;
+    }
     .dir-header {
         position: relative;
     }
@@ -150,11 +163,13 @@
         height: 100%;
         width: 1px;
         top: 0;
-        left: 1rem;
-        background-color: var(--color-gray-500);
+        left: calc(1rem + var(--tree-depth) * 1rem);
+        background-color: var(--color-em-disabled);
         display: block;
+        z-index: 1;
+        pointer-events: none;
     }
-    .file[data-selected] {
+    [data-selected] .file {
         position: relative;
         &::after {
             content: "";
@@ -164,6 +179,7 @@
             width: 4px;
             height: 100%;
             background-color: var(--color-primary);
+            z-index: 2;
         }
     }
 </style>

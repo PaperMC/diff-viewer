@@ -10,13 +10,13 @@ import {
     type ThemeRegistration,
     bundledThemes,
 } from "shiki";
-import { guessLanguageFromExtension, type MutableValue, type ReadableBoxedValues } from "$lib/util";
+import { guessLanguageFromExtension, type MutableValue } from "$lib/util";
 import type { IRawThemeSetting } from "shiki/textmate";
 import chroma from "chroma-js";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { onDestroy } from "svelte";
 import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
-import type { WritableBoxedValues } from "svelte-toolbelt";
+import type { ReadableBoxedValues, WritableBoxedValues } from "svelte-toolbelt";
 import type { Attachment } from "svelte/attachments";
 import { on } from "svelte/events";
 import { watch } from "runed";

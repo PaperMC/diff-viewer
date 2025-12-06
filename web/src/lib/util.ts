@@ -3,7 +3,6 @@ import type { FileStatus } from "./github.svelte";
 import type { TreeNode } from "$lib/components/tree/index.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
 import { onMount } from "svelte";
-import type { ReadableBox } from "svelte-toolbelt";
 import { on } from "svelte/events";
 import { type Attachment } from "svelte/attachments";
 
@@ -191,10 +190,15 @@ export function splitMultiFilePatch(patchContent: string): [BasicHeader, string]
     return patches;
 }
 
-export type FileTreeNodeData = {
-    data: FileDetails | string;
-    type: "file" | "directory";
-};
+export type FileTreeNodeData =
+    | {
+          type: "file";
+          file: FileDetails;
+      }
+    | {
+          type: "directory";
+          name: string;
+      };
 
 export function makeFileTree(paths: FileDetails[]): TreeNode<FileTreeNodeData>[] {
     if (paths.length === 0) {
@@ -203,7 +207,7 @@ export function makeFileTree(paths: FileDetails[]): TreeNode<FileTreeNodeData>[]
 
     const root: TreeNode<FileTreeNodeData> = {
         children: [],
-        data: { type: "directory", data: "" },
+        data: { type: "directory", name: "" },
     };
 
     for (const details of paths) {
@@ -211,16 +215,22 @@ export function makeFileTree(paths: FileDetails[]): TreeNode<FileTreeNodeData>[]
         let current = root;
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i];
-            const existingChild = current.children.find((child) => child.data.data === part);
+            const existingChild = current.children.find((child) => child.data.type === "directory" && child.data.name === part);
             if (existingChild) {
                 current = existingChild;
             } else {
                 const file = i === parts.length - 1;
-                const data: FileDetails | string = file ? details : part;
-                const type = file ? "file" : "directory";
                 const newChild: TreeNode<FileTreeNodeData> = {
                     children: [],
-                    data: { data, type },
+                    data: file
+                        ? {
+                              type: "file",
+                              file: details,
+                          }
+                        : {
+                              type: "directory",
+                              name: part,
+                          },
                 };
                 current.children.push(newChild);
                 current = newChild;
@@ -234,10 +244,10 @@ export function makeFileTree(paths: FileDetails[]): TreeNode<FileTreeNodeData>[]
         }
 
         if (node.children.length === 1 && node.data.type === "directory" && node.children[0].data.type === "directory") {
-            if (node.data.data !== "") {
-                node.data.data = `${node.data.data}/${node.children[0].data.data}`;
+            if (node.data.name !== "") {
+                node.data.name = `${node.data.name}/${node.children[0].data.name}`;
             } else {
-                node.data.data = node.children[0].data.data;
+                node.data.name = node.children[0].data.name;
             }
             node.children = node.children[0].children;
         }
@@ -245,7 +255,7 @@ export function makeFileTree(paths: FileDetails[]): TreeNode<FileTreeNodeData>[]
 
     mergeRedundantDirectories(root);
 
-    if (root.data.type === "directory" && root.data.data === "") {
+    if (root.data.type === "directory" && root.data.name === "") {
         return root.children;
     }
     return [root];
@@ -482,8 +492,3 @@ export function animationFramePromise() {
 export async function yieldToBrowser() {
     await new Promise((resolve) => setTimeout(resolve, 0));
 }
-
-// from bits-ui internals
-export type ReadableBoxedValues<T> = {
-    [K in keyof T]: ReadableBox<T[K]>;
-};

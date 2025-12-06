@@ -11,6 +11,7 @@ export type TreeNode<T> = {
 export interface TreeNodeView<T> extends TreeNode<T> {
     backingNode: TreeNode<T>;
     visibleChildren: TreeNodeView<T>[];
+    depth: number;
 }
 
 export interface TreeProps<T> {
@@ -115,18 +116,18 @@ export function collectAllNodes<T>(roots: TreeNode<T>[]): Set<TreeNode<T>> {
 // Keep any nodes where the filter passes and all their parents
 export function filteredView<T>(roots: TreeNode<T>[], filter: ((node: TreeNode<T>) => boolean) | null): Set<TreeNodeView<T>> {
     if (filter === null) {
-        function walkDirect(node: TreeNode<T>): TreeNodeView<T> {
-            return { ...node, backingNode: node, visibleChildren: node.children.map(walkDirect) };
+        function walkDirect(node: TreeNode<T>, depth: number): TreeNodeView<T> {
+            return { ...node, backingNode: node, visibleChildren: node.children.map((child) => walkDirect(child, depth + 1)), depth };
         }
-        return new Set(roots.map((root) => walkDirect(root)));
+        return new Set(roots.map((root) => walkDirect(root, 0)));
     }
 
-    function walkFiltered(node: TreeNode<T>): TreeNodeView<T> | null {
+    function walkFiltered(node: TreeNode<T>, depth: number): TreeNodeView<T> | null {
         let pass = filter!(node);
-        const nodeView: TreeNodeView<T> = { ...node, backingNode: node, visibleChildren: [] };
+        const nodeView: TreeNodeView<T> = { ...node, backingNode: node, visibleChildren: [], depth };
 
         for (const child of node.children) {
-            const newChild = walkFiltered(child);
+            const newChild = walkFiltered(child, depth + 1);
             if (newChild) {
                 pass = true;
                 nodeView.visibleChildren.push(newChild);
@@ -139,7 +140,7 @@ export function filteredView<T>(roots: TreeNode<T>[], filter: ((node: TreeNode<T
     const filtered: Set<TreeNodeView<T>> = new Set<TreeNodeView<T>>();
 
     for (const root of roots) {
-        const rootView = walkFiltered(root);
+        const rootView = walkFiltered(root, 0);
         if (rootView) {
             filtered.add(rootView);
         }
