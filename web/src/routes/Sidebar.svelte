@@ -65,7 +65,7 @@
 </script>
 
 {#snippet renderFileNode(value: FileDetails)}
-    <div class="file flex cursor-pointer items-center justify-between px-2 py-1 text-sm">
+    <div class="file flex items-center justify-between px-2 py-1 text-sm">
         <span
             class="{getFileStatusProps(value.status).iconClasses} me-1 flex size-4 shrink-0 items-center justify-center"
             aria-label={getFileStatusProps(value.status).title}
@@ -84,7 +84,7 @@
 
 {#snippet renderFolderNode(name: string, collapsed: boolean)}
     {@const folderIcon = collapsed ? "octicon--file-directory-fill-16" : "octicon--file-directory-open-fill-16"}
-    <div class="flex cursor-pointer items-center justify-between px-2 py-1 text-sm">
+    <div class="flex items-center justify-between px-2 py-1 text-sm">
         <span class="me-1 iconify size-4 shrink-0 text-em-med {folderIcon}"></span>
         <span class="grow overflow-hidden break-all">{name}</span>
         {#if collapsed}
@@ -127,7 +127,7 @@
                     <div
                         role="button"
                         tabindex="0"
-                        class="btn-ghost focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
+                        class="cursor-pointer btn-ghost focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
                         style="padding-left: {node.depth}rem;"
                         {...nodeProps(node.data, collapsed, toggleCollapse)}
                     >
@@ -167,6 +167,7 @@
         background-color: var(--color-em-disabled);
         display: block;
         z-index: 1;
+        cursor: pointer;
     }
     [data-selected] .file {
         position: relative;
