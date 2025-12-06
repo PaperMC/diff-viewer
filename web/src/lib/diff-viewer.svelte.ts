@@ -231,7 +231,7 @@ const modifyStatusProps: FileStatusProps = {
     title: "Modified",
 };
 const renamedStatusProps: FileStatusProps = {
-    iconClasses: "iconify octicon--file-moved-16 text-gray-600",
+    iconClasses: "iconify octicon--file-moved-16 text-em-med",
     title: "Renamed",
 };
 const renamedModifiedStatusProps: FileStatusProps = {
