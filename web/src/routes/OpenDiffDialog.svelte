@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getGithubUsername, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
+    import { getGithubUsername, getGithubAvatarUrl, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
     import { Button, Dialog, Separator, Popover } from "bits-ui";
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";
@@ -118,8 +118,9 @@
 
         <div class="mb-2 flex flex-row gap-1">
             {#if getGithubUsername()}
+                {@const username = getGithubUsername()!}
                 <div class="flex w-fit flex-row items-center justify-between gap-2 px-2 py-1">
-                    <span class="iconify shrink-0 octicon--person-16"></span>
+                    <img src={getGithubAvatarUrl(username)} alt="GitHub Profile Picture of {username}" class="size-6 shrink-0 rounded-full border shadow-xs" />
                     {getGithubUsername()}
                 </div>
                 <Button.Root class="flex items-center gap-2 rounded-md btn-ghost-danger px-2 py-1" onclick={logoutGithub}>

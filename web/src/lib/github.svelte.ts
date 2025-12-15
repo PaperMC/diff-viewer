@@ -32,6 +32,10 @@ export function getGithubUsername(): string | null {
     return githubUsername.value;
 }
 
+export function getGithubAvatarUrl(username: string, size: number = 32): string | null {
+    return `https://avatars.githubusercontent.com/${username}?s=${size}`;
+}
+
 export function getGithubToken(): string | null {
     const expiresAt = localStorage.getItem(GITHUB_TOKEN_EXPIRES_KEY);
     if (expiresAt !== null) {
