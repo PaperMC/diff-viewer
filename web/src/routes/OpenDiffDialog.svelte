@@ -122,7 +122,7 @@
                     <span class="iconify shrink-0 octicon--person-16"></span>
                     {getGithubUsername()}
                 </div>
-                <Button.Root class="flex items-center gap-2 rounded-md btn-fill-danger px-2 py-1" onclick={logoutGithub}>
+                <Button.Root class="flex items-center gap-2 rounded-md btn-ghost-danger px-2 py-1" onclick={logoutGithub}>
                     <span class="iconify shrink-0 octicon--sign-out-16"></span>
                     Sign out
                 </Button.Root>

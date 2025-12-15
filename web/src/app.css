@@ -129,7 +129,10 @@
 
 @utility btn-fill-danger {
     @apply btn-fill text-white;
-    --btn-color: var(--color-red-500);
+    --btn-color: var(--color-red-700);
+    @variant dark {
+        --btn-color: var(--color-red-800);
+    }
 }
 
 @utility btn-fill-primary {
@@ -172,6 +175,27 @@
     @apply btn-ghost-hover;
     &:active {
         @apply btn-ghost-active;
+    }
+}
+
+@utility btn-ghost-danger {
+    @apply border btn-ghost;
+    --btn-color: var(--color-red-700);
+    color: var(--color-red-800);
+    @variant dark {
+        --btn-color: var(--color-red-800);
+        color: var(--color-red-300);
+    }
+    border-color: transparent;
+    &:hover {
+        color: white;
+        border-color: var(--btn-border);
+        @apply shadow-xs;
+    }
+    &:active {
+        color: white;
+        border-color: var(--btn-border);
+        @apply shadow-none;
     }
 }
 
