@@ -57,7 +57,7 @@
         type="text"
         placeholder="Search diff content..."
         bind:value={viewer.searchQuery}
-        class="w-full rounded-md border py-0.5 ps-6 text-sm overflow-ellipsis focus:ring-2 focus:ring-primary focus:outline-none"
+        class="w-full rounded-md border py-0.5 ps-6 text-sm overflow-ellipsis focus:ring-2 focus:ring-focus focus:outline-none"
         autocomplete="off"
         style="padding-inline-end: {0.5 + controlsWidth / 16}rem;"
     />

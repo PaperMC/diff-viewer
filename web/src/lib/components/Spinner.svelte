@@ -11,7 +11,7 @@
     let mergedProps = $derived(
         mergeProps(
             {
-                class: "animate-spin rounded-full border-b-2 border-primary",
+                class: "animate-spin rounded-full border-2 border-em-disabled border-b-em-high",
                 style: {
                     height: `${size * 0.25}rem`,
                     width: `${size * 0.25}rem`,

@@ -79,7 +79,7 @@
 {#snippet radioItem(name: string)}
     <RadioGroup.Item
         value={name.toLowerCase()}
-        class="rounded-sm px-2 text-sm ring-primary hover:bg-neutral/65 focus:outline-none focus-visible:ring-2 data-[state=checked]:bg-neutral data-[state=checked]:shadow-sm"
+        class="rounded-sm px-2 text-sm ring-focus hover:bg-neutral/65 focus:outline-none focus-visible:ring-2 data-[state=checked]:bg-neutral data-[state=checked]:shadow-sm"
     >
         {name}
     </RadioGroup.Item>
@@ -123,7 +123,7 @@
         placeholder="Enter file URL"
         type="url"
         {required}
-        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
+        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"
     />
 {/snippet}
 
@@ -133,7 +133,7 @@
         bind:value={instance.text}
         placeholder="Enter text here"
         {required}
-        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
+        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"
     ></textarea>
 {/snippet}
 
@@ -157,7 +157,7 @@
 
         background-color: rgba(255, 255, 255, 0.7);
 
-        border: dashed var(--color-primary);
+        border: dashed var(--color-focus);
         border-radius: inherit;
     }
 </style>

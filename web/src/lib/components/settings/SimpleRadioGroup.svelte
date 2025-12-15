@@ -25,7 +25,7 @@
         >
             {#snippet children({ checked })}
                 {#if checked}
-                    <span class="size-2.5 rounded-full bg-primary" aria-hidden="true"></span>
+                    <span class="size-2.5 rounded-full bg-blue-500" aria-hidden="true"></span>
                 {/if}
             {/snippet}
         </RadioGroup.Item>

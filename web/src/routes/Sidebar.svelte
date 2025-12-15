@@ -102,7 +102,7 @@
                 type="text"
                 placeholder="Filter file tree..."
                 bind:value={viewer.fileTreeFilter}
-                class="w-full rounded-md border px-8 py-1 overflow-ellipsis focus:ring-2 focus:ring-primary focus:outline-none"
+                class="w-full rounded-md border px-8 py-1 overflow-ellipsis focus:ring-2 focus:ring-focus focus:outline-none"
                 autocomplete="off"
             />
             <span aria-hidden="true" class="absolute top-1/2 left-2 iconify size-4 -translate-y-1/2 text-em-med octicon--filter-16"></span>
@@ -127,7 +127,7 @@
                     <div
                         role="button"
                         tabindex="0"
-                        class="cursor-pointer btn-ghost focus:ring-2 focus:ring-primary/50 focus:outline-none focus:ring-inset"
+                        class="cursor-pointer btn-ghost focus:ring-2 focus:ring-focus/50 focus:outline-none focus:ring-inset"
                         style="padding-left: {node.depth}rem;"
                         {...nodeProps(node.data, collapsed, toggleCollapse)}
                     >
@@ -178,7 +178,7 @@
             left: 0;
             width: 4px;
             height: 100%;
-            background-color: var(--color-primary);
+            background-color: var(--color-focus);
             z-index: 2;
         }
     }

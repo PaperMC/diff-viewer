@@ -109,7 +109,7 @@
                 required
                 autocomplete="url"
                 placeholder="https://github.com/"
-                class="grow rounded-l-md border-t border-b border-l bg-neutral px-2 py-1 overflow-ellipsis inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
+                class="grow rounded-l-md border-t border-b border-l bg-neutral px-2 py-1 overflow-ellipsis inset-shadow-xs ring-focus focus:z-1 focus:outline-none focus-visible:ring-2"
                 bind:value={instance.githubUrl}
             />
             <Button.Root type="submit" class="rounded-r-md btn-fill-primary px-2 py-1">Go</Button.Root>

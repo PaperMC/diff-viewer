@@ -70,7 +70,7 @@
                     <Select.Group>
                         <Select.Item
                             value="auto"
-                            class="cursor-default rounded-sm border px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-primary data-selected:text-white"
+                            class="cursor-default rounded-sm border px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-blue-500 data-selected:text-white"
                         >
                             Infer Type
                         </Select.Item>
@@ -80,7 +80,7 @@
                     {#each languages as lang (lang.id)}
                         <Select.Item
                             value={lang.id}
-                            class="group flex cursor-default flex-col px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-primary data-selected:text-white"
+                            class="group flex cursor-default flex-col px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-blue-500 data-selected:text-white"
                         >
                             {lang.name}
                             <span class="text-sm font-light text-em-med group-data-selected:text-white/80">{lang.aliases.join(", ")}</span>

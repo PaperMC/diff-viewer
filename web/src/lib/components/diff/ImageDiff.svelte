@@ -56,11 +56,8 @@
 </script>
 
 {#snippet modeButton(forMode: Mode, iconClass: string)}
-    <RadioGroup.Item
-        value={forMode}
-        class="flex items-center justify-center rounded-sm btn-ghost px-2 py-1 text-primary data-[state=checked]:btn-ghost-visible"
-    >
-        <span class="iconify {iconClass} me-1 size-4" aria-hidden="true"></span>{forMode}
+    <RadioGroup.Item value={forMode} class="flex items-center justify-center rounded-sm btn-ghost px-2 py-1 data-[state=checked]:btn-ghost-visible">
+        <span class="iconify {iconClass} me-1 size-4 text-em-med" aria-hidden="true"></span>{forMode}
     </RadioGroup.Item>
 {/snippet}
 
@@ -152,7 +149,7 @@
     <div class="sticky bottom-4 mt-4 flex w-full max-w-[280px] items-center rounded-lg bg-neutral p-2.5 shadow-sm">
         <Slider.Root type="single" thumbPositioning="exact" bind:value={fadePercent} class="relative flex w-full touch-none items-center select-none">
             <span class="relative h-0.5 w-full grow cursor-pointer overflow-hidden rounded-full bg-em-disabled">
-                <Slider.Range class="absolute h-full bg-primary" />
+                <Slider.Range class="absolute h-full bg-em-high" />
             </span>
             <Slider.Thumb index={0} class="block size-4 cursor-pointer rounded-full border bg-neutral shadow-sm transition-colors data-active:scale-[0.95]" />
         </Slider.Root>

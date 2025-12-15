@@ -19,7 +19,8 @@
 }
 
 @theme {
-    --color-primary: var(--color-blue-500);
+    --color-btn-primary: var(--color-green-700);
+    --color-focus: var(--color-blue-600);
 
     /* Text colors */
     --color-em-high-light: rgba(0, 0, 0, 0.87);
@@ -93,8 +94,8 @@
 }
 
 @utility btn-base {
-    --btn-color: var(--color-primary);
-    --btn-focus: var(--color-primary);
+    --btn-color: var(--color-btn-primary);
+    --btn-focus: var(--color-focus);
     --tw-shadow-color: color-mix(in oklab, var(--btn-color) 50%, transparent);
 
     --btn-hover: color-mix(in oklch, var(--btn-color), black 5%);
@@ -133,11 +134,7 @@
 
 @utility btn-fill-primary {
     @apply btn-fill text-white;
-    --btn-color: var(--color-primary);
-    --btn-focus: var(--color-neutral-800);
-    @variant dark {
-        --btn-focus: var(--color-neutral-100);
-    }
+    --btn-color: var(--color-btn-primary);
 }
 
 @utility btn-fill-neutral {

@@ -19,7 +19,11 @@
 </script>
 
 <Select.Root type="single" scrollAlignment="center" bind:value>
-    <Select.Trigger aria-labelledby={labelId} id={triggerId} class="group flex cursor-pointer items-center justify-between gap-1 px-2 py-1">
+    <Select.Trigger
+        aria-labelledby={labelId}
+        id={triggerId}
+        class="group flex cursor-pointer items-center justify-between gap-1 px-2 py-1 ring-focus focus:outline-none focus-visible:ring-2"
+    >
         <Label.Root id={labelId} for={triggerId} class="cursor-pointer">{capitalizeFirstLetter(mode)} theme</Label.Root>
         <div
             class="flex w-44 items-center gap-1 rounded-sm border btn-ghost bg-neutral px-2 py-0.5 text-sm select-none group-hover:btn-ghost-hover group-active:btn-ghost-active"
@@ -43,7 +47,7 @@
             {#each Object.keys(bundledThemes) as theme (theme)}
                 <Select.Item
                     value={theme}
-                    class="cursor-default rounded-sm px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-primary data-selected:text-white"
+                    class="cursor-default rounded-sm px-2 py-1 text-sm data-highlighted:bg-neutral-3 data-selected:bg-blue-500 data-selected:text-white"
                 >
                     {theme}
                 </Select.Item>

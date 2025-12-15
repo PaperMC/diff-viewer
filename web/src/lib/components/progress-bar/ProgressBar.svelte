@@ -20,11 +20,11 @@
     {@const percent = state.getPercent()}
     {#if percent !== undefined}
         <div
-            class="h-full w-full rounded-full bg-primary drop-shadow-sm drop-shadow-primary/50 transition-all duration-50 ease-in-out will-change-transform"
+            class="h-full w-full rounded-full bg-em-high drop-shadow-sm transition-all duration-50 ease-in-out will-change-transform"
             style={`transform: translateX(-${100 - percent}%)`}
         ></div>
     {:else}
-        <div id="spinner" class="h-full w-[20%] rounded-full bg-primary drop-shadow-sm drop-shadow-primary/50"></div>
+        <div id="spinner" class="h-full w-[20%] rounded-full bg-em-high drop-shadow-sm"></div>
     {/if}
 </Progress.Root>
 

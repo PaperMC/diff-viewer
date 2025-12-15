@@ -18,7 +18,7 @@
             {labelText}
         </Label.Root>
         <div
-            class="relative size-5 rounded-sm border bg-neutral transition-colors ease-in-out data-[state=checked]:bg-primary"
+            class="relative size-5 rounded-sm border bg-neutral transition-colors ease-in-out data-[state=checked]:bg-blue-500"
             data-state={checked ? "checked" : "unchecked"}
         >
             <span

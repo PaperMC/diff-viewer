@@ -152,18 +152,18 @@
         &:focus {
             box-shadow:
                 var(--tw-shadow),
-                inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent);
+                inset 0 0 0 2px color-mix(in srgb, var(--color-focus) 50%, transparent);
         }
         &[data-selected] {
             box-shadow:
                 var(--tw-shadow),
-                inset 4px 0 0 0 var(--color-primary);
+                inset 4px 0 0 0 var(--color-focus);
         }
         &:focus[data-selected] {
             box-shadow:
                 var(--tw-shadow),
-                inset 0 0 0 2px color-mix(in srgb, var(--color-primary) 50%, transparent),
-                inset 4px 0 0 0 var(--color-primary);
+                inset 0 0 0 2px color-mix(in srgb, var(--color-focus) 50%, transparent),
+                inset 4px 0 0 0 var(--color-focus);
         }
     }
 </style>
