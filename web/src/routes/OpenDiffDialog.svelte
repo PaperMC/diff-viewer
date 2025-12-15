@@ -51,14 +51,14 @@
                 instance.addBlacklistEntry();
             }}
         >
-            <input bind:value={instance.dirBlacklistInput} type="text" class="w-full rounded-l-md border-t border-b border-l px-2 py-1" />
-            <Button.Root type="submit" title="Add blacklist entry" class="flex rounded-r-md btn-primary px-2 py-1">
+            <input bind:value={instance.dirBlacklistInput} type="text" class="w-full rounded-l-md border-t border-b border-l px-2 py-1 inset-shadow-xs" />
+            <Button.Root type="submit" title="Add blacklist entry" class="flex rounded-r-md btn-fill-primary px-2 py-1">
                 <span class="iconify size-4 shrink-0 place-self-center octicon--plus-16" aria-hidden="true"></span>
             </Button.Root>
         </form>
         <Button.Root
             title="Reset blacklist to defaults"
-            class="flex rounded-md btn-danger p-1"
+            class="flex rounded-md btn-fill-danger p-1"
             onclick={() => {
                 instance.resetBlacklist();
             }}
@@ -73,7 +73,7 @@
                 <div class="p-1 ps-0">
                     <Button.Root
                         title="Delete blacklist entry"
-                        class="flex rounded-md btn-danger p-1"
+                        class="flex rounded-md btn-fill-danger p-1"
                         onclick={() => {
                             instance.dirBlacklist.delete(entry);
                         }}
@@ -109,10 +109,10 @@
                 required
                 autocomplete="url"
                 placeholder="https://github.com/"
-                class="grow rounded-l-md border-t border-b border-l px-2 py-1 overflow-ellipsis"
+                class="grow rounded-l-md border-t border-b border-l bg-neutral px-2 py-1 overflow-ellipsis inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
                 bind:value={instance.githubUrl}
             />
-            <Button.Root type="submit" class="rounded-r-md btn-primary px-2 py-1">Go</Button.Root>
+            <Button.Root type="submit" class="rounded-r-md btn-fill-primary px-2 py-1">Go</Button.Root>
         </form>
         <span class="mb-2 text-sm text-em-med">Supports commit, PR, and comparison URLs</span>
 
@@ -122,13 +122,13 @@
                     <span class="iconify shrink-0 octicon--person-16"></span>
                     {getGithubUsername()}
                 </div>
-                <Button.Root class="flex items-center gap-2 rounded-md btn-danger px-2 py-1" onclick={logoutGithub}>
+                <Button.Root class="flex items-center gap-2 rounded-md btn-fill-danger px-2 py-1" onclick={logoutGithub}>
                     <span class="iconify shrink-0 octicon--sign-out-16"></span>
                     Sign out
                 </Button.Root>
             {:else}
-                <Button.Root class="flex w-fit flex-row items-center justify-between gap-2 rounded-md btn-primary px-2 py-1" onclick={loginWithGithub}>
-                    <span class="iconify shrink-0 octicon--sign-in-16"></span>
+                <Button.Root class="flex w-fit flex-row items-center justify-between gap-2 rounded-md btn-fill-neutral px-2 py-1" onclick={loginWithGithub}>
+                    <span class="iconify shrink-0 text-em-med octicon--sign-in-16"></span>
                     Sign in to GitHub
                 </Button.Root>
                 <InfoPopup>
@@ -139,8 +139,8 @@
         </div>
 
         <div class="flex flex-row gap-1">
-            <Button.Root class="flex w-fit flex-row items-center gap-2 rounded-md btn-primary px-2 py-1" onclick={installGithubApp}>
-                <span class="iconify shrink-0 octicon--gear-16"></span>
+            <Button.Root class="flex w-fit flex-row items-center gap-2 rounded-md btn-fill-neutral px-2 py-1" onclick={installGithubApp}>
+                <span class="iconify shrink-0 text-em-med octicon--gear-16"></span>
                 Configure GitHub App
             </Button.Root>
             <InfoPopup>
@@ -164,7 +164,7 @@
             From Patch File
         </h3>
         <MultimodalFileInput bind:state={instance.patchFile} required fileTypeOverride={false} defaultMode="file" label="Patch File" />
-        <Button.Root type="submit" class="mt-2 rounded-md btn-primary px-2 py-1">Go</Button.Root>
+        <Button.Root type="submit" class="mt-2 rounded-md btn-fill-primary px-2 py-1">Go</Button.Root>
     </form>
 {/snippet}
 
@@ -200,18 +200,18 @@
             {/each}
         </div>
         <div class="flex items-center gap-1">
-            <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+            <Button.Root type="submit" class="rounded-md btn-fill-primary px-2 py-1">Go</Button.Root>
             <Button.Root
                 title="Swap File A and File B"
                 type="button"
-                class="flex size-6 items-center justify-center rounded-md btn-primary"
+                class="flex size-6 items-center justify-center rounded-md btn-fill-neutral"
                 onclick={() => {
                     const a = instance.flipFiles[0];
                     instance.flipFiles[0] = instance.flipFiles[2];
                     instance.flipFiles[2] = a;
                 }}
             >
-                <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+                <span class="iconify size-4 shrink-0 rotate-90 text-em-med octicon--arrow-switch-16" aria-hidden="true"></span>
             </Button.Root>
         </div>
     </form>
@@ -248,13 +248,13 @@
             {/each}
         </div>
         <div class="flex items-center gap-1">
-            <Button.Root type="submit" class="rounded-md btn-primary px-2 py-1">Go</Button.Root>
+            <Button.Root type="submit" class="rounded-md btn-fill-primary px-2 py-1">Go</Button.Root>
             <Popover.Root>
                 <Popover.Trigger
                     title="Edit filters"
-                    class="flex size-6 items-center justify-center rounded-md btn-primary data-[state=open]:btn-primary-hover"
+                    class="flex size-6 items-center justify-center rounded-md btn-fill-neutral data-[state=open]:bg-(--btn-hover)"
                 >
-                    <span class="iconify size-4 shrink-0 octicon--filter-16" aria-hidden="true"></span>
+                    <span class="iconify size-4 shrink-0 text-em-med octicon--filter-16" aria-hidden="true"></span>
                 </Popover.Trigger>
                 <Popover.Portal>
                     <Popover.Content side="top" class="z-50 mx-2 overflow-hidden rounded-md border bg-neutral">
@@ -266,14 +266,14 @@
             <Button.Root
                 title="Swap Directory A and Directory B"
                 type="button"
-                class="flex size-6 items-center justify-center rounded-md btn-primary"
+                class="flex size-6 items-center justify-center rounded-md btn-fill-neutral"
                 onclick={() => {
                     const a = instance.flipDirs[0];
                     instance.flipDirs[0] = instance.flipDirs[2];
                     instance.flipDirs[2] = a;
                 }}
             >
-                <span class="iconify size-4 shrink-0 octicon--arrow-switch-16" aria-hidden="true"></span>
+                <span class="iconify size-4 shrink-0 rotate-90 text-em-med octicon--arrow-switch-16" aria-hidden="true"></span>
             </Button.Root>
         </div>
     </form>
@@ -287,20 +287,20 @@
         <Dialog.Content
             class="fixed top-1/2 left-1/2 z-50 flex max-h-svh w-3xl max-w-full -translate-x-1/2 -translate-y-1/2 flex-col rounded-sm border bg-neutral shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-[95%]"
         >
-            <header class="flex shrink-0 flex-row items-center justify-between rounded-t-sm bg-neutral-2 p-4">
+            <header class="flex shrink-0 flex-row items-center justify-between rounded-t-sm border-b bg-neutral-2 p-4">
                 <Dialog.Title class="text-xl font-semibold">Open New Diff</Dialog.Title>
-                <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-md btn-ghost text-primary">
+                <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-sm btn-ghost text-em-med">
                     <span class="iconify octicon--x-16" aria-hidden="true"></span>
                 </Dialog.Close>
             </header>
 
             <div class="grow overflow-y-auto">
                 {@render filesSection()}
-                <Separator.Root class="h-px w-full bg-neutral-2" />
+                <Separator.Root class="h-0 w-full border-b" />
                 {@render githubSection()}
-                <Separator.Root class="h-px w-full bg-neutral-2" />
+                <Separator.Root class="h-0 w-full border-b" />
                 {@render directoriesSection()}
-                <Separator.Root class="h-px w-full bg-neutral-2" />
+                <Separator.Root class="h-0 w-full border-b" />
                 {@render patchSection()}
             </div>
         </Dialog.Content>

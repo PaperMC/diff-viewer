@@ -76,49 +76,105 @@
     }
 }
 
-@utility btn-ghost-hover {
-    @apply bg-neutral-300/80 dark:bg-neutral-700/80;
+@utility btn-link-hover {
+    @apply text-blue-500;
 }
-@utility btn-ghost-active {
-    @apply bg-neutral-400/80 dark:bg-neutral-600/80;
+@utility btn-link-active {
+    @apply text-blue-600;
 }
-@utility btn-ghost {
+@utility btn-link {
     &:hover {
-        @apply btn-ghost-hover;
+        @apply btn-link-hover;
     }
     &:active {
-        @apply btn-ghost-active;
+        @apply btn-link-active;
     }
+    @apply cursor-pointer text-em-med transition-colors duration-100 ease-in-out;
+}
+
+@utility btn-base {
+    --btn-color: var(--color-primary);
+    --btn-focus: var(--color-primary);
+    --tw-shadow-color: color-mix(in oklab, var(--btn-color) 50%, transparent);
+
+    --btn-hover: color-mix(in oklch, var(--btn-color), black 5%);
+    --btn-active: color-mix(in oklch, var(--btn-color), black 10%);
+    --btn-border: color-mix(in oklch, var(--btn-color), black 12%);
+    @variant dark {
+        --btn-hover: color-mix(in oklch, var(--btn-color), white 5%);
+        --btn-active: color-mix(in oklch, var(--btn-color), white 10%);
+        --btn-border: color-mix(in oklch, var(--btn-color), white 12%);
+    }
+
+    border-color: var(--btn-border);
+
     @apply transition-colors duration-100 ease-in-out;
+    @apply ring-(--btn-focus) focus:outline-none focus-visible:ring-2 has-focus-visible:ring-2;
+}
+
+@utility btn-fill {
+    @apply border btn-base shadow-xs;
+
+    background-color: var(--btn-color);
+
+    &:hover {
+        background-color: var(--btn-hover);
+    }
+    &:active {
+        background-color: var(--btn-active);
+        @apply shadow-none;
+    }
+}
+
+@utility btn-fill-danger {
+    @apply btn-fill text-white;
+    --btn-color: var(--color-red-500);
+}
+
+@utility btn-fill-primary {
+    @apply btn-fill text-white;
+    --btn-color: var(--color-primary);
+    --btn-focus: var(--color-neutral-800);
+    @variant dark {
+        --btn-focus: var(--color-neutral-100);
+    }
+}
+
+@utility btn-fill-neutral {
+    @apply btn-fill;
+    --btn-color: var(--color-neutral-100);
+    @variant dark {
+        --btn-color: var(--color-neutral-800);
+    }
+}
+
+@utility btn-ghost {
+    @apply btn-base;
+
+    --btn-color: var(--color-neutral-100);
+    @variant dark {
+        --btn-color: var(--color-neutral-800);
+    }
+
+    &:hover {
+        background-color: var(--btn-hover);
+    }
+    &:active {
+        background-color: var(--btn-active);
+    }
+}
+@utility btn-ghost-hover {
+    @apply btn-ghost;
+    background-color: var(--btn-hover);
+}
+@utility btn-ghost-active {
+    @apply btn-ghost;
+    background-color: var(--btn-active);
 }
 @utility btn-ghost-visible {
     @apply btn-ghost-hover;
     &:active {
         @apply btn-ghost-active;
-    }
-}
-
-@utility btn-primary-hover {
-    @apply bg-blue-600;
-}
-@utility btn-primary {
-    @apply bg-primary text-white;
-    &:hover {
-        @apply btn-primary-hover;
-    }
-    &:active {
-        @apply bg-blue-700;
-    }
-    @apply transition-colors duration-100 ease-in-out;
-}
-
-@utility btn-danger {
-    @apply bg-red-500 text-white;
-    &:hover {
-        @apply bg-red-600;
-    }
-    &:active {
-        @apply bg-red-700;
     }
 }
 

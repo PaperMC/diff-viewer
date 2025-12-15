@@ -77,7 +77,10 @@
 </script>
 
 {#snippet radioItem(name: string)}
-    <RadioGroup.Item value={name.toLowerCase()} class="rounded-sm px-2 text-sm data-[state=checked]:btn-primary data-[state=unchecked]:btn-ghost">
+    <RadioGroup.Item
+        value={name.toLowerCase()}
+        class="rounded-sm px-2 text-sm ring-primary hover:bg-neutral/65 focus:outline-none focus-visible:ring-2 data-[state=checked]:bg-neutral data-[state=checked]:shadow-sm"
+    >
         {name}
     </RadioGroup.Item>
 {/snippet}
@@ -91,7 +94,7 @@
     ondragleavecapture={handleDragLeave}
 >
     <div class="mb-1 flex w-full flex-wrap items-center gap-1">
-        <RadioGroup.Root class="me-2 flex overflow-hidden rounded-sm border" bind:value={instance.mode}>
+        <RadioGroup.Root class="me-2 flex overflow-hidden rounded-md bg-neutral-3 p-0.5" bind:value={instance.mode}>
             {@render radioItem("File")}
             {@render radioItem("Text")}
             {@render radioItem("URL")}
@@ -114,11 +117,24 @@
 {/snippet}
 
 {#snippet urlInput()}
-    <input title="{label} URL" bind:value={instance.url} placeholder="Enter file URL" type="url" {required} class="w-full rounded-md border px-2 py-1" />
+    <input
+        title="{label} URL"
+        bind:value={instance.url}
+        placeholder="Enter file URL"
+        type="url"
+        {required}
+        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
+    />
 {/snippet}
 
 {#snippet textInput()}
-    <textarea title="{label} Text" bind:value={instance.text} placeholder="Enter text here" {required} class="w-full rounded-md border px-2 py-1"></textarea>
+    <textarea
+        title="{label} Text"
+        bind:value={instance.text}
+        placeholder="Enter text here"
+        {required}
+        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-primary focus:outline-none focus-visible:ring-2"
+    ></textarea>
 {/snippet}
 
 <style>

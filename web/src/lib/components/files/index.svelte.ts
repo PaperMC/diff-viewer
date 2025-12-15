@@ -29,14 +29,14 @@ export class FileEntry implements FileSystemEntry {
 }
 
 export type DirectoryInputProps = {
-    children?: Snippet<[{ directory?: DirectoryEntry; loading: boolean }]>;
+    children?: Snippet<[{ directory: DirectoryEntry | undefined; picking: boolean }]>;
     directory?: DirectoryEntry;
-    loading?: boolean;
+    picking?: boolean;
 } & RestProps;
 
 export type DirectoryInputStateProps = WritableBoxedValues<{
     directory: DirectoryEntry | undefined;
-    loading: boolean;
+    picking: boolean;
 }>;
 
 export class DirectoryInputState {
@@ -54,11 +54,11 @@ export class DirectoryInputState {
     }
 
     async onclick() {
-        if (this.opts.loading.current) {
+        if (this.opts.picking.current) {
             return;
         }
         try {
-            this.opts.loading.current = true;
+            this.opts.picking.current = true;
             this.opts.directory.current = await pickDirectory();
         } catch (e) {
             if (e instanceof Error && e.name === "AbortError") {
@@ -67,13 +67,13 @@ export class DirectoryInputState {
                 console.error("Failed to pick directory", e);
             }
         } finally {
-            this.opts.loading.current = false;
+            this.opts.picking.current = false;
         }
     }
 }
 
 async function pickDirectory(): Promise<DirectoryEntry> {
-    if (!window.showDirectoryPicker) {
+    if (window.showDirectoryPicker === undefined) {
         return await pickDirectoryLegacy();
     }
 
@@ -129,6 +129,12 @@ async function pickDirectoryLegacy(): Promise<DirectoryEntry> {
             }
 
             resolve(filesToDirectory(files));
+        });
+
+        input.addEventListener("cancel", () => {
+            const error = new Error("User cancelled directory selection");
+            error.name = "AbortError";
+            reject(error);
         });
 
         input.click();

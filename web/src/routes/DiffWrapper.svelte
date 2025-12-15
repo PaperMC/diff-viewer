@@ -45,7 +45,7 @@
             <div class="flex justify-center bg-neutral-2 p-4">
                 <button
                     type="button"
-                    class=" flex flex-row items-center justify-center gap-1 rounded-md btn-primary px-2 py-1"
+                    class=" flex flex-row items-center justify-center gap-1 rounded-md btn-fill-primary px-2 py-1"
                     onclick={() => (image.load = true)}
                 >
                     <span class="iconify size-4 shrink-0 octicon--image-16"></span><span>Load image diff</span>

@@ -73,11 +73,15 @@
     <Tooltip.Root>
         <Tooltip.Trigger>
             <div class="relative h-3 w-12 bg-neutral-2">
-                <div
-                    class="absolute top-0 left-0 h-3 border border-green-700 bg-green-600 dark:border-green-600 dark:bg-green-400"
-                    style={getAddBarStyle()}
-                ></div>
-                <div class="absolute top-0 h-3 border border-red-700 bg-red-600 dark:border-red-600 dark:bg-red-400" style={getRemoveBarStyle()}></div>
+                {#if add === 0 && remove === 0}
+                    <div class="absolute top-0 left-0 h-3 w-full border"></div>
+                {:else}
+                    <div
+                        class="absolute top-0 left-0 h-3 border border-green-700 bg-green-600 dark:border-green-600 dark:bg-green-400"
+                        style={getAddBarStyle()}
+                    ></div>
+                    <div class="absolute top-0 h-3 border border-red-700 bg-red-600 dark:border-red-600 dark:bg-red-400" style={getRemoveBarStyle()}></div>
+                {/if}
             </div>
         </Tooltip.Trigger>
         <Tooltip.Portal>

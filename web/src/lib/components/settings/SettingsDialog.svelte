@@ -40,9 +40,9 @@
         <Dialog.Content
             class="fixed top-1/2 left-1/2 z-50 flex max-h-svh w-md max-w-full -translate-x-1/2 -translate-y-1/2 flex-col rounded-sm border bg-neutral shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-[95%]"
         >
-            <header class="flex shrink-0 flex-row items-center justify-between rounded-t-sm bg-neutral-2 p-4">
+            <header class="flex shrink-0 flex-row items-center justify-between rounded-t-sm border-b bg-neutral-2 p-4">
                 <Dialog.Title class="text-xl font-semibold">Settings</Dialog.Title>
-                <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-md btn-ghost text-primary">
+                <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-sm btn-ghost text-em-med">
                     <span class="iconify octicon--x-16" aria-hidden="true"></span>
                 </Dialog.Close>
             </header>

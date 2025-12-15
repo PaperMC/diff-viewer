@@ -3,16 +3,16 @@
     import { type DirectoryEntry, type DirectoryInputProps, DirectoryInputState } from "$lib/components/files/index.svelte";
     import { box } from "svelte-toolbelt";
 
-    let { children, directory = $bindable<DirectoryEntry | undefined>(), loading = $bindable(false), ...restProps }: DirectoryInputProps = $props();
+    let { children, directory = $bindable<DirectoryEntry | undefined>(), picking = $bindable(false), ...restProps }: DirectoryInputProps = $props();
 
     const instance = new DirectoryInputState({
         directory: box.with(
             () => directory,
             (v) => (directory = v),
         ),
-        loading: box.with(
-            () => loading,
-            (v) => (loading = v),
+        picking: box.with(
+            () => picking,
+            (v) => (picking = v),
         ),
     });
 
@@ -20,5 +20,5 @@
 </script>
 
 <Button.Root type="button" {...mergedProps}>
-    {@render children?.({ directory, loading })}
+    {@render children?.({ directory, picking })}
 </Button.Root>

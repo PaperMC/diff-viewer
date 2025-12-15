@@ -29,13 +29,20 @@
     const inputId = `${uid}-input`;
 </script>
 
-<label id={labelId} for={inputId} class="relative flex w-fit max-w-full items-center gap-2 rounded-md border btn-ghost px-2 py-1 has-focus-visible:outline-2">
-    <span class="iconify size-4 shrink-0 text-em-disabled octicon--file-16"></span>
+<label id={labelId} for={inputId} class="relative flex w-fit max-w-full items-center gap-2 rounded-md btn-fill-neutral px-2 py-1">
+    <span class="iconify size-4 shrink-0 text-em-med octicon--file-16"></span>
     {#if file}
         <span class="truncate">{file.name}</span>
     {:else}
-        <span class="font-light">{label}</span>
+        <span>Pick {label}</span>
     {/if}
-    <span class="iconify size-4 shrink-0 text-em-disabled octicon--triangle-down-16"></span>
-    <input id={inputId} aria-labelledby={labelId} type="file" {required} bind:files={getFiles, setFiles} class="absolute top-0 left-0 size-full opacity-0" />
+    <span class="iconify size-4 shrink-0 text-em-med octicon--triangle-down-16"></span>
+    <input
+        id={inputId}
+        aria-labelledby={labelId}
+        type="file"
+        {required}
+        bind:files={getFiles, setFiles}
+        class="absolute top-0 left-0 size-full opacity-0 focus:outline-none"
+    />
 </label>

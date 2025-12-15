@@ -35,7 +35,7 @@
                     {value}
                 </div>
             </div>
-            <span aria-hidden="true" class="iconify size-4 shrink-0 text-base text-em-disabled octicon--triangle-down-16"></span>
+            <span aria-hidden="true" class="iconify size-4 shrink-0 text-base text-em-med octicon--triangle-down-16"></span>
         </div>
     </Select.Trigger>
     <Select.Portal>

@@ -62,7 +62,7 @@
     {:else}
         <span class="flex max-w-full flex-wrap items-center gap-0.5 overflow-hidden break-all">
             {value.fromFile}
-            <span class="iconify inline-block text-primary octicon--arrow-right-16" aria-label="renamed to"></span>
+            <span class="iconify inline-block text-em-med octicon--arrow-right-16" aria-label="renamed to"></span>
             {value.toFile}
         </span>
     {/if}
@@ -72,16 +72,16 @@
     <button
         title={viewer.fileStates[index].collapsed ? "Expand file" : "Collapse file"}
         type="button"
-        class="flex size-6 items-center justify-center rounded-md btn-ghost p-0.5 text-primary"
+        class="flex size-6 items-center justify-center rounded-sm btn-ghost p-0.5"
         onclick={(e) => {
             viewer.toggleCollapse(index);
             e.stopPropagation();
         }}
     >
         {#if viewer.fileStates[index].collapsed}
-            <span aria-label="expand file" class="iconify size-4 shrink-0 text-primary octicon--chevron-right-16" aria-hidden="true"></span>
+            <span aria-label="expand file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-right-16" aria-hidden="true"></span>
         {:else}
-            <span aria-label="collapse file" class="iconify size-4 shrink-0 text-primary octicon--chevron-down-16" aria-hidden="true"></span>
+            <span aria-label="collapse file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-down-16" aria-hidden="true"></span>
         {/if}
     </button>
 {/snippet}
@@ -90,13 +90,13 @@
     <Popover.Root bind:open={popoverOpen}>
         <Popover.Trigger
             title="Actions"
-            class="flex size-6 items-center justify-center rounded-md btn-ghost p-0.5 data-[state=open]:btn-ghost-visible"
+            class="flex size-6 items-center justify-center rounded-sm btn-ghost p-0.5 data-[state=open]:btn-ghost-visible"
             onclick={(e) => e.stopPropagation()}
         >
-            <span class="iconify size-4 bg-primary octicon--kebab-horizontal-16" aria-hidden="true"></span>
+            <span class="iconify size-4 text-em-med octicon--kebab-horizontal-16" aria-hidden="true"></span>
         </Popover.Trigger>
         <Popover.Portal>
-            <Popover.Content class="flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none">
+            <Popover.Content class="z-3 flex flex-col overflow-hidden rounded-sm border bg-neutral text-sm shadow-sm select-none">
                 <Button.Root onclick={showInFileTree} class="btn-ghost px-2 py-1">Show in file tree</Button.Root>
                 <LabeledCheckbox
                     labelText="File viewed"
@@ -136,7 +136,7 @@
         <DiffStats brief add={viewer.stats.fileAddedLines[index]} remove={viewer.stats.fileRemovedLines[index]} />
     {/if}
     {@render fileName()}
-    <div class="ms-0.5 ml-auto flex items-center gap-2">
+    <div class="ms-0.5 ml-auto flex items-center gap-1">
         {#if patchHeaderDiffOnly}
             <span class="rounded-sm bg-neutral-3 px-1.5">Patch-header-only diff</span>
         {/if}
