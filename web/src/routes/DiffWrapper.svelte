@@ -7,16 +7,15 @@
     import { GlobalOptions } from "$lib/global-options.svelte";
 
     interface Props {
-        index: number;
         value: FileDetails;
     }
 
-    let { index, value }: Props = $props();
+    let { value }: Props = $props();
 
     const viewer = MultiFileDiffViewerState.get();
     const globalOptions = GlobalOptions.get();
 
-    let collapsed = $derived(viewer.fileStates[index].collapsed);
+    let collapsed = $derived(viewer.fileStates[value.index].collapsed);
     let emptyTextDiff = $derived(value.type === "text" && value.patchHeaderDiffOnly && globalOptions.omitPatchHeaderOnlyHunks);
 </script>
 

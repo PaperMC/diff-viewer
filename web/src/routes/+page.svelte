@@ -83,11 +83,11 @@
             <DiffSearch />
         </div>
         <div class="flex flex-1 grow flex-col border-t">
-            <VList data={viewer.fileDetails} style="height: 100%;" getKey={(_, i) => i} bind:this={viewer.vlist}>
-                {#snippet children(value, index)}
-                    <div id={`file-${index}`}>
-                        <FileHeader {index} {value} />
-                        <DiffWrapper {index} {value} />
+            <VList data={viewer.fileDetails} style="height: 100%;" getKey={(value) => value.index} bind:this={viewer.vlist}>
+                {#snippet children(value)}
+                    <div id={`file-${value.index}`}>
+                        <FileHeader {value} />
+                        <DiffWrapper {value} />
                     </div>
                 {/snippet}
             </VList>

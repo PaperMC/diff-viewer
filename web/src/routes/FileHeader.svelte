@@ -8,13 +8,12 @@
     import { tick } from "svelte";
 
     interface Props {
-        index: number;
         value: FileDetails;
     }
 
     const viewer = MultiFileDiffViewerState.get();
     const globalOptions = GlobalOptions.get();
-    let { index, value }: Props = $props();
+    let { value }: Props = $props();
 
     let popoverOpen = $state(false);
 
@@ -22,7 +21,7 @@
         viewer.layoutState.sidebarCollapsed = false;
         await tick();
 
-        const fileTreeElement = document.getElementById("file-tree-file-" + index);
+        const fileTreeElement = document.getElementById("file-tree-file-" + value.index);
         if (fileTreeElement) {
             popoverOpen = false;
             viewer.tree?.expandParents((node) => node.type === "file" && node.file === value);
@@ -46,7 +45,7 @@
     });
 
     function selectHeader() {
-        viewer.scrollToFile(index, { autoExpand: false, smooth: true });
+        viewer.scrollToFile(value.index, { autoExpand: false, smooth: true });
         viewer.setSelection(value, undefined);
     }
 
@@ -70,15 +69,15 @@
 
 {#snippet collapseToggle()}
     <button
-        title={viewer.fileStates[index].collapsed ? "Expand file" : "Collapse file"}
+        title={viewer.fileStates[value.index].collapsed ? "Expand file" : "Collapse file"}
         type="button"
         class="flex size-6 items-center justify-center rounded-sm btn-ghost p-0.5"
         onclick={(e) => {
-            viewer.toggleCollapse(index);
+            viewer.toggleCollapse(value.index);
             e.stopPropagation();
         }}
     >
-        {#if viewer.fileStates[index].collapsed}
+        {#if viewer.fileStates[value.index].collapsed}
             <span aria-label="expand file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-right-16" aria-hidden="true"></span>
         {:else}
             <span aria-label="collapse file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-down-16" aria-hidden="true"></span>
@@ -101,9 +100,9 @@
                 <LabeledCheckbox
                     labelText="File viewed"
                     bind:checked={
-                        () => viewer.fileStates[index].checked,
+                        () => viewer.fileStates[value.index].checked,
                         () => {
-                            viewer.toggleChecked(index);
+                            viewer.toggleChecked(value.index);
                             popoverOpen = false;
                         }
                     }
@@ -121,7 +120,7 @@
 {/snippet}
 
 <div
-    id="file-header-{index}"
+    id="file-header-{value.index}"
     class={[
         "sticky top-0 z-10 flex flex-row items-center gap-2 border-b bg-neutral px-2 py-1 text-sm shadow-sm",
         "focus-and-selected-styles focus:outline-none",
@@ -133,7 +132,7 @@
     data-selected={boolAttr(selected)}
 >
     {#if value.type === "text"}
-        <DiffStats brief add={viewer.stats.fileAddedLines[index]} remove={viewer.stats.fileRemovedLines[index]} />
+        <DiffStats brief add={viewer.stats.fileAddedLines[value.index]} remove={viewer.stats.fileRemovedLines[value.index]} />
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-1">
