@@ -1076,6 +1076,7 @@ async function getTheme(theme: BundledTheme | undefined): Promise<null | { defau
 
 export class ConciseDiffViewCachedState {
     diffViewerPatch: Promise<DiffViewerPatch>;
+    cacheKey: unknown;
     syntaxHighlighting: boolean;
     syntaxHighlightingTheme: BundledTheme | undefined;
     omitPatchHeaderOnlyHunks: boolean;
@@ -1083,6 +1084,7 @@ export class ConciseDiffViewCachedState {
 
     constructor(diffViewerPatch: Promise<DiffViewerPatch>, props: ConciseDiffViewStateProps<unknown>) {
         this.diffViewerPatch = diffViewerPatch;
+        this.cacheKey = props.cacheKey.current;
         this.syntaxHighlighting = props.syntaxHighlighting.current;
         this.syntaxHighlightingTheme = props.syntaxHighlightingTheme.current;
         this.omitPatchHeaderOnlyHunks = props.omitPatchHeaderOnlyHunks.current;
@@ -1188,8 +1190,8 @@ export class ConciseDiffViewState<K> {
         });
 
         onDestroy(() => {
-            if (this.props.cache.current !== undefined && this.props.cacheKey.current !== undefined && this.cachedState !== undefined) {
-                this.props.cache.current.set(this.props.cacheKey.current, this.cachedState);
+            if (this.props.cache.current !== undefined && this.cachedState !== undefined) {
+                this.props.cache.current.set(this.cachedState.cacheKey as K, this.cachedState);
             }
         });
     }

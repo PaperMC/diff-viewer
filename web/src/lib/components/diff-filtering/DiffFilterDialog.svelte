@@ -1,14 +1,15 @@
 <script lang="ts">
     import { getFileStatusProps, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { Button, Dialog, ToggleGroup } from "bits-ui";
-    import { type FileNameFilterMode } from "./index.svelte";
+    import { type FilePathFilterMode } from "./index.svelte";
     import { FILE_STATUSES } from "$lib/github.svelte";
+    import { slide } from "svelte/transition";
 
     const viewer = MultiFileDiffViewerState.get();
     const instance = viewer.filter;
 
-    let newFileNameFilterInput = $state("");
-    let newFileNameFilterMode: FileNameFilterMode = $state("exclude");
+    let newFilePathFilterInput = $state("");
+    let newFilePathFilterMode: FilePathFilterMode = $state("exclude");
 </script>
 
 <Dialog.Root bind:open={viewer.diffFilterDialogOpen}>
@@ -41,6 +42,9 @@
                         </ToggleGroup.Item>
                     {/each}
                 </ToggleGroup.Root>
+                {#if instance.selectedFileStatuses.length === 0}
+                    <p transition:slide class="px-2 text-em-med italic">No file statuses selected; all files will be excluded.</p>
+                {/if}
             </section>
 
             <section class="m-4 mt-0">
@@ -50,27 +54,27 @@
                         class="mb-1 flex w-full items-center gap-1"
                         onsubmit={(e) => {
                             e.preventDefault();
-                            if (newFileNameFilterInput === "") return;
+                            if (newFilePathFilterInput === "") return;
                             // TODO error handling
-                            instance.addFileNameFilter(newFileNameFilterInput, newFileNameFilterMode);
-                            newFileNameFilterInput = "";
+                            instance.addFilePathFilter(newFilePathFilterInput, newFilePathFilterMode);
+                            newFilePathFilterInput = "";
                         }}
                     >
                         <input
                             type="text"
                             placeholder="Enter regular expression here..."
                             class="grow rounded-md border px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"
-                            bind:value={newFileNameFilterInput}
+                            bind:value={newFilePathFilterInput}
                         />
                         <Button.Root
                             type="button"
-                            title="Toggle include/exclude mode (currently {newFileNameFilterMode})"
+                            title="Toggle include/exclude mode (currently {newFilePathFilterMode})"
                             class="flex shrink-0 items-center justify-center rounded-md btn-fill-neutral p-2 text-em-med"
                             onclick={() => {
-                                newFileNameFilterMode = newFileNameFilterMode === "exclude" ? "include" : "exclude";
+                                newFilePathFilterMode = newFilePathFilterMode === "exclude" ? "include" : "exclude";
                             }}
                         >
-                            {#if newFileNameFilterMode === "exclude"}
+                            {#if newFilePathFilterMode === "exclude"}
                                 <span class="aria-hidden iconify octicon--filter-remove-16"></span>
                             {:else}
                                 <span class="aria-hidden iconify octicon--filter-16"></span>
@@ -81,7 +85,7 @@
                         </Button.Root>
                     </form>
                     <ul class="h-48 overflow-y-auto rounded-md border inset-shadow-xs">
-                        {#each instance.reverseFileNameFilters as filter, i (i)}
+                        {#each instance.reverseFilePathFilters as filter, i (i)}
                             <li class="flex gap-1 border-b px-2 py-1">
                                 <span class="grow">
                                     {filter.text}
@@ -98,14 +102,14 @@
                                     title="Delete filter"
                                     class="flex size-6 items-center justify-center rounded-sm btn-ghost-danger"
                                     onclick={() => {
-                                        instance.fileNameFilters.delete(filter);
+                                        instance.filePathFilters.delete(filter);
                                     }}
                                 >
                                     <span class="iconify size-4 shrink-0 place-self-center octicon--trash-16" aria-hidden="true"></span>
                                 </Button.Root>
                             </li>
                         {/each}
-                        {#if instance.reverseFileNameFilters.length === 0}
+                        {#if instance.reverseFilePathFilters.length === 0}
                             <li class="flex size-full items-center justify-center text-em-med">No file path filters. Add one using the above form.</li>
                         {/if}
                     </ul>
