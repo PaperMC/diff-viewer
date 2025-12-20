@@ -1,16 +1,17 @@
 <script lang="ts">
-    import { type FileTreeNodeData } from "$lib/util";
     import { type FileDetails, getFileStatusProps, MultiFileDiffViewerState, staticSidebar } from "$lib/diff-viewer.svelte";
     import Tree from "$lib/components/tree/Tree.svelte";
     import { type TreeNode } from "$lib/components/tree/index.svelte";
     import { on } from "svelte/events";
     import { createAttachmentKey, type Attachment } from "svelte/attachments";
     import { boolAttr } from "runed";
+    import type { FileTreeNodeData } from "$lib/components/sidebar/index.svelte";
 
     const viewer = MultiFileDiffViewerState.get();
+    const fileTree = viewer.fileTree;
 
     function filterFileNode(file: TreeNode<FileTreeNodeData>): boolean {
-        return file.data.type === "file" && viewer.filterFile(file.data.file);
+        return file.data.type === "file" && fileTree.filterFile(file.data.file);
     }
 
     function shouldScrollToFile(nodeInteractionEvent: Event): boolean {
@@ -101,28 +102,28 @@
             <input
                 type="text"
                 placeholder="Filter file tree..."
-                bind:value={viewer.fileTreeFilter}
+                bind:value={fileTree.filter}
                 class="w-full rounded-md border px-8 py-1 overflow-ellipsis focus:ring-2 focus:ring-focus focus:outline-none"
                 autocomplete="off"
             />
             <span aria-hidden="true" class="absolute top-1/2 left-2 iconify size-4 -translate-y-1/2 text-em-med octicon--filter-16"></span>
-            {#if viewer.fileTreeFilterDebounced.current}
+            {#if fileTree.filterDebounced.current}
                 <button
-                    class="absolute top-1/2 right-2 iconify size-4 -translate-y-1/2 text-gray-500 octicon--x-16 hover:text-gray-700"
-                    onclick={() => viewer.clearSearch()}
+                    class="absolute top-1/2 right-2 iconify size-4 -translate-y-1/2 text-em-med octicon--x-16 hover:text-em-high"
+                    onclick={() => (fileTree.filter = "")}
                     aria-label="clear filter"
                 ></button>
             {/if}
         </div>
     </div>
-    {#if viewer.filteredFileDetails.length !== viewer.fileDetails.length}
-        <div class="ms-2 mb-2 text-sm text-gray-600">
-            Showing {viewer.filteredFileDetails.length} of {viewer.fileDetails.length} files
+    {#if fileTree.filteredFileDetails.length !== viewer.filteredFileDetails.array.length}
+        <div class="ms-2 mb-2 text-sm text-em-med">
+            Showing {fileTree.filteredFileDetails.length} of {viewer.filteredFileDetails.array.length} files
         </div>
     {/if}
     <div class="flex h-full flex-col overflow-y-auto border-t">
         <div class="h-100">
-            <Tree roots={viewer.fileTreeRoots} filter={filterFileNode} bind:instance={viewer.tree}>
+            <Tree roots={fileTree.roots} filter={filterFileNode} bind:instance={fileTree.tree}>
                 {#snippet nodeRenderer({ node, collapsed, toggleCollapse })}
                     <div
                         role="button"

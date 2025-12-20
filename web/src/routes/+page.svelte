@@ -11,9 +11,10 @@
     import { GlobalOptions } from "$lib/global-options.svelte";
     import MenuBar from "$lib/components/menu-bar/MenuBar.svelte";
     import SettingsDialog from "$lib/components/settings/SettingsDialog.svelte";
-    import Sidebar from "./Sidebar.svelte";
+    import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
     import DiffWrapper from "./DiffWrapper.svelte";
     import { PaneGroup, Pane, PaneResizer } from "paneforge";
+    import DiffFilterDialog from "$lib/components/diff-filtering/DiffFilterDialog.svelte";
 
     let { data }: PageProps = $props();
     const globalOptions = GlobalOptions.get();
@@ -52,6 +53,7 @@
 
 <OpenDiffDialog bind:open={viewer.openDiffDialogOpen} />
 <SettingsDialog bind:open={viewer.settingsDialogOpen} />
+<DiffFilterDialog />
 
 {#snippet sidebarPane(order: number)}
     {#if !viewer.layoutState.sidebarCollapsed}
@@ -79,11 +81,11 @@
             </div>
         {/if}
         <div class="flex flex-row items-center gap-2 px-3 py-2">
-            <DiffStats add={viewer.stats.addedLines} remove={viewer.stats.removedLines} />
+            <DiffStats add={viewer.statsSummary.addedLines} remove={viewer.statsSummary.removedLines} />
             <DiffSearch />
         </div>
         <div class="flex flex-1 grow flex-col border-t">
-            <VList data={viewer.fileDetails} style="height: 100%;" getKey={(value) => value.index} bind:this={viewer.vlist}>
+            <VList data={viewer.filteredFileDetails.array} style="height: 100%;" getKey={(value) => value.index} bind:this={viewer.vlist}>
                 {#snippet children(value)}
                     <div id={`file-${value.index}`}>
                         <FileHeader {value} />
