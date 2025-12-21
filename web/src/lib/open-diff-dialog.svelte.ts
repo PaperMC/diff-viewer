@@ -3,7 +3,7 @@ import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFil
 import { SvelteSet } from "svelte/reactivity";
 import { type FileStatus } from "$lib/github.svelte";
 import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
-import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch } from "$lib/util";
+import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch, tryCompileRegex } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
 
 export interface OpenDiffDialogProps {
@@ -47,13 +47,9 @@ export class OpenDiffDialogState {
     }
 
     addBlacklistEntry() {
-        if (this.dirBlacklistInput === "") {
-            return;
-        }
-        try {
-            new RegExp(this.dirBlacklistInput); // Validate regex
-        } catch (e) {
-            alert("'" + this.dirBlacklistInput + "' is not a valid regex pattern. Error: " + e);
+        const result = tryCompileRegex(this.dirBlacklistInput);
+        if (!result.success) {
+            alert(result.error);
             return;
         }
         this.dirBlacklist.add(this.dirBlacklistInput);

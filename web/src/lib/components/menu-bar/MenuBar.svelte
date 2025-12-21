@@ -53,7 +53,7 @@
                 <Menubar.Item
                     class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
-                        viewer.openSettingsDialog();
+                        viewer.openDialog("settings");
                     }}
                 >
                     Open Settings
@@ -69,7 +69,7 @@
                 <Menubar.Item
                     class="flex justify-between gap-2 btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
-                        viewer.openOpenDiffDialog();
+                        viewer.openDialog("open-diff");
                     }}
                 >
                     Open
@@ -82,6 +82,14 @@
         <Menubar.Trigger class="btn-ghost px-2 py-1 text-sm data-[state=open]:btn-ghost-hover">View</Menubar.Trigger>
         <Menubar.Portal>
             <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
+                <Menubar.Item
+                    class="btn-ghost px-2 py-1 select-none"
+                    onSelect={() => {
+                        viewer.openDialog("diff-filter");
+                    }}
+                >
+                    Edit Filters
+                </Menubar.Item>
                 <Menubar.Item
                     class="btn-ghost px-2 py-1 select-none"
                     onSelect={() => {
@@ -137,7 +145,7 @@
                         }
                     }}
                 >
-                    Go to Selection
+                    Jump to Selection
                 </Menubar.Item>
             </Menubar.Content>
         </Menubar.Portal>

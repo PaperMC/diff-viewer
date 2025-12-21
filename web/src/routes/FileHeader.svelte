@@ -24,7 +24,7 @@
         const fileTreeElement = document.getElementById("file-tree-file-" + value.index);
         if (fileTreeElement) {
             popoverOpen = false;
-            viewer.tree?.expandParents((node) => node.type === "file" && node.file === value);
+            viewer.fileTree.tree?.expandParents((node) => node.type === "file" && node.file === value);
             requestAnimationFrame(() => {
                 fileTreeElement.focus();
             });
@@ -132,7 +132,7 @@
     data-selected={boolAttr(selected)}
 >
     {#if value.type === "text"}
-        <DiffStats brief add={viewer.stats.fileAddedLines[value.index]} remove={viewer.stats.fileRemovedLines[value.index]} />
+        <DiffStats brief add={value.addedLines} remove={value.removedLines} />
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-1">

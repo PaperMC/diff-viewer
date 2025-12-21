@@ -74,6 +74,7 @@ export function installGithubApp() {
 
 export type GithubPR = components["schemas"]["pull-request"];
 export type FileStatus = "added" | "removed" | "modified" | "renamed" | "renamed_modified";
+export const FILE_STATUSES: FileStatus[] = ["added", "removed", "modified", "renamed", "renamed_modified"];
 export type GithubUser = components["schemas"]["private-user"];
 export type GithubCommitDetails = components["schemas"]["commit"];
 export interface GithubTokenResponse {
