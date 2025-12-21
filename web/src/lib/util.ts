@@ -425,7 +425,11 @@ export type TryCompileRegexSuccess = { success: true; regex: RegExp; input: stri
 export type TryCompileRegexFailure = { success: false; error: string; input: string };
 export type TryCompileRegexResult = TryCompileRegexSuccess | TryCompileRegexFailure;
 
-export function tryCompileRegex(pattern: string): TryCompileRegexResult {
+export function tryCompileRegex(pattern: string, options?: { allowEmpty?: boolean }): TryCompileRegexResult {
+    const allowEmpty = options?.allowEmpty ?? false;
+    if (pattern === "" && !allowEmpty) {
+        return { success: false, error: "Pattern cannot be empty", input: pattern };
+    }
     try {
         return { success: true, regex: new RegExp(pattern), input: pattern };
     } catch (e) {

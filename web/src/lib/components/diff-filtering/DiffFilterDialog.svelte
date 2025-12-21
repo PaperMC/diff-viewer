@@ -1,7 +1,7 @@
 <script lang="ts">
     import { getFileStatusProps, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { Button, Dialog, ToggleGroup } from "bits-ui";
-    import { tryCompileRegex, type TryCompileRegexFailure } from "$lib/util";
+    import { tryCompileRegex } from "$lib/util";
     import { FILE_STATUSES } from "$lib/github.svelte";
     import { slide } from "svelte/transition";
     import { type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
@@ -11,12 +11,7 @@
 
     let newFilePathFilterElement: HTMLInputElement | undefined = $state();
     let newFilePathFilterInput = $state("");
-    let newFilePathFilterInputResult = $derived.by(() => {
-        if (newFilePathFilterInput === "") {
-            return { success: false, error: "No input provided", input: "" } satisfies TryCompileRegexFailure;
-        }
-        return tryCompileRegex(newFilePathFilterInput);
-    });
+    let newFilePathFilterInputResult = $derived(tryCompileRegex(newFilePathFilterInput));
     $effect(() => {
         if (newFilePathFilterElement && newFilePathFilterInputResult.success) {
             newFilePathFilterElement.setCustomValidity("");
