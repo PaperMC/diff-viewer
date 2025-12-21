@@ -420,3 +420,15 @@ export function animationFramePromise() {
 export async function yieldToBrowser() {
     await new Promise((resolve) => setTimeout(resolve, 0));
 }
+
+export type TryCompileRegexSuccess = { success: true; regex: RegExp; input: string };
+export type TryCompileRegexFailure = { success: false; error: string; input: string };
+export type TryCompileRegexResult = TryCompileRegexSuccess | TryCompileRegexFailure;
+
+export function tryCompileRegex(pattern: string): TryCompileRegexResult {
+    try {
+        return { success: true, regex: new RegExp(pattern), input: pattern };
+    } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : String(e), input: pattern };
+    }
+}

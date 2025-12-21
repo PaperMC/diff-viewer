@@ -1,5 +1,6 @@
 import type { FileDetails } from "$lib/diff-viewer.svelte";
 import { FILE_STATUSES } from "$lib/github.svelte";
+import type { TryCompileRegexSuccess } from "$lib/util";
 import { SvelteSet } from "svelte/reactivity";
 
 export type FilePathFilterMode = "include" | "exclude";
@@ -15,30 +16,16 @@ export class FilePathFilter {
     }
 }
 
-function tryCompileRegex(pattern: string): RegExp | undefined {
-    try {
-        return new RegExp(pattern);
-    } catch {
-        return undefined;
-    }
-}
-
 export class DiffFilterDialogState {
     filePathFilters = new SvelteSet<FilePathFilter>();
     reverseFilePathFilters = $derived([...this.filePathFilters].toReversed());
-    filePathInclusions = $derived(this.reverseFilePathFilters.filter((f) => f.mode === "include"));
-    filePathExclusions = $derived(this.reverseFilePathFilters.filter((f) => f.mode === "exclude"));
+    filterFunction = $derived(this.createFilterFunction());
 
     selectedFileStatuses: string[] = $state([...FILE_STATUSES]);
 
-    addFilePathFilter(filterString: string, mode: FilePathFilterMode): { invalidRegex: boolean } {
-        const compiled = tryCompileRegex(filterString);
-        if (!compiled) {
-            return { invalidRegex: true };
-        }
-        const newFilter = new FilePathFilter(filterString, compiled, mode);
+    addFilePathFilter(regex: TryCompileRegexSuccess, mode: FilePathFilterMode) {
+        const newFilter = new FilePathFilter(regex.input, regex.regex, mode);
         this.filePathFilters.add(newFilter);
-        return { invalidRegex: false };
     }
 
     setDefaults() {
@@ -47,23 +34,33 @@ export class DiffFilterDialogState {
     }
 
     filterFile(file: FileDetails): boolean {
-        const statusAllowed = this.selectedFileStatuses.includes(file.status);
-        if (!statusAllowed) {
-            return false;
-        }
-        for (const exclude of this.filePathExclusions) {
-            if (exclude.regex.test(file.toFile) || exclude.regex.test(file.fromFile)) {
+        return this.filterFunction(file);
+    }
+
+    private createFilterFunction() {
+        const filePathInclusions = this.reverseFilePathFilters.filter((f) => f.mode === "include");
+        const filePathExclusions = this.reverseFilePathFilters.filter((f) => f.mode === "exclude");
+        const selectedFileStatuses = [...this.selectedFileStatuses];
+
+        return (file: FileDetails) => {
+            const statusAllowed = selectedFileStatuses.includes(file.status);
+            if (!statusAllowed) {
                 return false;
             }
-        }
-        if (this.filePathInclusions.length > 0) {
-            for (const include of this.filePathInclusions) {
-                if (include.regex.test(file.toFile) || include.regex.test(file.fromFile)) {
-                    return true;
+            for (const exclude of filePathExclusions) {
+                if (exclude.regex.test(file.toFile) || exclude.regex.test(file.fromFile)) {
+                    return false;
                 }
             }
-            return false;
-        }
-        return true;
+            if (filePathInclusions.length > 0) {
+                for (const include of filePathInclusions) {
+                    if (include.regex.test(file.toFile) || include.regex.test(file.fromFile)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return true;
+        };
     }
 }

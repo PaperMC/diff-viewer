@@ -1,14 +1,30 @@
 <script lang="ts">
     import { getFileStatusProps, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { Button, Dialog, ToggleGroup } from "bits-ui";
-    import { type FilePathFilterMode } from "./index.svelte";
+    import { tryCompileRegex, type TryCompileRegexFailure } from "$lib/util";
     import { FILE_STATUSES } from "$lib/github.svelte";
     import { slide } from "svelte/transition";
+    import { type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
 
     const viewer = MultiFileDiffViewerState.get();
     const instance = viewer.filter;
 
+    let newFilePathFilterElement: HTMLInputElement | undefined = $state();
     let newFilePathFilterInput = $state("");
+    let newFilePathFilterInputResult = $derived.by(() => {
+        if (newFilePathFilterInput === "") {
+            return { success: false, error: "No input provided", input: "" } satisfies TryCompileRegexFailure;
+        }
+        return tryCompileRegex(newFilePathFilterInput);
+    });
+    $effect(() => {
+        if (newFilePathFilterElement && newFilePathFilterInputResult.success) {
+            newFilePathFilterElement.setCustomValidity("");
+        } else if (newFilePathFilterElement && !newFilePathFilterInputResult.success) {
+            newFilePathFilterElement.setCustomValidity(newFilePathFilterInputResult.error);
+        }
+    });
+
     let newFilePathFilterMode: FilePathFilterMode = $state("exclude");
 </script>
 
@@ -54,9 +70,8 @@
                         class="mb-1 flex w-full items-center gap-1"
                         onsubmit={(e) => {
                             e.preventDefault();
-                            if (newFilePathFilterInput === "") return;
-                            // TODO error handling
-                            instance.addFilePathFilter(newFilePathFilterInput, newFilePathFilterMode);
+                            if (!newFilePathFilterInputResult.success) return;
+                            instance.addFilePathFilter(newFilePathFilterInputResult, newFilePathFilterMode);
                             newFilePathFilterInput = "";
                         }}
                     >
@@ -65,6 +80,7 @@
                             placeholder="Enter regular expression here..."
                             class="grow rounded-md border px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"
                             bind:value={newFilePathFilterInput}
+                            bind:this={newFilePathFilterElement}
                         />
                         <Button.Root
                             type="button"
@@ -110,7 +126,7 @@
                             </li>
                         {/each}
                         {#if instance.reverseFilePathFilters.length === 0}
-                            <li class="flex size-full items-center justify-center text-em-med">No file path filters. Add one using the above form.</li>
+                            <li class="flex size-full items-center justify-center px-4 text-em-med">No file path filters. Add one using the above form.</li>
                         {/if}
                     </ul>
                 </div>
