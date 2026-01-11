@@ -135,23 +135,23 @@
                 </div>
             </section>
 
-            <section class="m-4">
+            <section class="m-4 flex flex-wrap gap-1">
                 <Button.Root
-                    class="rounded-md btn-fill-danger px-2 py-1"
+                    class="flex items-center gap-2 rounded-md btn-fill-danger px-2 py-1"
                     onclick={() => {
                         instance.setDefaults();
                     }}
                 >
-                    Clear Filters
+                    <span class="iconify shrink-0 octicon--trash-16" aria-hidden="true"></span>Clear Filters
                 </Button.Root>
                 {#if mode === "session"}
                     <Button.Root
-                        class="rounded-md btn-fill-danger px-2 py-1"
+                        class="flex items-center gap-2 rounded-md btn-fill-danger px-2 py-1"
                         onclick={() => {
                             instance.setFrom(globalOptions.defaultFilters);
                         }}
                     >
-                        Reset Filters To Defaults
+                        <span class="iconify shrink-0 octicon--undo-16" aria-hidden="true"></span>Reset Filters To Defaults
                     </Button.Root>
                 {/if}
             </section>
