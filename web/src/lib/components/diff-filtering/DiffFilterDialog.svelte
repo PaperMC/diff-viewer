@@ -1,13 +1,12 @@
 <script lang="ts">
-    import { getFileStatusProps, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
+    import { getFileStatusProps } from "$lib/diff-viewer.svelte";
     import { Button, Dialog, ToggleGroup } from "bits-ui";
     import { tryCompileRegex } from "$lib/util";
     import { FILE_STATUSES } from "$lib/github.svelte";
     import { slide } from "svelte/transition";
-    import { type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
+    import { type DiffFilterDialogProps, type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
 
-    const viewer = MultiFileDiffViewerState.get();
-    const instance = viewer.filter;
+    let { instance, title, open = $bindable() }: DiffFilterDialogProps = $props();
 
     let newFilePathFilterElement: HTMLInputElement | undefined = $state();
     let newFilePathFilterInput = $state("");
@@ -23,7 +22,7 @@
     let newFilePathFilterMode: FilePathFilterMode = $state("exclude");
 </script>
 
-<Dialog.Root bind:open={viewer.diffFilterDialogOpen}>
+<Dialog.Root bind:open>
     <Dialog.Portal>
         <Dialog.Overlay
             class="fixed inset-0 z-50 bg-black/50 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0"
@@ -32,7 +31,7 @@
             class="fixed top-1/2 left-1/2 z-50 flex max-h-svh w-2xl max-w-full -translate-x-1/2 -translate-y-1/2 flex-col rounded-sm border bg-neutral shadow-md data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 sm:max-w-[95%]"
         >
             <header class="flex shrink-0 flex-row items-center justify-between rounded-t-sm border-b bg-neutral-2 p-4">
-                <Dialog.Title class="text-xl font-semibold">Edit Filters</Dialog.Title>
+                <Dialog.Title class="text-xl font-semibold">{title}</Dialog.Title>
                 <Dialog.Close title="Close dialog" class="flex size-6 items-center justify-center rounded-sm btn-ghost text-em-med">
                     <span class="iconify octicon--x-16" aria-hidden="true"></span>
                 </Dialog.Close>

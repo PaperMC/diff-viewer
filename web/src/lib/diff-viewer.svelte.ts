@@ -32,6 +32,7 @@ import { afterNavigate, goto, replaceState } from "$app/navigation";
 import { type AfterNavigate } from "@sveltejs/kit";
 import { DiffFilterDialogState } from "./components/diff-filtering/index.svelte";
 import { FileTreeState } from "./components/sidebar/index.svelte";
+import { GlobalOptions } from "./global-options.svelte";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -326,6 +327,8 @@ export class MultiFileDiffViewerState {
         return MultiFileDiffViewerState.context.get();
     }
 
+    globalOptions = GlobalOptions.get();
+
     // Main diff state
     readonly filter = new DiffFilterDialogState();
     diffMetadata: DiffMetadata | null = $state(null);
@@ -610,6 +613,7 @@ export class MultiFileDiffViewerState {
         this.fileDetails = [];
         this.clearImages();
         this.vlist?.scrollToIndex(0, { align: "start" });
+        this.filter.setFrom(this.globalOptions.defaultFilters);
     }
 
     async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>, opts?: LoadPatchesOptions) {

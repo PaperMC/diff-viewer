@@ -3,6 +3,7 @@ import { browser } from "$app/environment";
 import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
 import { setCookie, watchLocalStorage } from "$lib/util";
 import { Context } from "runed";
+import { DiffFilterDialogState } from "./components/diff-filtering/index.svelte";
 
 export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
 export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
@@ -41,6 +42,7 @@ export class GlobalOptions {
     lineWrap = $state(true);
     omitPatchHeaderOnlyHunks = $state(true);
     sidebarLocation: SidebarLocation = $state("left");
+    defaultFilters = new DiffFilterDialogState();
 
     private constructor() {
         $effect(() => {
@@ -86,6 +88,10 @@ export class GlobalOptions {
         if (this.syntaxHighlightingThemeDark !== DEFAULT_THEME_DARK) {
             cereal.syntaxHighlightingThemeDark = this.syntaxHighlightingThemeDark;
         }
+        const defaultFiltersCereal = this.defaultFilters.serialize();
+        if (defaultFiltersCereal !== null) {
+            cereal.defaultFilters = defaultFiltersCereal;
+        }
         return JSON.stringify(cereal);
     }
 
@@ -101,6 +107,7 @@ export class GlobalOptions {
         try {
             const jsonObject = JSON.parse(serialized);
             this.loadFrom(jsonObject);
+            this.defaultFilters.loadFrom(jsonObject.defaultFilters);
         } catch {
             // Ignore invalid options
         }

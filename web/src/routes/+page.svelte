@@ -53,7 +53,7 @@
 
 <OpenDiffDialog bind:open={viewer.openDiffDialogOpen} />
 <SettingsDialog bind:open={viewer.settingsDialogOpen} />
-<DiffFilterDialog />
+<DiffFilterDialog title="Edit Filters" bind:open={viewer.diffFilterDialogOpen} instance={viewer.filter} />
 
 {#snippet sidebarPane(order: number)}
     {#if !viewer.layoutState.sidebarCollapsed}

@@ -16,6 +16,12 @@ export class FilePathFilter {
     }
 }
 
+export interface DiffFilterDialogProps {
+    instance: DiffFilterDialogState;
+    title: string;
+    open: boolean;
+}
+
 export class DiffFilterDialogState {
     filePathFilters = new SvelteSet<FilePathFilter>();
     reverseFilePathFilters = $derived([...this.filePathFilters].toReversed());
@@ -62,5 +68,51 @@ export class DiffFilterDialogState {
             }
             return true;
         };
+    }
+
+    serialize(): object | null {
+        if (this.filePathFilters.size === 0 && this.selectedFileStatuses.length === FILE_STATUSES.length) {
+            return null;
+        }
+        return {
+            filePathFilters: Array.from(this.filePathFilters).map((filter) => ({
+                text: filter.text,
+                regex: filter.regex.source,
+                mode: filter.mode,
+            })),
+            selectedFileStatuses: this.selectedFileStatuses,
+        };
+    }
+
+    loadFrom(data: object | undefined | null) {
+        if (data === undefined || data === null) {
+            this.setDefaults();
+            return;
+        }
+
+        const parsed = data as {
+            filePathFilters?: { text: string; regex: string; mode: FilePathFilterMode }[];
+            selectedFileStatuses?: string[];
+        };
+
+        this.filePathFilters.clear();
+        if (parsed.filePathFilters) {
+            for (const filter of parsed.filePathFilters) {
+                const regex = new RegExp(filter.regex);
+                this.filePathFilters.add(new FilePathFilter(filter.text, regex, filter.mode));
+            }
+        }
+
+        if (parsed.selectedFileStatuses) {
+            this.selectedFileStatuses = parsed.selectedFileStatuses;
+        }
+    }
+
+    setFrom(other: DiffFilterDialogState) {
+        this.filePathFilters.clear();
+        for (const filter of other.filePathFilters) {
+            this.filePathFilters.add(new FilePathFilter(filter.text, filter.regex, filter.mode));
+        }
+        this.selectedFileStatuses = [...other.selectedFileStatuses];
     }
 }
