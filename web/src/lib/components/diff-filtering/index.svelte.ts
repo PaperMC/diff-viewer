@@ -18,7 +18,7 @@ export class FilePathFilter {
 
 export interface DiffFilterDialogProps {
     instance: DiffFilterDialogState;
-    title: string;
+    mode: "session" | "defaults";
     open: boolean;
 }
 

@@ -12,6 +12,7 @@
 
     import ShikiThemeSelector from "./ShikiThemeSelector.svelte";
     import DiffFilterDialog from "../diff-filtering/DiffFilterDialog.svelte";
+    import { watch } from "runed";
     interface Props {
         open?: boolean;
     }
@@ -21,6 +22,15 @@
     const globalOptions = GlobalOptions.get();
 
     let defaultFiltersDialogOpen = $state(false);
+    watch(
+        () => open,
+        (v) => {
+            if (!v) {
+                // Close child dialogs when this dialog is closed
+                defaultFiltersDialogOpen = false;
+            }
+        },
+    );
 </script>
 
 {#snippet sectionHeader(text: string)}
@@ -84,4 +94,4 @@
     </Dialog.Portal>
 </Dialog.Root>
 
-<DiffFilterDialog title="Edit Default Filters" bind:open={defaultFiltersDialogOpen} instance={globalOptions.defaultFilters} />
+<DiffFilterDialog mode="defaults" bind:open={defaultFiltersDialogOpen} instance={globalOptions.defaultFilters} />

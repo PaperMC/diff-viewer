@@ -15,6 +15,7 @@
     import DiffWrapper from "./DiffWrapper.svelte";
     import { PaneGroup, Pane, PaneResizer } from "paneforge";
     import DiffFilterDialog from "$lib/components/diff-filtering/DiffFilterDialog.svelte";
+    import DiffFilterIndicator from "$lib/components/diff-filtering/DiffFilterIndicator.svelte";
 
     let { data }: PageProps = $props();
     const globalOptions = GlobalOptions.get();
@@ -53,7 +54,7 @@
 
 <OpenDiffDialog bind:open={viewer.openDiffDialogOpen} />
 <SettingsDialog bind:open={viewer.settingsDialogOpen} />
-<DiffFilterDialog title="Edit Filters" bind:open={viewer.diffFilterDialogOpen} instance={viewer.filter} />
+<DiffFilterDialog mode="session" bind:open={viewer.diffFilterDialogOpen} instance={viewer.filter} />
 
 {#snippet sidebarPane(order: number)}
     {#if !viewer.layoutState.sidebarCollapsed}
@@ -82,6 +83,7 @@
         {/if}
         <div class="flex flex-row items-center gap-2 px-3 py-2">
             <DiffStats add={viewer.statsSummary.addedLines} remove={viewer.statsSummary.removedLines} />
+            <DiffFilterIndicator />
             <DiffSearch />
         </div>
         <div class="flex flex-1 grow flex-col border-t">
