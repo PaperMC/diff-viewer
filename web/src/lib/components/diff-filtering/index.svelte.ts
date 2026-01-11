@@ -1,5 +1,5 @@
 import type { FileDetails } from "$lib/diff-viewer.svelte";
-import { FILE_STATUSES } from "$lib/github.svelte";
+import { FILE_STATUSES, type FileStatus } from "$lib/github.svelte";
 import type { TryCompileRegexSuccess } from "$lib/util";
 import { SvelteSet } from "svelte/reactivity";
 
@@ -98,13 +98,18 @@ export class DiffFilterDialogState {
         this.filePathFilters.clear();
         if (parsed.filePathFilters) {
             for (const filter of parsed.filePathFilters) {
-                const regex = new RegExp(filter.regex);
-                this.filePathFilters.add(new FilePathFilter(filter.text, regex, filter.mode));
+                try {
+                    const regex = new RegExp(filter.regex);
+                    this.filePathFilters.add(new FilePathFilter(filter.text, regex, filter.mode));
+                } catch {
+                    continue;
+                }
             }
         }
 
         if (parsed.selectedFileStatuses) {
-            this.selectedFileStatuses = parsed.selectedFileStatuses;
+            const validStatuses = parsed.selectedFileStatuses.filter((status) => FILE_STATUSES.includes(status as FileStatus));
+            this.selectedFileStatuses = validStatuses;
         }
     }
 
