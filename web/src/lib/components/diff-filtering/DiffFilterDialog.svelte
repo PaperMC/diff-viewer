@@ -104,7 +104,7 @@
                         </Button.Root>
                     </form>
                     <ul class="h-48 overflow-y-auto rounded-md border inset-shadow-xs">
-                        {#each instance.reverseFilePathFilters as filter, i (i)}
+                        {#each instance.reverseFilePathFilters as filter (filter)}
                             <li class="flex gap-1 border-b px-2 py-1">
                                 <span class="grow">
                                     {filter.text}
