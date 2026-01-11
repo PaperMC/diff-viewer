@@ -56,7 +56,7 @@
                             value={status}
                             class="flex cursor-pointer items-center gap-1 rounded-sm btn-ghost px-2 py-1 data-[state=off]:text-em-med data-[state=off]:hover:text-em-high data-[state=on]:btn-ghost-visible"
                         >
-                            <span class="aria-hidden size-4 {statusProps.iconClasses}"></span>
+                            <span aria-hidden="true" class="size-4 {statusProps.iconClasses}"></span>
                             {statusProps.title}
                         </ToggleGroup.Item>
                     {/each}
@@ -94,9 +94,9 @@
                             }}
                         >
                             {#if newFilePathFilterMode === "exclude"}
-                                <span class="aria-hidden iconify octicon--filter-remove-16"></span>
+                                <span aria-hidden="true" class="iconify octicon--filter-remove-16"></span>
                             {:else}
-                                <span class="aria-hidden iconify octicon--filter-16"></span>
+                                <span aria-hidden="true" class="iconify octicon--filter-16"></span>
                             {/if}
                         </Button.Root>
                         <Button.Root type="submit" title="Add filter" class="flex shrink-0 items-center justify-center rounded-md btn-fill-primary p-2">
@@ -111,9 +111,9 @@
                                 </span>
                                 <div class="flex size-6 shrink-0 items-center justify-center">
                                     {#if filter.mode === "exclude"}
-                                        <span class="aria-hidden iconify size-4 text-em-med octicon--filter-remove-16"></span>
+                                        <span aria-hidden="true" class="iconify size-4 text-em-med octicon--filter-remove-16"></span>
                                     {:else}
-                                        <span class="aria-hidden iconify size-4 text-em-med octicon--filter-16"></span>
+                                        <span aria-hidden="true" class="iconify size-4 text-em-med octicon--filter-16"></span>
                                     {/if}
                                 </div>
                                 <Button.Root
