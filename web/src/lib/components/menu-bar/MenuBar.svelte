@@ -83,7 +83,7 @@
         <Menubar.Portal>
             <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
                 <Menubar.Item
-                    class="data-disabled:cursor-notallowed btn-ghost px-2 py-1 select-none data-disabled:pointer-events-none data-disabled:text-em-disabled"
+                    class="btn-ghost px-2 py-1 select-none data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:text-em-disabled"
                     disabled={viewer.diffMetadata === null}
                     onSelect={() => {
                         viewer.openDialog("diff-filter");
@@ -132,7 +132,7 @@
         <Menubar.Portal>
             <Menubar.Content class="z-20 border bg-neutral text-sm" align="start">
                 <Menubar.Item
-                    class="data-disabled:cursor-notallowed btn-ghost px-2 py-1 select-none data-disabled:pointer-events-none data-disabled:text-em-disabled"
+                    class="btn-ghost px-2 py-1 select-none data-disabled:pointer-events-none data-disabled:cursor-not-allowed data-disabled:text-em-disabled"
                     disabled={viewer.selection === undefined}
                     onSelect={() => {
                         if (viewer.selection) {
