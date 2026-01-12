@@ -62,7 +62,9 @@
                     {/each}
                 </ToggleGroup.Root>
                 {#if instance.selectedFileStatuses.length === 0}
-                    <p transition:slide class="px-2 text-em-med italic">No file statuses selected; all files will be excluded.</p>
+                    <p transition:slide class="mt-2 rounded-md border border-red-500 bg-red-500/10 px-2 py-1 font-medium">
+                        No file statuses selected; all files will be excluded.
+                    </p>
                 {/if}
             </section>
 
