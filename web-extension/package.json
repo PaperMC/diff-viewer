@@ -23,7 +23,7 @@
         "chrome-types": "^0.1.408",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
-        "globals": "^16.5.0",
+        "globals": "^17.0.0",
         "prettier": "^3.7.4",
         "prettier-plugin-tailwindcss": "^0.7.2",
         "typescript": "^5.9.3",
