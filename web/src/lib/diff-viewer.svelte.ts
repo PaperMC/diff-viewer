@@ -533,6 +533,12 @@ export class MultiFileDiffViewerState {
 
     scrollToFile(fileIdx: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
         if (!this.vlist) return;
+        const vlistFileIdx = this.filteredFileDetails.vlistIndices[fileIdx];
+        if (vlistFileIdx === -1) {
+            // File is filtered out, cannot scroll to it.
+            // This should only happen when a file is selected via URL but excluded by default filters.
+            return;
+        }
 
         const autoExpand = options.autoExpand ?? true;
         const smooth = options.smooth ?? false;
@@ -543,7 +549,6 @@ export class MultiFileDiffViewerState {
             // Auto-expand on jump when not checked
             fileState.collapsed = false;
         }
-        const vlistFileIdx = this.filteredFileDetails.vlistIndices[fileIdx];
         this.vlist.scrollToIndex(vlistFileIdx, { align: "start", smooth });
         if (focus) {
             requestAnimationFrame(() => {
