@@ -19,9 +19,8 @@ import {
     parseLineRef,
     type UnresolvedLineSelection,
 } from "$lib/components/diff/concise-diff-view.svelte";
-import { countOccurrences, type FileTreeNodeData, makeFileTree, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
+import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
-import { type TreeNode, TreeState } from "$lib/components/tree/index.svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
@@ -31,6 +30,9 @@ import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
 import { page } from "$app/state";
 import { afterNavigate, goto, replaceState } from "$app/navigation";
 import { type AfterNavigate } from "@sveltejs/kit";
+import { DiffFilterDialogState } from "./components/diff-filtering/index.svelte";
+import { FileTreeState } from "./components/sidebar/index.svelte";
+import { GlobalOptions } from "./global-options.svelte";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -50,6 +52,8 @@ export interface TextFileDetails extends CommonFileDetails {
     type: "text";
     structuredPatch: StructuredPatch;
     patchHeaderDiffOnly: boolean;
+    addedLines: number;
+    removedLines: number;
 }
 
 export interface ImageFileDetails extends CommonFileDetails {
@@ -59,6 +63,23 @@ export interface ImageFileDetails extends CommonFileDetails {
 
 export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
     const patch = parseSinglePatch(patchText);
+
+    let addedLines = 0;
+    let removedLines = 0;
+    for (let j = 0; j < patch.hunks.length; j++) {
+        const hunk = patch.hunks[j];
+
+        for (let k = 0; k < hunk.lines.length; k++) {
+            const line = hunk.lines[k];
+
+            if (line.startsWith("+")) {
+                addedLines++;
+            } else if (line.startsWith("-")) {
+                removedLines++;
+            }
+        }
+    }
+
     return {
         index: -1,
         type: "text",
@@ -67,6 +88,8 @@ export function makeTextDetails(fromFile: string, toFile: string, status: FileSt
         status,
         structuredPatch: patch,
         patchHeaderDiffOnly: patchHeaderDiffOnly(patch),
+        addedLines,
+        removedLines,
     };
 }
 
@@ -254,13 +277,6 @@ export function getFileStatusProps(status: FileStatus): FileStatusProps {
     }
 }
 
-export interface ViewerStatistics {
-    addedLines: number;
-    removedLines: number;
-    fileAddedLines: number[];
-    fileRemovedLines: number[];
-}
-
 export interface BaseDiffMetadata {
     linkable: boolean;
 }
@@ -298,6 +314,8 @@ export interface LoadPatchesOptions {
     state?: "push" | "replace";
 }
 
+export type DialogId = "open-diff" | "settings" | "diff-filter";
+
 export class MultiFileDiffViewerState {
     private static readonly context = new Context<MultiFileDiffViewerState>("MultiFileDiffViewerState");
 
@@ -309,15 +327,42 @@ export class MultiFileDiffViewerState {
         return MultiFileDiffViewerState.context.get();
     }
 
+    globalOptions = GlobalOptions.get();
+
     // Main diff state
+    readonly filter = new DiffFilterDialogState();
     diffMetadata: DiffMetadata | null = $state(null);
     fileDetails: FileDetails[] = $state([]); // Read-only state
+    readonly filteredFileDetails = $derived.by(() => {
+        const filtered: FileDetails[] = [];
+        const vlistIndices: number[] = [];
+        for (let i = 0; i < this.fileDetails.length; i++) {
+            const file = this.fileDetails[i];
+            if (this.filter.filterFile(file)) {
+                const newLen = filtered.push(file);
+                vlistIndices[file.index] = newLen - 1;
+            } else {
+                vlistIndices[file.index] = -1;
+            }
+        }
+        return { array: filtered, vlistIndices };
+    });
     fileStates: FileState[] = $state([]); // Mutable state
-    stats: ViewerStatistics = $state({
-        addedLines: 0,
-        removedLines: 0,
-        fileAddedLines: [],
-        fileRemovedLines: [],
+    readonly statsSummary = $derived.by(() => {
+        let addedLines = 0;
+        let removedLines = 0;
+        for (let i = 0; i < this.filteredFileDetails.array.length; i++) {
+            const details = this.filteredFileDetails.array[i];
+            if (details.type !== "text") {
+                continue;
+            }
+            addedLines += details.addedLines;
+            removedLines += details.removedLines;
+        }
+        return {
+            addedLines,
+            removedLines,
+        };
     });
 
     // Content search state
@@ -327,13 +372,7 @@ export class MultiFileDiffViewerState {
     jumpToSearchResult: boolean = $state(false);
 
     // File tree state
-    tree: TreeState<FileTreeNodeData> | undefined = $state();
-    fileTreeFilter: string = $state("");
-    readonly fileTreeRoots: TreeNode<FileTreeNodeData>[] = $derived(makeFileTree(this.fileDetails));
-    readonly fileTreeFilterDebounced = new Debounced(() => this.fileTreeFilter, 500);
-    readonly filteredFileDetails: FileDetails[] = $derived(
-        this.fileTreeFilterDebounced.current ? this.fileDetails.filter((f) => this.filterFile(f)) : this.fileDetails,
-    );
+    readonly fileTree = new FileTreeState(this);
 
     // Selection state
     urlSelection: UnresolvedSelection | undefined = $state();
@@ -344,11 +383,12 @@ export class MultiFileDiffViewerState {
     diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
     vlist: VList<FileDetails> | undefined = $state();
     readonly loadingState = new LoadingState();
-    readonly layoutState;
+    readonly layoutState: LayoutState;
 
     // Transient state
     openDiffDialogOpen = $state(false);
     settingsDialogOpen = $state(false);
+    diffFilterDialogOpen = $state(false);
     activeSearchResult: ActiveSearchResult | null = $state(null);
 
     private constructor(layoutState: PersistentLayoutState | null) {
@@ -372,8 +412,8 @@ export class MultiFileDiffViewerState {
 
     private registerKeybinds() {
         const keybinds = new Keybinds();
-        keybinds.registerModifierBind("o", () => this.openOpenDiffDialog());
-        keybinds.registerModifierBind(",", () => this.openSettingsDialog());
+        keybinds.registerModifierBind("o", () => this.openDialog("open-diff"));
+        keybinds.registerModifierBind(",", () => this.openDialog("settings"));
         keybinds.registerModifierBind("b", () => this.layoutState.toggleSidebar());
     }
 
@@ -414,23 +454,10 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    openOpenDiffDialog() {
-        this.openDiffDialogOpen = true;
-        this.settingsDialogOpen = false;
-    }
-
-    openSettingsDialog() {
-        this.settingsDialogOpen = true;
-        this.openDiffDialogOpen = false;
-    }
-
-    filterFile(file: FileDetails): boolean {
-        const queryLower = this.fileTreeFilterDebounced.current.toLowerCase();
-        return file.toFile.toLowerCase().includes(queryLower) || file.fromFile.toLowerCase().includes(queryLower);
-    }
-
-    clearSearch() {
-        this.fileTreeFilter = "";
+    openDialog(id: DialogId) {
+        this.openDiffDialogOpen = id === "open-diff";
+        this.settingsDialogOpen = id === "settings";
+        this.diffFilterDialogOpen = id === "diff-filter";
     }
 
     toggleCollapse(idx: number) {
@@ -504,22 +531,28 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    scrollToFile(index: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
+    scrollToFile(fileIdx: number, options: { autoExpand?: boolean; smooth?: boolean; focus?: boolean } = {}) {
         if (!this.vlist) return;
+        const vlistFileIdx = this.filteredFileDetails.vlistIndices[fileIdx];
+        if (vlistFileIdx === -1) {
+            // File is filtered out, cannot scroll to it.
+            // This should only happen when a file is selected via URL but excluded by default filters.
+            return;
+        }
 
         const autoExpand = options.autoExpand ?? true;
         const smooth = options.smooth ?? false;
         const focus = options.focus ?? false;
 
-        const fileState = this.fileStates[index];
+        const fileState = this.fileStates[fileIdx];
         if (autoExpand && !fileState.checked) {
             // Auto-expand on jump when not checked
             fileState.collapsed = false;
         }
-        this.vlist.scrollToIndex(index, { align: "start", smooth });
+        this.vlist.scrollToIndex(vlistFileIdx, { align: "start", smooth });
         if (focus) {
             requestAnimationFrame(() => {
-                const headerElement = document.getElementById(`file-header-${index}`);
+                const headerElement = document.getElementById(`file-header-${fileIdx}`);
                 headerElement?.focus();
             });
         }
@@ -529,16 +562,17 @@ export class MultiFileDiffViewerState {
     // https://github.com/inokawa/virtua/discussions/542#discussioncomment-11214618
     async scrollToMatch(file: FileDetails, idx: number) {
         if (!this.vlist) return;
-        const fileIdx = file.index;
-        this.fileStates[fileIdx].collapsed = false;
+        this.fileStates[file.index].collapsed = false;
+
         const startIdx = this.vlist.findItemIndex(this.vlist.scrollOffset);
         const endIdx = this.vlist.findItemIndex(this.vlist.scrollOffset + this.vlist.viewportSize);
-        if (fileIdx < startIdx || fileIdx > endIdx) {
-            this.vlist.scrollToIndex(fileIdx, { align: "start" });
+        const vlistFileIdx = this.filteredFileDetails.vlistIndices[file.index];
+        if (vlistFileIdx < startIdx || vlistFileIdx > endIdx) {
+            this.vlist.scrollToIndex(vlistFileIdx, { align: "start" });
         }
 
         requestAnimationFrame(() => {
-            const fileElement = document.getElementById(`file-${fileIdx}`);
+            const fileElement = document.getElementById(`file-${file.index}`);
             const resultElement = fileElement?.querySelector(`[data-match-id='${idx}']`) as HTMLElement | null | undefined;
             if (!resultElement) {
                 this.jumpToSearchResult = true;
@@ -584,6 +618,7 @@ export class MultiFileDiffViewerState {
         this.fileDetails = [];
         this.clearImages();
         this.vlist?.scrollToIndex(0, { align: "start" });
+        this.filter.setFrom(this.globalOptions.defaultFilters);
     }
 
     async loadPatches(meta: () => Promise<DiffMetadata>, patches: () => Promise<AsyncGenerator<FileDetails, void>>, opts?: LoadPatchesOptions) {
@@ -662,7 +697,6 @@ export class MultiFileDiffViewerState {
 
             this.fileDetails = tempDetails;
             this.fileStates = statesArray;
-            this.stats = this.countStats();
 
             await tick();
             await animationFramePromise();
@@ -763,39 +797,6 @@ export class MultiFileDiffViewerState {
 
         alert("Unsupported URL type " + url);
         return false;
-    }
-
-    private countStats(): ViewerStatistics {
-        let addedLines = 0;
-        let removedLines = 0;
-        const fileAddedLines: number[] = [];
-        const fileRemovedLines: number[] = [];
-
-        for (let i = 0; i < this.fileDetails.length; i++) {
-            const details = this.fileDetails[i];
-            if (details.type !== "text") {
-                continue;
-            }
-            const diff = details.structuredPatch;
-
-            for (let j = 0; j < diff.hunks.length; j++) {
-                const hunk = diff.hunks[j];
-
-                for (let k = 0; k < hunk.lines.length; k++) {
-                    const line = hunk.lines[k];
-
-                    if (line.startsWith("+")) {
-                        addedLines++;
-                        fileAddedLines[i] = (fileAddedLines[i] || 0) + 1;
-                    } else if (line.startsWith("-")) {
-                        removedLines++;
-                        fileRemovedLines[i] = (fileRemovedLines[i] || 0) + 1;
-                    }
-                }
-            }
-        }
-
-        return { addedLines, removedLines, fileAddedLines, fileRemovedLines };
     }
 
     private async findSearchResults(): Promise<SearchResults> {

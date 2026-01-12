@@ -4,13 +4,15 @@
 
 <script lang="ts">
     import SettingsGroup from "./SettingsGroup.svelte";
-    import { Label, Dialog } from "bits-ui";
+    import { Label, Dialog, Button } from "bits-ui";
     import SimpleRadioGroup from "$lib/components/settings/SimpleRadioGroup.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
     import { getGlobalTheme, setGlobalTheme } from "$lib/theme.svelte";
     import LabeledCheckbox from "../LabeledCheckbox.svelte";
 
     import ShikiThemeSelector from "./ShikiThemeSelector.svelte";
+    import DiffFilterDialog from "../diff-filtering/DiffFilterDialog.svelte";
+    import { watch } from "runed";
     interface Props {
         open?: boolean;
     }
@@ -18,6 +20,17 @@
     let { open = $bindable(false) }: Props = $props();
 
     const globalOptions = GlobalOptions.get();
+
+    let defaultFiltersDialogOpen = $state(false);
+    watch(
+        () => open,
+        (v) => {
+            if (!v) {
+                // Close child dialogs when this dialog is closed
+                defaultFiltersDialogOpen = false;
+            }
+        },
+    );
 </script>
 
 {#snippet sectionHeader(text: string)}
@@ -67,8 +80,18 @@
                             bind:value={globalOptions.sidebarLocation}
                         />
                     </div>
+                    <Button.Root
+                        class="w-fit rounded-sm btn-fill-neutral px-2 py-1"
+                        onclick={() => {
+                            defaultFiltersDialogOpen = true;
+                        }}
+                    >
+                        Edit Default Filters
+                    </Button.Root>
                 </SettingsGroup>
             </div>
         </Dialog.Content>
     </Dialog.Portal>
 </Dialog.Root>
+
+<DiffFilterDialog mode="defaults" bind:open={defaultFiltersDialogOpen} instance={globalOptions.defaultFilters} />
