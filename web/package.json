@@ -56,6 +56,6 @@
         "runed": "^0.37.1",
         "shiki": "^3.21.0",
         "svelte-toolbelt": "^0.10.6",
-        "virtua": "0.48.2"
+        "virtua": "0.48.3"
     }
 }
