@@ -54,7 +54,7 @@
         "luxon": "^3.7.2",
         "paneforge": "^1.0.2",
         "runed": "^0.37.1",
-        "shiki": "^3.21.0",
+        "shiki": "^4.0.0",
         "svelte-toolbelt": "^0.10.6",
         "virtua": "0.48.2"
     }
