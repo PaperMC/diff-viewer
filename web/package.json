@@ -50,7 +50,7 @@
     "dependencies": {
         "bits-ui": "^2.15.4",
         "chroma-js": "^3.2.0",
-        "diff": "^8.0.2",
+        "diff": "^9.0.0",
         "luxon": "^3.7.2",
         "paneforge": "^1.0.2",
         "runed": "^0.37.1",
