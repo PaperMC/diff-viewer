@@ -3,7 +3,7 @@
     import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import DiffStats from "$lib/components/diff/DiffStats.svelte";
     import DiffSearch from "./DiffSearch.svelte";
-    import FileHeader from "./FileHeader.svelte";
+    import FileHeader from "$lib/components/diff/FileHeader.svelte";
     import DiffTitle from "./DiffTitle.svelte";
     import OpenDiffDialog from "./OpenDiffDialog.svelte";
     import type { PageProps } from "./$types";
