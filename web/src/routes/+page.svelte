@@ -12,7 +12,7 @@
     import MenuBar from "$lib/components/menu-bar/MenuBar.svelte";
     import SettingsDialog from "$lib/components/settings/SettingsDialog.svelte";
     import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
-    import DiffWrapper from "./DiffWrapper.svelte";
+    import FileDiff from "$lib/components/diff/FileDiff.svelte";
     import { PaneGroup, Pane, PaneResizer } from "paneforge";
     import DiffFilterDialog from "$lib/components/diff-filtering/DiffFilterDialog.svelte";
     import DiffFilterIndicator from "$lib/components/diff-filtering/DiffFilterIndicator.svelte";
@@ -88,10 +88,10 @@
         </div>
         <div class="flex flex-1 grow flex-col border-t">
             <VList data={viewer.filteredFileDetails.array} style="height: 100%;" getKey={(value) => value.index} bind:this={viewer.vlist}>
-                {#snippet children(value)}
-                    <div id={`file-${value.index}`}>
-                        <FileHeader {value} />
-                        <DiffWrapper {value} />
+                {#snippet children(file)}
+                    <div id={`file-${file.index}`}>
+                        <FileHeader {file} />
+                        <FileDiff {file} />
                     </div>
                 {/snippet}
             </VList>

@@ -10,7 +10,7 @@ import {
 } from "./github.svelte";
 import { type StructuredPatch } from "diff";
 import {
-    ConciseDiffViewCachedState,
+    TextDiffCachedState,
     isNoNewlineAtEofLine,
     parseSinglePatch,
     patchHeaderDiffOnly,
@@ -18,7 +18,7 @@ import {
     writeLineRef,
     parseLineRef,
     type UnresolvedLineSelection,
-} from "$lib/components/diff/concise-diff-view.svelte";
+} from "$lib/components/diff/text-diff.svelte";
 import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
 import { VList } from "virtua/svelte";
@@ -380,7 +380,7 @@ export class MultiFileDiffViewerState {
     jumpToSelection: boolean = $state(false);
 
     // Misc. component state
-    diffViewCache: Map<FileDetails, ConciseDiffViewCachedState> = new Map();
+    diffViewCache: Map<StructuredPatch, TextDiffCachedState> = new Map();
     vlist: VList<FileDetails> | undefined = $state();
     readonly loadingState = new LoadingState();
     readonly layoutState: LayoutState;

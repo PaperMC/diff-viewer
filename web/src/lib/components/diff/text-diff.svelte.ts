@@ -1046,7 +1046,7 @@ export async function getBaseColors(themeKey: BundledTheme | undefined, syntaxHi
         style.set("--removed-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.deleted" }));
     }
 
-    // One or both of these is often missing, see ConciseDiffView.svelte <style> for fallback behavior
+    // One or both of these is often missing, see TextDiff.svelte <style> for fallback behavior
     style.set("--hunk-header-bg-themed", extractColor(theme.default, { color: "sideBarSectionHeader.background" }));
     style.set("--hunk-header-fg-themed", extractColor(theme.default, { fgTokenScope: "meta.diff.header" }));
 
@@ -1074,24 +1074,22 @@ async function getTheme(theme: BundledTheme | undefined): Promise<null | { defau
     return cachedTheme;
 }
 
-export class ConciseDiffViewCachedState {
+export class TextDiffCachedState {
     diffViewerPatch: Promise<DiffViewerPatch>;
-    cacheKey: unknown;
     syntaxHighlighting: boolean;
     syntaxHighlightingTheme: BundledTheme | undefined;
     omitPatchHeaderOnlyHunks: boolean;
     wordDiffs: boolean;
 
-    constructor(diffViewerPatch: Promise<DiffViewerPatch>, props: ConciseDiffViewStateProps<unknown>) {
+    constructor(diffViewerPatch: Promise<DiffViewerPatch>, props: TextDiffStateProps) {
         this.diffViewerPatch = diffViewerPatch;
-        this.cacheKey = props.cacheKey.current;
         this.syntaxHighlighting = props.syntaxHighlighting.current;
         this.syntaxHighlightingTheme = props.syntaxHighlightingTheme.current;
         this.omitPatchHeaderOnlyHunks = props.omitPatchHeaderOnlyHunks.current;
         this.wordDiffs = props.wordDiffs.current;
     }
 
-    compatible(props: ConciseDiffViewStateProps<unknown>): boolean {
+    compatible(props: TextDiffStateProps): boolean {
         return (
             this.syntaxHighlighting === props.syntaxHighlighting.current &&
             this.syntaxHighlightingTheme === props.syntaxHighlightingTheme.current &&
@@ -1109,30 +1107,7 @@ export function parseSinglePatch(rawPatchContent: string): StructuredPatch {
     return parsedPatches[0];
 }
 
-export interface ConciseDiffViewProps<K> {
-    rawPatchContent?: string;
-    patch?: StructuredPatch;
-
-    syntaxHighlighting?: boolean;
-    syntaxHighlightingTheme?: BundledTheme;
-    omitPatchHeaderOnlyHunks?: boolean;
-    wordDiffs?: boolean;
-    lineWrap?: boolean;
-
-    searchQuery?: string;
-    searchMatchingLines?: () => Promise<number[][] | undefined>;
-    activeSearchResult?: number;
-    jumpToSearchResult?: boolean;
-
-    cache?: Map<K, ConciseDiffViewCachedState>;
-    cacheKey?: K;
-
-    unresolvedSelection?: UnresolvedLineSelection;
-    selection?: LineSelection;
-    jumpToSelection?: boolean;
-}
-
-export type ConciseDiffViewStateProps<K> = {
+export type TextDiffStateProps = {
     rootElementId: string;
 } & ReadableBoxedValues<{
     patch: StructuredPatch;
@@ -1142,8 +1117,7 @@ export type ConciseDiffViewStateProps<K> = {
     omitPatchHeaderOnlyHunks: boolean;
     wordDiffs: boolean;
 
-    cache: Map<K, ConciseDiffViewCachedState> | undefined;
-    cacheKey: K | undefined;
+    cache: Map<StructuredPatch, TextDiffCachedState> | undefined;
 
     unresolvedSelection: UnresolvedLineSelection | undefined;
 }> &
@@ -1151,17 +1125,17 @@ export type ConciseDiffViewStateProps<K> = {
         selection: LineSelection | undefined;
     }>;
 
-export class ConciseDiffViewState<K> {
+export class TextDiffState {
     diffViewerPatch: Promise<DiffViewerPatch> = $state(new Promise<DiffViewerPatch>(() => []));
-    cachedState: ConciseDiffViewCachedState | undefined = undefined;
+    cachedState: TextDiffCachedState | undefined = undefined;
     rootStyle: Promise<string> = $state(new Promise<string>(() => []));
 
-    private readonly props: ConciseDiffViewStateProps<K>;
+    private readonly props: TextDiffStateProps;
 
     private selectionAnchor: { hunkIdx: number; lineIdx: number } | null = null;
     private dragSelectionState: { hunk: DiffViewerPatchHunk; didMove: boolean } | null = null;
 
-    constructor(props: ConciseDiffViewStateProps<K>) {
+    constructor(props: TextDiffStateProps) {
         this.props = props;
 
         $effect(() => {
@@ -1191,34 +1165,33 @@ export class ConciseDiffViewState<K> {
 
         onDestroy(() => {
             if (this.props.cache.current !== undefined && this.cachedState !== undefined) {
-                this.props.cache.current.set(this.cachedState.cacheKey as K, this.cachedState);
+                this.props.cache.current.set(this.props.patch.current, this.cachedState);
             }
         });
     }
 
     update() {
-        if (this.props.cache.current && this.props.cacheKey.current) {
-            if (this.props.cache.current.has(this.props.cacheKey.current)) {
-                const state = this.props.cache.current.get(this.props.cacheKey.current);
-                this.props.cache.current.delete(this.props.cacheKey.current);
-                if (state !== undefined) {
-                    this.restore(state);
-                    const compatible: boolean = state.compatible(this.props);
-                    if (compatible) {
-                        return;
-                    }
+        const patch = this.props.patch.current;
+        if (this.props.cache.current) {
+            const state = this.props.cache.current.get(patch);
+            this.props.cache.current.delete(patch);
+            if (state !== undefined) {
+                this.restore(state);
+                const compatible: boolean = state.compatible(this.props);
+                if (compatible) {
+                    return;
                 }
             }
         }
 
         const promise = parseDiffViewerPatch(
-            this.props.patch.current,
+            patch,
             this.props.syntaxHighlighting.current,
             this.props.syntaxHighlightingTheme.current,
             this.props.omitPatchHeaderOnlyHunks.current,
             this.props.wordDiffs.current,
         );
-        this.cachedState = new ConciseDiffViewCachedState(promise, this.props);
+        this.cachedState = new TextDiffCachedState(promise, this.props);
         promise.then(
             () => {
                 // Don't replace a potentially completed promise with a pending one, wait until the replacement is ready for smooth transitions
@@ -1259,7 +1232,7 @@ export class ConciseDiffViewState<K> {
         }
     }
 
-    restore(state: ConciseDiffViewCachedState) {
+    restore(state: TextDiffCachedState) {
         this.diffViewerPatch = state.diffViewerPatch;
         this.cachedState = state;
     }

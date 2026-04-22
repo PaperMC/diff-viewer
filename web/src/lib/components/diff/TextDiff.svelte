@@ -1,70 +1,55 @@
-<script lang="ts" generics="K">
+<script lang="ts">
     import {
-        type ConciseDiffViewProps,
-        ConciseDiffViewState,
+        TextDiffState,
         type DiffViewerPatchHunk,
         innerPatchLineTypeProps,
         type InnerPatchLineTypeProps,
         makeSearchSegments,
-        parseSinglePatch,
         type PatchLine,
         PatchLineType,
         type PatchLineTypeProps,
         patchLineTypeProps,
         type SearchSegment,
-    } from "$lib/components/diff/concise-diff-view.svelte";
+    } from "$lib/components/diff/text-diff.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
+    import { GlobalOptions } from "$lib/global-options.svelte";
+    import { MultiFileDiffViewerState, type TextFileDetails } from "$lib/diff-viewer.svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
     import { boolAttr } from "runed";
 
-    let {
-        rawPatchContent,
-        patch,
-        syntaxHighlighting = true,
-        syntaxHighlightingTheme,
-        omitPatchHeaderOnlyHunks = true,
-        wordDiffs = true,
-        lineWrap = true,
-        searchQuery,
-        searchMatchingLines,
-        activeSearchResult = -1,
-        jumpToSearchResult = $bindable(false),
-        cache,
-        cacheKey,
-        unresolvedSelection,
-        selection = $bindable(),
-        jumpToSelection = $bindable(false),
-    }: ConciseDiffViewProps<K> = $props();
+    interface Props {
+        file: TextFileDetails;
+    }
+
+    let { file }: Props = $props();
 
     const uid = $props.id();
+    const viewer = MultiFileDiffViewerState.get();
+    const globalOptions = GlobalOptions.get();
 
-    const parsedPatch = $derived.by(() => {
-        if (rawPatchContent !== undefined) {
-            return parseSinglePatch(rawPatchContent);
-        } else if (patch !== undefined) {
-            return patch;
-        }
-        throw Error("Either rawPatchContent or patch must be provided");
-    });
-
-    const view = new ConciseDiffViewState({
+    const view = new TextDiffState({
         rootElementId: uid,
 
-        patch: box.with(() => parsedPatch),
-        syntaxHighlighting: box.with(() => syntaxHighlighting),
-        syntaxHighlightingTheme: box.with(() => syntaxHighlightingTheme),
-        omitPatchHeaderOnlyHunks: box.with(() => omitPatchHeaderOnlyHunks),
-        wordDiffs: box.with(() => wordDiffs),
+        patch: box.with(() => file.structuredPatch),
+        syntaxHighlighting: box.with(() => globalOptions.syntaxHighlighting),
+        syntaxHighlightingTheme: box.with(() => globalOptions.syntaxHighlightingTheme),
+        omitPatchHeaderOnlyHunks: box.with(() => globalOptions.omitPatchHeaderOnlyHunks),
+        wordDiffs: box.with(() => globalOptions.wordDiffs),
 
-        unresolvedSelection: box.with(() => unresolvedSelection),
+        unresolvedSelection: box.with(() => viewer.getSelection(file)?.unresolvedLines),
         selection: box.with(
-            () => selection,
-            (v) => (selection = v),
+            () => viewer.getSelection(file)?.lines,
+            (lines) => {
+                if (lines === undefined && viewer.selection?.file === file) {
+                    viewer.clearSelection();
+                } else {
+                    viewer.setSelection(file, lines);
+                }
+            },
         ),
 
-        cache: box.with(() => cache),
-        cacheKey: box.with(() => cacheKey),
+        cache: box.with(() => viewer.diffViewCache),
     });
 
     function getDisplayLineNo(line: PatchLine, num: number | undefined) {
@@ -76,10 +61,11 @@
     }
 
     let searchSegments: Promise<SearchSegment[][][]> = $derived.by(async () => {
-        if (!searchQuery || !searchMatchingLines) {
+        const searchQuery = viewer.searchQueryDebounced.current;
+        if (!searchQuery) {
             return [];
         }
-        const matchingLines = await searchMatchingLines();
+        const matchingLines = (await viewer.searchResults).lines.get(file);
         if (!matchingLines || matchingLines.length === 0) {
             return [];
         }
@@ -117,6 +103,8 @@
         return segments;
     });
 
+    let activeSearchResult = $derived(viewer.activeSearchResult?.file === file ? viewer.activeSearchResult.idx : -1);
+    let selection = $derived(viewer.getSelection(file)?.lines);
     let selectionMidpoint = $derived.by(() => {
         if (!selection) return null;
         const startIdx = selection.start.idx;
@@ -125,9 +113,8 @@
     });
 
     let heightEstimateRem = $derived.by(() => {
-        if (!parsedPatch) return 1.25;
-        const rawLineCount = parsedPatch.hunks.reduce((sum, hunk) => sum + hunk.lines.length, 0);
-        const headerAndSpacerLines = parsedPatch.hunks.length * 2;
+        const rawLineCount = file.structuredPatch.hunks.reduce((sum, hunk) => sum + hunk.lines.length, 0);
+        const headerAndSpacerLines = file.structuredPatch.hunks.length * 2;
         const totalLines = rawLineCount + headerAndSpacerLines;
         return totalLines * 1.25;
     });
@@ -163,16 +150,16 @@
                             {#each lineSearchSegments as searchSegment, index (index)}
                                 {#if searchSegment.highlighted}<span
                                         {@attach (element) => {
-                                            if (jumpToSearchResult && searchSegment.id === activeSearchResult) {
+                                            if (viewer.jumpToSearchResult && searchSegment.id === activeSearchResult) {
                                                 element.scrollIntoView({ block: "center", inline: "center" });
-                                                jumpToSearchResult = false;
+                                                viewer.jumpToSearchResult = false;
                                                 // See similar code & comment below around jumping to selections
                                                 //const scheduledJump = setTimeout(() => {
-                                                //    jumpToSearchResult = false;
+                                                //    viewer.jumpToSearchResult = false;
                                                 //    element.scrollIntoView({ block: "center", inline: "center" });
                                                 //}, 200);
                                                 //return () => {
-                                                //    jumpToSearchResult = false;
+                                                //    viewer.jumpToSearchResult = false;
                                                 //    clearTimeout(scheduledJump);
                                                 //};
                                             }
@@ -226,19 +213,19 @@
         data-selection-start={boolAttr(view.isSelectionStart(hunkIndex, lineIndex))}
         data-selection-end={boolAttr(view.isSelectionEnd(hunkIndex, lineIndex))}
         {@attach (element) => {
-            if (jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
+            if (viewer.jumpToSelection && selection && selection.hunk === hunkIndex && selectionMidpoint === lineIndex) {
                 element.scrollIntoView({ block: "center", inline: "center" });
-                jumpToSelection = false;
+                viewer.jumpToSelection = false;
                 // Need to schedule because otherwise the vlist rendering surrounding elements may shift things
                 // and cause the element to scroll to the wrong position
                 // This is not 100% reliable but is good enough for now
                 //const scheduledJump = setTimeout(() => {
-                //    jumpToSelection = false;
+                //    viewer.jumpToSelection = false;
                 //    element.scrollIntoView({ block: "center", inline: "center" });
                 //}, 200);
                 //return () => {
                 //    if (scheduledJump) {
-                //        jumpToSelection = false;
+                //        viewer.jumpToSelection = false;
                 //        clearTimeout(scheduledJump);
                 //    }
                 //};
@@ -261,7 +248,7 @@
         id={uid}
         style={rootStyle}
         class="diff-content text-patch-line w-full bg-[var(--editor-bg)] font-mono text-xs leading-[1.25rem] text-[var(--editor-fg)] selection:bg-[var(--select-bg)]"
-        data-wrap={lineWrap}
+        data-wrap={globalOptions.lineWrap}
     >
         {#each diffViewerPatch.hunks as hunk, hunkIndex (hunkIndex)}
             {#each hunk.lines as line, lineIndex (lineIndex)}

@@ -8,12 +8,12 @@
     import { tick } from "svelte";
 
     interface Props {
-        value: FileDetails;
+        file: FileDetails;
     }
 
     const viewer = MultiFileDiffViewerState.get();
     const globalOptions = GlobalOptions.get();
-    let { value }: Props = $props();
+    let { file }: Props = $props();
 
     let popoverOpen = $state(false);
 
@@ -21,63 +21,63 @@
         viewer.layoutState.sidebarCollapsed = false;
         await tick();
 
-        const fileTreeElement = document.getElementById("file-tree-file-" + value.index);
+        const fileTreeElement = document.getElementById("file-tree-file-" + file.index);
         if (fileTreeElement) {
             popoverOpen = false;
-            viewer.fileTree.tree?.expandParents((node) => node.type === "file" && node.file === value);
+            viewer.fileTree.tree?.expandParents((node) => node.type === "file" && node.file === file);
             requestAnimationFrame(() => {
                 fileTreeElement.focus();
             });
         }
     }
 
-    let patchHeaderDiffOnly = $derived(value.type === "text" && value.patchHeaderDiffOnly);
+    let patchHeaderDiffOnly = $derived(file.type === "text" && file.patchHeaderDiffOnly);
 
     let { baseFileUrl, headFileUrl } = $derived.by(() => {
         if (viewer.diffMetadata?.type === "github") {
             const ghDetails = viewer.diffMetadata.details;
             return {
-                baseFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.base}/${value.fromFile}`,
-                headFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.head}/${value.toFile}`,
+                baseFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.base}/${file.fromFile}`,
+                headFileUrl: `https://github.com/${ghDetails.owner}/${ghDetails.repo}/blob/${ghDetails.head}/${file.toFile}`,
             };
         }
         return { baseFileUrl: undefined, headFileUrl: undefined };
     });
 
     function selectHeader() {
-        viewer.scrollToFile(value.index, { autoExpand: false, smooth: true });
-        viewer.setSelection(value, undefined);
+        viewer.scrollToFile(file.index, { autoExpand: false, smooth: true });
+        viewer.setSelection(file, undefined);
     }
 
     let selected = $derived.by(() => {
-        const sel = viewer.getSelection(value);
+        const sel = viewer.getSelection(file);
         return sel && sel.lines === undefined && sel.unresolvedLines === undefined;
     });
 </script>
 
 {#snippet fileName()}
-    {#if value.fromFile === value.toFile}
-        <span class="max-w-full overflow-hidden break-all">{value.toFile}</span>
+    {#if file.fromFile === file.toFile}
+        <span class="max-w-full overflow-hidden break-all">{file.toFile}</span>
     {:else}
         <span class="flex max-w-full flex-wrap items-center gap-0.5 overflow-hidden break-all">
-            {value.fromFile}
+            {file.fromFile}
             <span class="iconify inline-block text-em-med octicon--arrow-right-16" aria-label="renamed to"></span>
-            {value.toFile}
+            {file.toFile}
         </span>
     {/if}
 {/snippet}
 
 {#snippet collapseToggle()}
     <button
-        title={viewer.fileStates[value.index].collapsed ? "Expand file" : "Collapse file"}
+        title={viewer.fileStates[file.index].collapsed ? "Expand file" : "Collapse file"}
         type="button"
         class="flex size-6 items-center justify-center rounded-sm btn-ghost p-0.5"
         onclick={(e) => {
-            viewer.toggleCollapse(value.index);
+            viewer.toggleCollapse(file.index);
             e.stopPropagation();
         }}
     >
-        {#if viewer.fileStates[value.index].collapsed}
+        {#if viewer.fileStates[file.index].collapsed}
             <span aria-label="expand file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-right-16" aria-hidden="true"></span>
         {:else}
             <span aria-label="collapse file" class="iconify size-4 shrink-0 text-em-med octicon--chevron-down-16" aria-hidden="true"></span>
@@ -100,9 +100,9 @@
                 <LabeledCheckbox
                     labelText="File viewed"
                     bind:checked={
-                        () => viewer.fileStates[value.index].checked,
+                        () => viewer.fileStates[file.index].checked,
                         () => {
-                            viewer.toggleChecked(value.index);
+                            viewer.toggleChecked(file.index);
                             popoverOpen = false;
                         }
                     }
@@ -120,7 +120,7 @@
 {/snippet}
 
 <div
-    id="file-header-{value.index}"
+    id="file-header-{file.index}"
     class={[
         "sticky top-0 z-10 flex flex-row items-center gap-2 border-b bg-neutral px-2 py-1 text-sm shadow-sm",
         "focus-and-selected-styles focus:outline-none",
@@ -131,8 +131,8 @@
     onkeyup={(event) => event.key === "Enter" && selectHeader()}
     data-selected={boolAttr(selected)}
 >
-    {#if value.type === "text"}
-        <DiffStats brief add={value.addedLines} remove={value.removedLines} />
+    {#if file.type === "text"}
+        <DiffStats brief add={file.addedLines} remove={file.removedLines} />
     {/if}
     {@render fileName()}
     <div class="ms-0.5 ml-auto flex items-center gap-1">
@@ -140,7 +140,7 @@
             <span class="rounded-sm bg-neutral-3 px-1.5">Patch-header-only diff</span>
         {/if}
         {@render actionsPopover()}
-        {#if !patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks || value.type === "image"}
+        {#if !patchHeaderDiffOnly || !globalOptions.omitPatchHeaderOnlyHunks || file.type === "image"}
             {@render collapseToggle()}
         {/if}
     </div>
