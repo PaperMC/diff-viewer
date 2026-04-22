@@ -201,27 +201,23 @@
     {@const lineType = patchLineTypeProps[line.type]}
     {@const lineTypeSelectable = line.type !== PatchLineType.HEADER && line.type !== PatchLineType.SPACER}
     <div
-        class="bg-[var(--hunk-header-bg)] data-selectable:cursor-pointer"
+        class="line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
         data-hunk-idx={hunkIndex}
         data-line-idx={lineIndex}
         data-selectable={boolAttr(lineTypeSelectable)}
         {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}
     >
-        <div class="line-number h-full px-2 select-none {lineType.lineNoClasses}">{getDisplayLineNo(line, line.oldLineNo)}</div>
+        {getDisplayLineNo(line, line.oldLineNo)}
     </div>
     <div
-        class="bg-[var(--hunk-header-bg)] data-selectable:cursor-pointer"
+        class="selected-indicator line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
         data-hunk-idx={hunkIndex}
         data-line-idx={lineIndex}
         data-selectable={boolAttr(lineTypeSelectable)}
+        data-selected={boolAttr(view.isSelected(hunkIndex, lineIndex))}
         {@attach view.selectable(hunk, hunkIndex, line, lineIndex)}
     >
-        <div
-            class="selected-indicator line-number h-full px-2 select-none {lineType.lineNoClasses}"
-            data-selected={boolAttr(view.isSelected(hunkIndex, lineIndex))}
-        >
-            {getDisplayLineNo(line, line.newLineNo)}
-        </div>
+        {getDisplayLineNo(line, line.newLineNo)}
     </div>
     <div
         class="selected-indicator w-full pl-[1rem] {lineType.classes}"
