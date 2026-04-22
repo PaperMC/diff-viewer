@@ -1,7 +1,3 @@
-<script module>
-    export { globalThemeSetting, sectionHeader };
-</script>
-
 <script lang="ts">
     import SettingsGroup from "./SettingsGroup.svelte";
     import { Label, Dialog, Button } from "bits-ui";
@@ -32,10 +28,6 @@
         },
     );
 </script>
-
-{#snippet sectionHeader(text: string)}
-    <div class="mt-4 font-semibold">{text}</div>
-{/snippet}
 
 {#snippet globalThemeSetting()}
     <SettingsGroup title="Theme">
