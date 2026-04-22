@@ -236,7 +236,9 @@ export class MultimodalFileInputState {
                 if (threw) {
                     throw e;
                 }
-                throw new Error(`Failed to fetch from URL: ${url}\nSome errors, such as those caused by CORS, will only print in the console.\nCause: ${e}`);
+                throw new Error(`Failed to fetch from URL: ${url}\nSome errors, such as those caused by CORS, will only print in the console.`, {
+                    cause: e,
+                });
             }
         });
     });

@@ -19,7 +19,7 @@ import {
     parseLineRef,
     type UnresolvedLineSelection,
 } from "$lib/components/diff/concise-diff-view.svelte";
-import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, yieldToBrowser } from "$lib/util";
+import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
@@ -740,7 +740,7 @@ export class MultiFileDiffViewerState {
         } catch (e) {
             this.clear(); // Clear any partially loaded state
             console.error("Failed to load patches:", e);
-            alert("Failed to load patches: " + e);
+            alert(formatErrorWithCauses(e));
             return false;
         } finally {
             // Let the last progress update render before closing the loading state

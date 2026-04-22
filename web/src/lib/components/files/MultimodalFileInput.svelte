@@ -14,6 +14,8 @@
         fileTypeOverride: box.with(() => fileTypeOverride),
         defaultMode: box.with(() => defaultMode),
     });
+
+    // eslint-disable-next-line no-useless-assignment -- false positive for Svelte $bindable initialization
     state = instance;
 
     function handleDragOver(event: DragEvent) {

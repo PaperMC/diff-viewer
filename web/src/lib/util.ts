@@ -374,6 +374,24 @@ export function capitalizeFirstLetter(val: string): string {
     return val.charAt(0).toUpperCase() + val.slice(1);
 }
 
+export function formatErrorWithCauses(error: unknown): string {
+    const parts: string[] = [];
+    const seen = new Set<unknown>();
+    let current: unknown = error;
+
+    while (current !== undefined && !seen.has(current)) {
+        seen.add(current);
+        parts.push(String(current));
+
+        if (!(current instanceof Error) || current.cause === undefined) {
+            break;
+        }
+        current = current.cause;
+    }
+
+    return parts.map((part, index) => (index === 0 ? part : `Cause: ${part}`)).join("\n");
+}
+
 export function countOccurrences(str: string, substr: string): number {
     let count = 0;
     let idx = 0;

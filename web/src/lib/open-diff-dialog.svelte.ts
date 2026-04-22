@@ -3,7 +3,7 @@ import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFil
 import { SvelteSet } from "svelte/reactivity";
 import { type FileStatus } from "$lib/github.svelte";
 import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
-import { binaryFileDummyDetails, bytesEqual, isBinaryFile, isImageFile, parseMultiFilePatch, tryCompileRegex } from "$lib/util";
+import { binaryFileDummyDetails, bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, parseMultiFilePatch, tryCompileRegex } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
 
 export interface OpenDiffDialogProps {
@@ -77,13 +77,7 @@ export class OpenDiffDialogState {
             },
             async () => {
                 const isImageDiff = isImageFile(fileAMeta.name) && isImageFile(fileBMeta.name);
-                let blobA: Blob, blobB: Blob;
-                try {
-                    [blobA, blobB] = await Promise.all([fileA.resolve(), fileB.resolve()]);
-                } catch (e) {
-                    console.log("Failed to resolve files:", e);
-                    throw new Error("Failed to resolve files", { cause: e });
-                }
+                const [blobA, blobB] = await Promise.all([fileA.resolve(), fileB.resolve()]);
                 const [aBinary, bBinary] = await Promise.all([isBinaryFile(blobA), isBinaryFile(blobB)]);
                 if (aBinary || bBinary) {
                     if (!isImageDiff) {
@@ -262,7 +256,7 @@ export class OpenDiffDialogState {
             text = await blob.text();
         } catch (e) {
             console.error("Failed to resolve patch file:", e);
-            alert("Failed to resolve patch file: " + e);
+            alert(formatErrorWithCauses(e));
             return;
         }
         this.props.open.current = false;
