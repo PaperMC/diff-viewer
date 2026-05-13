@@ -15,11 +15,15 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ github.event.pull_request.head.ref }}
                   repository: ${{ github.event.pull_request.head.repo.full_name }}
-            - uses: oven-sh/setup-bun@v2
-            - run: bun install
-            - run: cd web && bun run build
+            - uses: pnpm/action-setup@v6
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+            - run: pnpm install
+            - run: pnpm --filter=web run build
             - name: "upload build artifact"
-              uses: "actions/upload-artifact@v6"
+              uses: "actions/upload-artifact@v7"
               with:
                   name: "preview-build"
                   path: |

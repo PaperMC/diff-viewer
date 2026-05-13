@@ -21,13 +21,13 @@ Web extension that streamlines opening diffs in the viewer.
 
 ### Setup
 
-- Install [Bun](https://bun.sh/) and execute `bun install` in `/web` to install the required dependencies for the frontend.
+- Install [pnpm](https://pnpm.io/) and execute `pnpm install` to install the required dependencies.
 - Install a JVM 21 or newer for the Gradle runtime (prefer a JDK to avoid extra downloads for a compiler).
 
 ### Testing
 
-- The frontend can be tested with `bun run dev` in `/web`.
+- The frontend can be tested with `pnpm run dev` in `/web`.
 
 ### Code Style
 
-- The frontend uses ESLint and Prettier for code style. Run `bun run format` to reformat and `bun run lint` to check style.
+- The frontend uses ESLint and Prettier for code style. Run `pnpm run format` to reformat and `pnpm run lint` to check style.

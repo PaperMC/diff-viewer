@@ -1,25 +1,26 @@
-import { Manifest } from "webextension-polyfill";
-import pkg from "../package.json";
+import type { Manifest } from "webextension-polyfill";
+import { writeFile, unlink } from "fs/promises";
+import { existsSync } from "fs";
+import pkg from "../package.json" with { type: "json" };
 
-const firefox = Bun.env.EXTENSION === "firefox";
+const firefox = process.env.EXTENSION === "firefox";
 
 await writeManifest();
 
 async function writeManifest() {
     const manifest = makeManifest();
-    const path = Bun.file("public/manifest.json");
-    if (await path.exists()) {
-        await path.delete();
+    const path = "public/manifest.json";
+    if (existsSync(path)) {
+        await unlink(path);
     }
     const manifestString = JSON.stringify(manifest, null, 2);
-    await Bun.write(path, manifestString);
+    await writeFile(path, manifestString);
 }
 
 function makeManifest(): Manifest.WebExtensionManifest {
-    const name = pkg.displayName || pkg.name;
     return {
         manifest_version: 3,
-        name,
+        name: pkg.displayName,
         version: pkg.version,
         description: pkg.description,
         permissions: ["tabs", "storage", "contextMenus"],
@@ -27,7 +28,7 @@ function makeManifest(): Manifest.WebExtensionManifest {
             "128": "favicon.png",
         },
         action: {
-            default_title: name,
+            default_title: pkg.displayName,
             default_icon: {
                 "128": "favicon.png",
             },

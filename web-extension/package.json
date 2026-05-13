@@ -1,5 +1,5 @@
 {
-    "name": "patch-roulette-web-extension",
+    "name": "web-extension",
     "displayName": "diffs.dev",
     "description": "Streamlines opening diffs in the diffs.dev Diff Viewer.",
     "version": "0.0.9",
@@ -8,17 +8,16 @@
     "scripts": {
         "format": "prettier --write .",
         "lint": "tsc && prettier --check . && eslint .",
-        "manifest:chrome": "bun scripts/manifest.ts",
-        "manifest:firefox": "EXTENSION=firefox bun scripts/manifest.ts",
+        "manifest:chrome": "node --experimental-strip-types scripts/manifest.ts",
+        "manifest:firefox": "EXTENSION=firefox node --experimental-strip-types scripts/manifest.ts",
         "build": "vite build",
-        "pack:chrome": "bun run manifest:chrome && bun run build && mkdir -p pack && rm -f pack/chrome.zip && (cd dist && zip -r ../pack/chrome.zip .)",
-        "pack:firefox": "bun run manifest:firefox && bun run build && mkdir -p pack && rm -f pack/firefox.zip && (cd dist && zip -r ../pack/firefox.zip .)",
-        "pack": "bun run pack:chrome && bun run pack:firefox"
+        "pack:chrome": "pnpm run manifest:chrome && pnpm run build && mkdir -p pack && rm -f pack/chrome.zip && (cd dist && zip -r ../pack/chrome.zip .)",
+        "pack:firefox": "pnpm run manifest:firefox && pnpm run build && mkdir -p pack && rm -f pack/firefox.zip && (cd dist && zip -r ../pack/firefox.zip .)",
+        "pack": "pnpm run pack:chrome && pnpm run pack:firefox"
     },
     "devDependencies": {
         "@eslint/compat": "^2.0.5",
         "@eslint/js": "^10.0.1",
-        "@types/bun": "^1.3.12",
         "@types/webextension-polyfill": "^0.12.5",
         "chrome-types": "^0.1.425",
         "eslint": "^10.2.1",

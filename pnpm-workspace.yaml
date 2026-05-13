@@ -1,0 +1,10 @@
+packages:
+  - 'web'
+  - 'web-extension'
+allowBuilds:
+  esbuild: true
+  sharp: true
+  workerd: true
+
+# Only install packages published at least 3 days ago (4320 minutes)
+minimumReleaseAge: 4320
