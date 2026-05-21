@@ -28,6 +28,7 @@ jobs:
                   run-id: ${{ github.event.workflow_run.id }}
             - name: "Deploy to Cloudflare Pages"
               uses: "AdrianGonz97/refined-cf-pages-action@v1"
+              id: "cloudflare-deploy"
               with:
                   apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -35,3 +36,37 @@ jobs:
                   projectName: "diffs"
                   directory: ${{ steps.preview-build-artifact.outputs.download-path }}/web/.svelte-kit/cloudflare
                   deploymentName: Preview
+            - name: "Comment self-diff preview link"
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  # language=typescript
+                  script: |
+                      const alias = '${{ steps.cloudflare-deploy.outputs.alias }}';
+                      const pr = '${{ github.repository }}/pull/${{ context.issue.number }}';
+                      const messageId = `self-diff-preview-link:comment:${context.repo.repo}`;
+
+                      const params = {
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          issue_number: context.issue.number,
+                          per_page: 100
+                      };
+
+                      const listComments = github.rest.issues.listComments;
+                      let found: Awaited<ReturnType<typeof listComments>>['data'][number] | undefined;
+
+                      for await (const comments of github.paginate.iterator(listComments, params)) {
+                          found = comments.data.find(({body}) => body?.includes(`<!-- ${messageId} -->`));
+                          if (found) break;
+                      }
+
+                      if (!found) {
+                          github.rest.issues.createComment({
+                              issue_number: context.issue.number,
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              body: `<!-- ${messageId} -->
+                      [Click here](${alias}?github_url=${encodeURIComponent(pr)}) to view this PR's diff using the preview of this PR!`
+                          });
+                      }
