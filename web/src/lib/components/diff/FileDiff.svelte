@@ -1,9 +1,11 @@
 <script lang="ts">
+    import { requireEitherImage, type FileDetails, type ImageDiffDetails } from "$lib/file-details";
+
     import Spinner from "$lib/components/Spinner.svelte";
     import AddedOrRemovedImage from "$lib/components/diff/AddedOrRemovedImage.svelte";
     import ImageDiff from "$lib/components/diff/ImageDiff.svelte";
     import TextDiff from "$lib/components/diff/TextDiff.svelte";
-    import { MultiFileDiffViewerState, requireEitherImage, type FileDetails, type ImageDiffDetails } from "$lib/diff-viewer.svelte";
+    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
 
     interface Props {

@@ -1,5 +1,6 @@
+import type { FileDetails } from "$lib/file-details";
 import type { TreeNode, TreeState } from "$lib/components/tree/index.svelte";
-import type { FileDetails, MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
+import type { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
 import { Debounced } from "runed";
 
 export class FileTreeState {

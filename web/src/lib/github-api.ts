@@ -1,6 +1,5 @@
 import type { components } from "@octokit/openapi-types";
-import { parseMultiFilePatch, trimCommitHash } from "$lib/util";
-import { LoadingState, makeImageDetails } from "$lib/diff-viewer.svelte";
+import { trimCommitHash } from "$lib/util";
 
 export interface GithubDiff {
     owner: string;
@@ -63,18 +62,6 @@ async function fetchGithubPRInfo(token: string | null, owner: string, repo: stri
     } else {
         throw Error(`Failed to retrieve PR info (${response.status}): ${await response.text()}`);
     }
-}
-
-export function parseMultiFilePatchGithub(token: string | null, details: GithubDiff, patch: string, loadingState: LoadingState) {
-    return parseMultiFilePatch(patch, loadingState, (from, to, status) => {
-        return makeImageDetails(
-            from,
-            to,
-            status,
-            status != "added" ? fetchGithubFile(token, details.owner, details.repo, from, details.base) : undefined,
-            status != "removed" ? fetchGithubFile(token, details.owner, details.repo, to, details.head) : undefined,
-        );
-    });
 }
 
 export function fetchGithubComparison(

@@ -1,26 +1,18 @@
-import {
-    fetchGithubCommitDiff,
-    fetchGithubComparison,
-    fetchGithubPRComparison,
-    fetchGithubSingleBranchComparison,
-    type GithubDiff,
-    type GithubDiffResult,
-    parseMultiFilePatchGithub,
-} from "./github-api";
+import type { FileStatus, FileDetails } from "./file-details";
+import type { GithubDiff, GithubDiffResult } from "./github-api";
+import { fetchGithubDiff, parseMultiFilePatchGithub } from "./github-diff";
 import { getGithubToken } from "./github-auth.svelte";
 import type { GithubDiffSource } from "./github-url";
 import { type StructuredPatch } from "diff";
 import {
     TextDiffCachedState,
     isNoNewlineAtEofLine,
-    parseSinglePatch,
-    patchHeaderDiffOnly,
     type LineSelection,
     writeLineRef,
     parseLineRef,
     type UnresolvedLineSelection,
 } from "$lib/components/diff/text-diff.svelte";
-import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, formatErrorWithCauses, yieldToBrowser, type FileStatus } from "$lib/util";
+import { countOccurrences, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
@@ -41,81 +33,6 @@ export const PATCH_URL_PARAM = "patch_url";
 export const staticSidebar = new MediaQuery("(width >= 64rem)");
 
 export type AddOrRemove = "add" | "remove";
-
-export interface CommonFileDetails {
-    index: number;
-    fromFile: string;
-    toFile: string;
-    status: FileStatus;
-}
-
-export interface TextFileDetails extends CommonFileDetails {
-    type: "text";
-    structuredPatch: StructuredPatch;
-    patchHeaderDiffOnly: boolean;
-    addedLines: number;
-    removedLines: number;
-}
-
-export interface ImageFileDetails extends CommonFileDetails {
-    type: "image";
-    image: ImageDiffDetails;
-}
-
-export function makeTextDetails(fromFile: string, toFile: string, status: FileStatus, patchText: string): TextFileDetails {
-    const patch = parseSinglePatch(patchText);
-
-    let addedLines = 0;
-    let removedLines = 0;
-    for (let j = 0; j < patch.hunks.length; j++) {
-        const hunk = patch.hunks[j];
-
-        for (let k = 0; k < hunk.lines.length; k++) {
-            const line = hunk.lines[k];
-
-            if (line.startsWith("+")) {
-                addedLines++;
-            } else if (line.startsWith("-")) {
-                removedLines++;
-            }
-        }
-    }
-
-    return {
-        index: -1,
-        type: "text",
-        fromFile,
-        toFile,
-        status,
-        structuredPatch: patch,
-        patchHeaderDiffOnly: patchHeaderDiffOnly(patch),
-        addedLines,
-        removedLines,
-    };
-}
-
-export function makeImageDetails(
-    fromFile: string,
-    toFile: string,
-    status: FileStatus,
-    fromBlob?: Promise<Blob> | Blob,
-    toBlob?: Promise<Blob> | Blob,
-): ImageFileDetails {
-    return {
-        index: -1,
-        type: "image",
-        fromFile,
-        toFile,
-        status,
-        image: {
-            fileA: fromBlob !== undefined ? lazyPromise(async () => URL.createObjectURL(await fromBlob)) : null,
-            fileB: toBlob !== undefined ? lazyPromise(async () => URL.createObjectURL(await toBlob)) : null,
-            load: false,
-        },
-    };
-}
-
-export type FileDetails = TextFileDetails | ImageFileDetails;
 
 export interface FileState {
     checked: boolean;
@@ -183,18 +100,6 @@ function parseUrlHashValue(hash: string): UnresolvedSelection | null {
         file,
         lines: { start, end },
     };
-}
-
-export interface ImageDiffDetails {
-    fileA: LazyPromise<string> | null;
-    fileB: LazyPromise<string> | null;
-    load: boolean;
-}
-
-export function requireEitherImage(details: ImageDiffDetails) {
-    if (details.fileA) return details.fileA;
-    if (details.fileB) return details.fileB;
-    throw new Error("Neither image is available");
 }
 
 // Sort such that when displayed as a file tree, directories come before files and each level is sorted by name
@@ -760,7 +665,9 @@ export class MultiFileDiffViewerState {
             },
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
-                return parseMultiFilePatchGithub(token, await result.info, await result.response, this.loadingState);
+                return parseMultiFilePatchGithub(token, await result.info, await result.response, (total) => {
+                    this.loadingState.totalCount = total;
+                });
             },
             opts,
         );
@@ -771,22 +678,7 @@ export class MultiFileDiffViewerState {
         const token = getGithubToken();
 
         try {
-            switch (source.kind) {
-                case "commit":
-                    return await this.loadPatchesGithub(token, fetchGithubCommitDiff(token, source.owner, source.repo, source.sha), opts);
-                case "pull":
-                    return await this.loadPatchesGithub(token, fetchGithubPRComparison(token, source.owner, source.repo, source.prNumber), opts);
-                case "pull-commit":
-                    return await this.loadPatchesGithub(token, fetchGithubCommitDiff(token, source.owner, source.repo, source.sha, source.backlink), opts);
-                case "compare":
-                    return await this.loadPatchesGithub(token, fetchGithubComparison(token, source.owner, source.repo, source.base, source.head), opts);
-                case "compare-single":
-                    return await this.loadPatchesGithub(token, fetchGithubSingleBranchComparison(token, source.owner, source.repo, source.head), opts);
-                default: {
-                    const _exhaustive: never = source;
-                    throw new Error(`Unhandled GithubDiffSource kind: ${JSON.stringify(_exhaustive)}`);
-                }
-            }
+            return await this.loadPatchesGithub(token, fetchGithubDiff(token, source), opts);
         } catch (error) {
             console.error(error);
             alert(`Failed to load diff from GitHub: ${error}`);
