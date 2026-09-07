@@ -1,14 +1,6 @@
-import { browser } from "$app/environment";
 import type { components } from "@octokit/openapi-types";
 import { parseMultiFilePatch, trimCommitHash } from "$lib/util";
 import { LoadingState, makeImageDetails } from "$lib/diff-viewer.svelte";
-import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
-
-export const GITHUB_USERNAME_KEY = "github_username";
-export const GITHUB_TOKEN_KEY = "github_token";
-export const GITHUB_TOKEN_EXPIRES_KEY = "github_token_expires";
-
-export const githubUsername: { value: string | null } = $state({ value: null });
 
 export interface GithubDiff {
     owner: string;
@@ -24,79 +16,9 @@ export interface GithubDiffResult {
     response: Promise<string>;
 }
 
-if (browser) {
-    githubUsername.value = localStorage.getItem(GITHUB_USERNAME_KEY);
-}
-
-export function getGithubUsername(): string | null {
-    return githubUsername.value;
-}
-
-export function getGithubAvatarUrl(username: string, size: number = 32): string | null {
-    return `https://avatars.githubusercontent.com/${username}?s=${size}`;
-}
-
-export function getGithubToken(): string | null {
-    const expiresAt = localStorage.getItem(GITHUB_TOKEN_EXPIRES_KEY);
-    if (expiresAt !== null) {
-        const expiresIn = parseInt(expiresAt) - Date.now();
-        if (expiresIn <= 0) {
-            logoutGithub();
-            return null;
-        }
-    }
-    return localStorage.getItem(GITHUB_TOKEN_KEY);
-}
-
-export function loginWithGithub() {
-    if (getGithubUsername()) {
-        return;
-    }
-    localStorage.setItem("authReferrer", window.location.pathname);
-    const params = new URLSearchParams({
-        client_id: PUBLIC_GITHUB_CLIENT_ID,
-        redirect_uri: window.location.origin + "/github-callback",
-    });
-    window.location.href = "https://github.com/login/oauth/authorize?" + params.toString();
-}
-
-export function logoutGithub() {
-    localStorage.removeItem(GITHUB_TOKEN_KEY);
-    localStorage.removeItem(GITHUB_TOKEN_EXPIRES_KEY);
-    localStorage.removeItem(GITHUB_USERNAME_KEY);
-    githubUsername.value = null;
-}
-
-export function installGithubApp() {
-    localStorage.setItem("authReferrer", window.location.href);
-    window.location.href = `https://github.com/apps/${PUBLIC_GITHUB_APP_NAME}/installations/new`;
-}
-
 export type GithubPR = components["schemas"]["pull-request"];
-export type FileStatus = "added" | "removed" | "modified" | "renamed" | "renamed_modified";
-export const FILE_STATUSES: FileStatus[] = ["added", "removed", "modified", "renamed", "renamed_modified"];
-export type GithubUser = components["schemas"]["private-user"];
 export type GithubCommitDetails = components["schemas"]["commit"];
-export interface GithubTokenResponse {
-    access_token: string;
-    token_type: string;
-    scope: string;
-    expires_in: number;
-}
-
-export async function fetchGithubUserToken(code: string): Promise<GithubTokenResponse> {
-    const response = await fetch(new URL(`${window.location.origin}/github-token?code=${code}`), {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-    });
-    if (response.ok) {
-        return await response.json();
-    } else {
-        throw Error(`Failed to retrieve token (${response.status}): ${await response.text()}`);
-    }
-}
+export type GithubUser = components["schemas"]["private-user"];
 
 export async function fetchCurrentGithubUser(token: string): Promise<GithubUser> {
     const response = await fetch(`https://api.github.com/user`, {
@@ -143,9 +65,8 @@ async function fetchGithubPRInfo(token: string | null, owner: string, repo: stri
     }
 }
 
-export function parseMultiFilePatchGithub(details: GithubDiff, patch: string, loadingState: LoadingState) {
+export function parseMultiFilePatchGithub(token: string | null, details: GithubDiff, patch: string, loadingState: LoadingState) {
     return parseMultiFilePatch(patch, loadingState, (from, to, status) => {
-        const token = getGithubToken();
         return makeImageDetails(
             from,
             to,
@@ -191,7 +112,32 @@ export function fetchGithubComparison(
     };
 }
 
-export function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string): GithubDiffResult {
+export async function fetchRepoDefaultBranch(token: string | null, owner: string, repo: string): Promise<string> {
+    const opts: RequestInit = {
+        headers: {
+            Accept: "application/vnd.github+json",
+        },
+    };
+    injectOptionalToken(token, opts);
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, opts);
+    if (!response.ok) {
+        throw Error(`Failed to retrieve repo info (${response.status}): ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.default_branch) {
+        throw Error(`Repository info is missing default branch`);
+    }
+    return data.default_branch as string;
+}
+
+// Supports GitHub's single-branch compare URLs (https://github.com/owner/repo/compare/<head>),
+// which compare the default branch against <head>.
+export async function fetchGithubSingleBranchComparison(token: string | null, owner: string, repo: string, head: string): Promise<GithubDiffResult> {
+    const base = await fetchRepoDefaultBranch(token, owner, repo);
+    return fetchGithubComparison(token, owner, repo, base, head);
+}
+
+export function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string, backlinkOverride?: string): GithubDiffResult {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits/${commit}`;
     return {
         info: (async () => {
@@ -208,7 +154,7 @@ export function fetchGithubCommitDiff(token: string | null, owner: string, repo:
             const meta: GithubCommitDetails = await metaResponse.json();
             const firstParent = meta.parents[0].sha;
             const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
-            return { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
+            return { owner, repo, base: firstParent, head: commit, description, backlink: backlinkOverride ?? meta.html_url };
         })(),
         response: (async () => {
             const diffOpts: RequestInit = {

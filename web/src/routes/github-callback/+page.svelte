@@ -3,14 +3,14 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import {
-        fetchCurrentGithubUser,
         fetchGithubUserToken,
         GITHUB_TOKEN_EXPIRES_KEY,
         GITHUB_TOKEN_KEY,
         GITHUB_USERNAME_KEY,
         githubUsername,
         logoutGithub,
-    } from "$lib/github.svelte";
+    } from "$lib/github-auth.svelte";
+    import { fetchCurrentGithubUser } from "$lib/github-api";
     import Spinner from "$lib/components/Spinner.svelte";
 
     async function leave() {

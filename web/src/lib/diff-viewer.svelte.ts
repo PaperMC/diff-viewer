@@ -2,12 +2,13 @@ import {
     fetchGithubCommitDiff,
     fetchGithubComparison,
     fetchGithubPRComparison,
-    type FileStatus,
-    getGithubToken,
+    fetchGithubSingleBranchComparison,
     type GithubDiff,
     type GithubDiffResult,
     parseMultiFilePatchGithub,
-} from "./github.svelte";
+} from "./github-api";
+import { getGithubToken } from "./github-auth.svelte";
+import type { GithubDiffSource } from "./github-url";
 import { type StructuredPatch } from "diff";
 import {
     TextDiffCachedState,
@@ -19,7 +20,7 @@ import {
     parseLineRef,
     type UnresolvedLineSelection,
 } from "$lib/components/diff/text-diff.svelte";
-import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "$lib/util";
+import { countOccurrences, type LazyPromise, lazyPromise, animationFramePromise, formatErrorWithCauses, yieldToBrowser, type FileStatus } from "$lib/util";
 import { onDestroy, onMount, tick } from "svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
@@ -751,7 +752,7 @@ export class MultiFileDiffViewerState {
         }
     }
 
-    private async loadPatchesGithub(resultOrPromise: Promise<GithubDiffResult> | GithubDiffResult, opts?: LoadPatchesOptions) {
+    private async loadPatchesGithub(token: string | null, resultOrPromise: Promise<GithubDiffResult> | GithubDiffResult, opts?: LoadPatchesOptions) {
         return await this.loadPatches(
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
@@ -759,44 +760,38 @@ export class MultiFileDiffViewerState {
             },
             async () => {
                 const result = resultOrPromise instanceof Promise ? await resultOrPromise : resultOrPromise;
-                return parseMultiFilePatchGithub(await result.info, await result.response, this.loadingState);
+                return parseMultiFilePatchGithub(token, await result.info, await result.response, this.loadingState);
             },
             opts,
         );
     }
 
     // TODO fails for initial commit?
-    // handle matched github url
-    async loadFromGithubApi(match: Array<string>, opts?: LoadPatchesOptions): Promise<boolean> {
-        const [url, owner, repo, type, id] = match;
+    async loadFromGithubApi(source: GithubDiffSource, opts?: LoadPatchesOptions): Promise<boolean> {
         const token = getGithubToken();
 
         try {
-            if (type === "commit") {
-                return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]), opts);
-            } else if (type === "pull") {
-                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, id.split("/")[0]), opts);
-            } else if (type === "compare") {
-                let refs = id.split("...");
-                if (refs.length !== 2) {
-                    refs = id.split("..");
-                    if (refs.length !== 2) {
-                        alert(`Invalid comparison URL. '${id}' does not match format 'ref_a...ref_b' or 'ref_a..ref_b'`);
-                        return false;
-                    }
+            switch (source.kind) {
+                case "commit":
+                    return await this.loadPatchesGithub(token, fetchGithubCommitDiff(token, source.owner, source.repo, source.sha), opts);
+                case "pull":
+                    return await this.loadPatchesGithub(token, fetchGithubPRComparison(token, source.owner, source.repo, source.prNumber), opts);
+                case "pull-commit":
+                    return await this.loadPatchesGithub(token, fetchGithubCommitDiff(token, source.owner, source.repo, source.sha, source.backlink), opts);
+                case "compare":
+                    return await this.loadPatchesGithub(token, fetchGithubComparison(token, source.owner, source.repo, source.base, source.head), opts);
+                case "compare-single":
+                    return await this.loadPatchesGithub(token, fetchGithubSingleBranchComparison(token, source.owner, source.repo, source.head), opts);
+                default: {
+                    const _exhaustive: never = source;
+                    throw new Error(`Unhandled GithubDiffSource kind: ${JSON.stringify(_exhaustive)}`);
                 }
-                const base = refs[0];
-                const head = refs[1];
-                return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, base, head), opts);
             }
         } catch (error) {
             console.error(error);
             alert(`Failed to load diff from GitHub: ${error}`);
             return false;
         }
-
-        alert("Unsupported URL type " + url);
-        return false;
     }
 
     private async findSearchResults(): Promise<SearchResults> {

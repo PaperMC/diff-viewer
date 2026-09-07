@@ -1,8 +1,7 @@
 <script lang="ts">
     import { getFileStatusProps } from "$lib/diff-viewer.svelte";
     import { Button, Dialog, ToggleGroup } from "bits-ui";
-    import { tryCompileRegex } from "$lib/util";
-    import { FILE_STATUSES } from "$lib/github.svelte";
+    import { tryCompileRegex, FILE_STATUSES } from "$lib/util";
     import { slide } from "svelte/transition";
     import { type DiffFilterDialogProps, type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
