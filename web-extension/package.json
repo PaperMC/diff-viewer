@@ -16,22 +16,22 @@
         "pack": "pnpm run pack:chrome && pnpm run pack:firefox"
     },
     "devDependencies": {
-        "@eslint/compat": "^2.0.5",
+        "@eslint/compat": "^2.1.1",
         "@eslint/js": "^10.0.1",
-        "@types/webextension-polyfill": "^0.12.5",
-        "chrome-types": "^0.1.425",
-        "eslint": "^10.2.1",
+        "@types/webextension-polyfill": "^0.12.6",
+        "chrome-types": "^0.1.443",
+        "eslint": "^10.9.1",
         "eslint-config-prettier": "^10.1.8",
-        "globals": "^17.5.0",
-        "prettier": "^3.8.3",
-        "prettier-plugin-tailwindcss": "^0.7.2",
+        "globals": "^17.12.0",
+        "prettier": "^3.9.6",
+        "prettier-plugin-tailwindcss": "^0.8.1",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.58.2",
-        "vite": "^8.0.8"
+        "typescript-eslint": "^8.69.0",
+        "vite": "^8.2.2"
     },
     "dependencies": {
-        "@tailwindcss/vite": "^4.2.2",
-        "tailwindcss": "^4.2.2",
+        "@tailwindcss/vite": "^4.3.3",
+        "tailwindcss": "^4.3.3",
         "webextension-polyfill": "^0.12.0"
     }
 }

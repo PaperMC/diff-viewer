@@ -135,8 +135,7 @@
         bind:value={instance.text}
         placeholder="Enter text here"
         {required}
-        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"
-    ></textarea>
+        class="w-full rounded-md border bg-neutral px-2 py-1 inset-shadow-xs ring-focus focus:outline-none focus-visible:ring-2"></textarea>
 {/snippet}
 
 <style>
