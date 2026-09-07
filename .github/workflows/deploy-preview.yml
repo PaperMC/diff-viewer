@@ -35,3 +35,4 @@ jobs:
                   projectName: "diffs"
                   directory: ${{ steps.preview-build-artifact.outputs.download-path }}/web/.svelte-kit/cloudflare
                   deploymentName: Preview
+                  wranglerVersion: "4"
