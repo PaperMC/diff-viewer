@@ -2,6 +2,7 @@ import {
     fetchGithubCommitDiff,
     fetchGithubComparison,
     fetchGithubPRComparison,
+    fetchGithubSingleBranchComparison,
     type FileStatus,
     getGithubToken,
     type GithubDiff,
@@ -775,19 +776,32 @@ export class MultiFileDiffViewerState {
             if (type === "commit") {
                 return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, id.split("/")[0]), opts);
             } else if (type === "pull") {
-                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, id.split("/")[0]), opts);
+                const segments = id.split("/");
+                // Support PR-specific commit links like /pull/50/commits/<sha>
+                if (segments.length >= 3 && segments[1] === "commits" && segments[2]) {
+                    const backlink = `https://github.com/${owner}/${repo}/pull/${segments[0]}/commits/${segments[2]}`;
+                    return await this.loadPatchesGithub(fetchGithubCommitDiff(token, owner, repo, segments[2], backlink), opts);
+                }
+                return await this.loadPatchesGithub(fetchGithubPRComparison(token, owner, repo, segments[0]), opts);
             } else if (type === "compare") {
-                let refs = id.split("...");
-                if (refs.length !== 2) {
-                    refs = id.split("..");
-                    if (refs.length !== 2) {
-                        alert(`Invalid comparison URL. '${id}' does not match format 'ref_a...ref_b' or 'ref_a..ref_b'`);
+                // GitHub also supports .diff/.patch suffixes and trailing slashes, strip them
+                const cleaned = id.replace(/\/+$/, "").replace(/\.(diff|patch)$/, "");
+                const invalidMessage = `Invalid comparison URL. '${id}' does not match format 'ref_a...ref_b', 'ref_a..ref_b', or 'ref'`;
+                const separator = cleaned.includes("...") ? "..." : cleaned.includes("..") ? ".." : null;
+                if (separator) {
+                    const parts = cleaned.split(separator);
+                    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+                        alert(invalidMessage);
                         return false;
                     }
+                    return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, parts[0], parts[1]), opts);
                 }
-                const base = refs[0];
-                const head = refs[1];
-                return await this.loadPatchesGithub(fetchGithubComparison(token, owner, repo, base, head), opts);
+                // Single-branch form: /compare/<head> compares the default branch against <head>
+                if (cleaned) {
+                    return await this.loadPatchesGithub(fetchGithubSingleBranchComparison(token, owner, repo, cleaned), opts);
+                }
+                alert(invalidMessage);
+                return false;
             }
         } catch (error) {
             console.error(error);

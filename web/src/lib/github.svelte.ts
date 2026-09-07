@@ -191,7 +191,32 @@ export function fetchGithubComparison(
     };
 }
 
-export function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string): GithubDiffResult {
+export async function fetchRepoDefaultBranch(token: string | null, owner: string, repo: string): Promise<string> {
+    const opts: RequestInit = {
+        headers: {
+            Accept: "application/vnd.github+json",
+        },
+    };
+    injectOptionalToken(token, opts);
+    const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, opts);
+    if (!response.ok) {
+        throw Error(`Failed to retrieve repo info (${response.status}): ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.default_branch) {
+        throw Error(`Repository info is missing default branch`);
+    }
+    return data.default_branch as string;
+}
+
+// Supports GitHub's single-branch compare URLs (https://github.com/owner/repo/compare/<head>),
+// which compare the default branch against <head>.
+export async function fetchGithubSingleBranchComparison(token: string | null, owner: string, repo: string, head: string): Promise<GithubDiffResult> {
+    const base = await fetchRepoDefaultBranch(token, owner, repo);
+    return fetchGithubComparison(token, owner, repo, base, head);
+}
+
+export function fetchGithubCommitDiff(token: string | null, owner: string, repo: string, commit: string, backlinkOverride?: string): GithubDiffResult {
     const url = `https://api.github.com/repos/${owner}/${repo}/commits/${commit}`;
     return {
         info: (async () => {
@@ -208,7 +233,7 @@ export function fetchGithubCommitDiff(token: string | null, owner: string, repo:
             const meta: GithubCommitDetails = await metaResponse.json();
             const firstParent = meta.parents[0].sha;
             const description = `${meta.commit.message.split("\n")[0]} (${trimCommitHash(commit)})`;
-            return { owner, repo, base: firstParent, head: commit, description, backlink: meta.html_url };
+            return { owner, repo, base: firstParent, head: commit, description, backlink: backlinkOverride ?? meta.html_url };
         })(),
         response: (async () => {
             const diffOpts: RequestInit = {

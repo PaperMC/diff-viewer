@@ -289,7 +289,7 @@ export class OpenDiffDialogState {
         const match = test.match(regex);
 
         if (!match) {
-            alert("Invalid GitHub URL. Use: https://github.com/owner/repo/(commit|pull|compare)/(id|ref_a...ref_b)");
+            alert("Invalid GitHub URL. Use: https://github.com/owner/repo/(commit|pull|compare)/(id|ref|ref_a...ref_b)");
             return;
         }
 
