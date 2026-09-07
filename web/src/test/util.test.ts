@@ -1,5 +1,5 @@
+import { splitMultiFilePatch } from "$lib/multi-file-patch";
 import { expect, test } from "vitest";
-import { splitMultiFilePatch } from "$lib/util";
 import * as path from "node:path";
 import * as fs from "node:fs";
 

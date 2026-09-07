@@ -1,10 +1,11 @@
+import { binaryFileDummyDetails, makeImageDetails, makeTextDetails, type FileStatus } from "$lib/file-details";
+import { parseMultiFilePatch } from "$lib/multi-file-patch";
 import type { WritableBoxedValues } from "svelte-toolbelt";
 import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "./components/files/index.svelte";
 import { SvelteSet } from "svelte/reactivity";
-import { type FileStatus } from "$lib/util";
 import { parseGithubUrl } from "$lib/github-url";
-import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
-import { binaryFileDummyDetails, bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, parseMultiFilePatch, tryCompileRegex } from "$lib/util";
+import { MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
+import { bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, tryCompileRegex } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
 
 export interface OpenDiffDialogProps {
@@ -271,7 +272,9 @@ export class OpenDiffDialogState {
                 };
             },
             async () => {
-                return parseMultiFilePatch(text, this.viewer.loadingState);
+                return parseMultiFilePatch(text, (total) => {
+                    this.viewer.loadingState.totalCount = total;
+                });
             },
             opts,
         );

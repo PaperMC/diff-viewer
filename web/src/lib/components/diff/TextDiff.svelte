@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { type TextFileDetails } from "$lib/file-details";
+
     import {
         TextDiffState,
         type DiffViewerPatchHunk,
@@ -13,7 +15,7 @@
     } from "$lib/components/diff/text-diff.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import { GlobalOptions } from "$lib/global-options.svelte";
-    import { MultiFileDiffViewerState, type TextFileDetails } from "$lib/diff-viewer.svelte";
+    import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
     import { type MutableValue } from "$lib/util";
     import { box } from "svelte-toolbelt";
     import { boolAttr } from "runed";
