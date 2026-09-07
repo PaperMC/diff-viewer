@@ -22,8 +22,15 @@ jobs:
                   cache: "pnpm"
             - run: pnpm install --frozen-lockfile
             - run: pnpm --filter=web run build
+            # Temporary: master's deploy-preview.yml expects the
+            # <root>/web/.svelte-kit/cloudflare layout. Drop this step and
+            # flatten the deploy directory path when this PR merges.
+            - name: "prepare build artifact"
+              run: |
+                  mkdir -p preview-artifact/web/.svelte-kit
+                  cp -a web/.svelte-kit/cloudflare preview-artifact/web/.svelte-kit/
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v7"
               with:
                   name: "preview-build"
-                  path: "web/.svelte-kit/cloudflare"
+                  path: preview-artifact

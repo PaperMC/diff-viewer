@@ -34,4 +34,7 @@ jobs:
                   githubToken: ${{ secrets.GITHUB_TOKEN }}
                   projectName: "diffs"
                   directory: ${{ steps.preview-build-artifact.outputs.download-path }}
+                  # refined-cf-pages-action defaults to wrangler 3; adapter-cloudflare
+                  # requires wrangler 4
+                  wranglerVersion: "4"
                   deploymentName: Preview
