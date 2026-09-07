@@ -31,7 +31,6 @@ jobs:
                   accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
                   githubToken: ${{ secrets.GITHUB_TOKEN }}
                   projectName: "diffs"
-                  directory: ".svelte-kit/cloudflare"
-                  workingDirectory: "web"
+                  directory: "web/.svelte-kit/cloudflare"
                   wranglerVersion: "4"
                   deploymentName: Production

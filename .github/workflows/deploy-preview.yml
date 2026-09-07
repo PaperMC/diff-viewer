@@ -18,8 +18,6 @@ jobs:
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         name: "Deploy Preview to Cloudflare Pages"
         steps:
-            - name: "Checkout"
-              uses: "actions/checkout@v6"
             - name: "Download build artifact"
               uses: "actions/download-artifact@v7"
               id: "preview-build-artifact"
@@ -36,6 +34,5 @@ jobs:
                   githubToken: ${{ secrets.GITHUB_TOKEN }}
                   projectName: "diffs"
                   directory: ${{ steps.preview-build-artifact.outputs.download-path }}/cloudflare
-                  workingDirectory: "web"
                   wranglerVersion: "4"
                   deploymentName: Preview
