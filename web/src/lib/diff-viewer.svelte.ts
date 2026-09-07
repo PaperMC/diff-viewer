@@ -782,16 +782,16 @@ export class MultiFileDiffViewerState {
                     return await this.loadPatchesGithub(token, fetchGithubComparison(token, source.owner, source.repo, source.base, source.head), opts);
                 case "compare-single":
                     return await this.loadPatchesGithub(token, fetchGithubSingleBranchComparison(token, source.owner, source.repo, source.head), opts);
-                case "invalid":
-                    alert(source.message);
-                    return false;
+                default: {
+                    const _exhaustive: never = source;
+                    throw new Error(`Unhandled GithubDiffSource kind: ${JSON.stringify(_exhaustive)}`);
+                }
             }
         } catch (error) {
             console.error(error);
             alert(`Failed to load diff from GitHub: ${error}`);
             return false;
         }
-        return false;
     }
 
     private async findSearchResults(): Promise<SearchResults> {

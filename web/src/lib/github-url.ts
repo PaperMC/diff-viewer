@@ -5,23 +5,24 @@ export type GithubDiffSource =
     | { kind: "pull"; url: string; owner: string; repo: string; prNumber: string }
     | { kind: "pull-commit"; url: string; owner: string; repo: string; prNumber: string; sha: string; backlink: string }
     | { kind: "compare"; url: string; owner: string; repo: string; base: string; head: string }
-    | { kind: "compare-single"; url: string; owner: string; repo: string; head: string }
-    | { kind: "invalid"; message: string };
+    | { kind: "compare-single"; url: string; owner: string; repo: string; head: string };
+
+export type GithubDiffSourceError = { kind: "error"; message: string };
 
 // Parses a GitHub URL into the request that should be made against the GitHub API.
-export function parseGithubUrl(url: string): GithubDiffSource {
+export function parseGithubUrl(url: string): GithubDiffSource | GithubDiffSourceError {
     let path: string;
     try {
         const parsed = new URL(url);
         // exclude hash + query params
         path = parsed.protocol + "//" + parsed.hostname + parsed.pathname;
     } catch {
-        return { kind: "invalid", message: INVALID_URL_MESSAGE };
+        return { kind: "error", message: INVALID_URL_MESSAGE };
     }
 
     const match = path.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(commit|pull|compare)\/(.+)/);
     if (!match) {
-        return { kind: "invalid", message: INVALID_URL_MESSAGE };
+        return { kind: "error", message: INVALID_URL_MESSAGE };
     }
     const [, owner, repo, type, id] = match;
 
@@ -52,7 +53,7 @@ export function parseGithubUrl(url: string): GithubDiffSource {
     if (separator) {
         const parts = cleaned.split(separator);
         if (parts.length !== 2 || !parts[0] || !parts[1]) {
-            return { kind: "invalid", message: invalidMessage };
+            return { kind: "error", message: invalidMessage };
         }
         return { kind: "compare", url: path, owner, repo, base: parts[0], head: parts[1] };
     }
@@ -60,5 +61,5 @@ export function parseGithubUrl(url: string): GithubDiffSource {
     if (cleaned) {
         return { kind: "compare-single", url: path, owner, repo, head: cleaned };
     }
-    return { kind: "invalid", message: invalidMessage };
+    return { kind: "error", message: invalidMessage };
 }

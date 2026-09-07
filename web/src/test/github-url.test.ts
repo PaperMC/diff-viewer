@@ -53,19 +53,19 @@ test.for([
     "https://gitlab.com/octocat/repo/compare/main...feature",
     "not a url",
 ])("rejects %s", (url) => {
-    expect(parseGithubUrl(url).kind).toBe("invalid");
+    expect(parseGithubUrl(url).kind).toBe("error");
 });
 
 test("compare rejections explain the expected format", () => {
     const invalid = parseGithubUrl(`${GITHUB}/compare/...main`);
-    if (invalid.kind === "invalid") {
+    if (invalid.kind === "error") {
         expect(invalid.message).toMatch(/Invalid comparison URL/);
     }
 });
 
 test("non-GitHub URLs are rejected with guidance", () => {
     const invalid = parseGithubUrl("https://gitlab.com/octocat/repo/compare/main...feature");
-    if (invalid.kind === "invalid") {
+    if (invalid.kind === "error") {
         expect(invalid.message).toMatch(/Invalid GitHub URL/);
     }
 });

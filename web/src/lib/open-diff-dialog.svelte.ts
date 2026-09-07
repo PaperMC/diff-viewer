@@ -283,7 +283,7 @@ export class OpenDiffDialogState {
 
     async handleGithubUrl(opts?: LoadPatchesOptions) {
         const source = parseGithubUrl(this.githubUrl);
-        if (source.kind === "invalid") {
+        if (source.kind === "error") {
             alert(source.message);
             return;
         }
