@@ -4,9 +4,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(() => ({
     plugins: [tailwindcss(), sveltekit()],
-    ssr: {
-        noExternal: true as const,
-    },
+    // Bundle the server-side deps into the SSR output so the adapter-cloudflare
+    // artifact is self-contained (it ships no node_modules).
+    ssr: { noExternal: ["@sveltejs/kit", "diff", "shiki"] },
     // Tell Vitest to use the `browser` entry points in `package.json` files, even though it's running in Node
     resolve: process.env.VITEST
         ? {
