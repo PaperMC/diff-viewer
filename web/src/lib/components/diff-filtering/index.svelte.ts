@@ -1,5 +1,5 @@
 import type { FileDetails } from "$lib/diff-viewer.svelte";
-import { FILE_STATUSES, type FileStatus } from "$lib/github.svelte";
+import { FILE_STATUSES, type FileStatus } from "$lib/util";
 import type { TryCompileRegexSuccess } from "$lib/util";
 import { SvelteSet } from "svelte/reactivity";
 

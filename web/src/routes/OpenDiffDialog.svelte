@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { getGithubUsername, getGithubAvatarUrl, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github.svelte";
+    import { getGithubUsername, getGithubAvatarUrl, installGithubApp, loginWithGithub, logoutGithub } from "$lib/github-auth.svelte";
     import { Button, Dialog, Separator, Popover } from "bits-ui";
     import InfoPopup from "$lib/components/InfoPopup.svelte";
     import { page } from "$app/state";

@@ -1,5 +1,4 @@
 import { type FileDetails, type ImageFileDetails, LoadingState, makeTextDetails } from "./diff-viewer.svelte";
-import type { FileStatus } from "./github.svelte";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
 import { onMount } from "svelte";
 import { on } from "svelte/events";
@@ -85,6 +84,9 @@ export async function bytesEqual(
 
     return true;
 }
+
+export type FileStatus = "added" | "removed" | "modified" | "renamed" | "renamed_modified";
+export const FILE_STATUSES: FileStatus[] = ["added", "removed", "modified", "renamed", "renamed_modified"];
 
 export function binaryFileDummyDetails(fromFile: string, toFile: string, status: FileStatus): FileDetails {
     let fakeContent: string;

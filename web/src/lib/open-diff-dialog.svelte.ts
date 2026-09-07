@@ -1,7 +1,8 @@
 import type { WritableBoxedValues } from "svelte-toolbelt";
 import { DirectoryEntry, FileEntry, MultimodalFileInputState, type MultimodalFileInputValueMetadata } from "./components/files/index.svelte";
 import { SvelteSet } from "svelte/reactivity";
-import { type FileStatus } from "$lib/github.svelte";
+import { type FileStatus } from "$lib/util";
+import { parseGithubUrl } from "$lib/github-url";
 import { makeImageDetails, makeTextDetails, MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
 import { binaryFileDummyDetails, bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, parseMultiFilePatch, tryCompileRegex } from "$lib/util";
 import { createTwoFilesPatch } from "diff";
@@ -281,21 +282,15 @@ export class OpenDiffDialogState {
     }
 
     async handleGithubUrl(opts?: LoadPatchesOptions) {
-        const url = new URL(this.githubUrl);
-        // exclude hash + query params
-        const test = url.protocol + "//" + url.hostname + url.pathname;
-
-        const regex = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/(commit|pull|compare)\/(.+)/;
-        const match = test.match(regex);
-
-        if (!match) {
-            alert("Invalid GitHub URL. Use: https://github.com/owner/repo/(commit|pull|compare)/(id|ref|ref_a...ref_b)");
+        const source = parseGithubUrl(this.githubUrl);
+        if (source.kind === "invalid") {
+            alert(source.message);
             return;
         }
 
-        this.githubUrl = match[0];
+        this.githubUrl = source.url;
         this.props.open.current = false;
-        const success = await this.viewer.loadFromGithubApi(match, opts);
+        const success = await this.viewer.loadFromGithubApi(source, opts);
         if (success) {
             return;
         }
