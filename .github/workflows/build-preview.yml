@@ -34,3 +34,4 @@ jobs:
               with:
                   name: "preview-build"
                   path: preview-artifact
+                  include-hidden-files: true
