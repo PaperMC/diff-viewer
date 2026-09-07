@@ -1,48 +1,52 @@
 <script lang="ts">
-    type Props = {
-        label?: string;
-        required?: boolean;
-        file?: File;
-    };
+  type Props = {
+    label?: string;
+    required?: boolean;
+    file?: File;
+  };
 
-    let { label = "File", required = false, file = $bindable<File | undefined>(undefined) }: Props = $props();
+  let { label = "File", required = false, file = $bindable<File | undefined>(undefined) }: Props = $props();
 
-    function getFiles() {
-        if (file) {
-            const dataTransfer = new DataTransfer();
-            dataTransfer.items.add(file);
-            return dataTransfer.files;
-        }
-        return new DataTransfer().files;
+  function getFiles() {
+    if (file) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      return dataTransfer.files;
     }
+    return new DataTransfer().files;
+  }
 
-    function setFiles(files: FileList | null) {
-        if (files && files.length > 0) {
-            file = files[0];
-        } else {
-            file = undefined;
-        }
+  function setFiles(files: FileList | null) {
+    if (files && files.length > 0) {
+      file = files[0];
+    } else {
+      file = undefined;
     }
+  }
 
-    const uid = $props.id();
-    const labelId = `${uid}-label`;
-    const inputId = `${uid}-input`;
+  const uid = $props.id();
+  const labelId = `${uid}-label`;
+  const inputId = `${uid}-input`;
 </script>
 
-<label id={labelId} for={inputId} class="relative flex w-fit max-w-full items-center gap-2 rounded-md btn-fill-neutral px-2 py-1">
-    <span class="iconify size-4 shrink-0 text-em-med octicon--file-16"></span>
-    {#if file}
-        <span class="truncate">{file.name}</span>
-    {:else}
-        <span>Pick {label}</span>
-    {/if}
-    <span class="iconify size-4 shrink-0 text-em-med octicon--triangle-down-16"></span>
-    <input
-        id={inputId}
-        aria-labelledby={labelId}
-        type="file"
-        {required}
-        bind:files={getFiles, setFiles}
-        class="absolute top-0 left-0 size-full opacity-0 focus:outline-none"
-    />
+<label
+  id={labelId}
+  for={inputId}
+  class="relative flex w-fit max-w-full items-center gap-2 rounded-md btn-fill-neutral px-2 py-1"
+>
+  <span class="iconify size-4 shrink-0 text-em-med octicon--file-16"></span>
+  {#if file}
+    <span class="truncate">{file.name}</span>
+  {:else}
+    <span>Pick {label}</span>
+  {/if}
+  <span class="iconify size-4 shrink-0 text-em-med octicon--triangle-down-16"></span>
+  <input
+    id={inputId}
+    aria-labelledby={labelId}
+    type="file"
+    {required}
+    bind:files={getFiles, setFiles}
+    class="absolute top-0 left-0 size-full opacity-0 focus:outline-none"
+  />
 </label>

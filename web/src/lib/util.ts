@@ -6,332 +6,332 @@ import { type Attachment } from "svelte/attachments";
 export type Getter<T> = () => T;
 
 export type MutableValue<T> = {
-    value: T;
+  value: T;
 };
 
 export function clearCookie(name: string) {
-    document.cookie = name + "=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  document.cookie = name + "=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 }
 
 export function setCookie(name: string, value: string) {
-    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
 function isFullCommitHash(s: string): boolean {
-    return /^[0-9a-fA-F]{40}$/.test(s);
+  return /^[0-9a-fA-F]{40}$/.test(s);
 }
 
 export function trimCommitHash(hash: string): string {
-    if (isFullCommitHash(hash)) {
-        return hash.substring(0, 8);
-    }
-    return hash;
+  if (isFullCommitHash(hash)) {
+    return hash.substring(0, 8);
+  }
+  return hash;
 }
 
 export async function isBinaryFile(file: Blob): Promise<boolean> {
-    const sampleSize = Math.min(file.size, 1024);
-    const buffer = await file.slice(0, sampleSize).arrayBuffer();
-    const decoder = new TextDecoder("utf-8", { fatal: true });
-    try {
-        decoder.decode(buffer);
-        return false; // Valid UTF-8, likely text
-    } catch {
-        return true; // Invalid UTF-8, likely binary
-    }
+  const sampleSize = Math.min(file.size, 1024);
+  const buffer = await file.slice(0, sampleSize).arrayBuffer();
+  const decoder = new TextDecoder("utf-8", { fatal: true });
+  try {
+    decoder.decode(buffer);
+    return false; // Valid UTF-8, likely text
+  } catch {
+    return true; // Invalid UTF-8, likely binary
+  }
 }
 
 export async function bytesEqual(
-    a: Blob,
-    b: Blob,
-    chunkingThreshold: number = 4 * 1024 * 1024, // 4MB
-    chunkSize: number = chunkingThreshold,
+  a: Blob,
+  b: Blob,
+  chunkingThreshold: number = 4 * 1024 * 1024, // 4MB
+  chunkSize: number = chunkingThreshold,
 ): Promise<boolean> {
-    if (a.size !== b.size) {
-        return false;
-    }
-    if (a.size === 0) {
-        return true;
-    }
-
-    if (a.size <= chunkingThreshold) {
-        // Process small files in one go
-        const [bytesA, bytesB] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
-        if (bytesA.byteLength === bytesB.byteLength) {
-            const viewA = new Uint8Array(bytesA);
-            const viewB = new Uint8Array(bytesB);
-            return viewA.every((byte, index) => byte === viewB[index]);
-        }
-        return false;
-    }
-
-    // Process large files in chunks
-    for (let offset = 0; offset < a.size; offset += chunkSize) {
-        const sliceA = a.slice(offset, offset + chunkSize);
-        const sliceB = b.slice(offset, offset + chunkSize);
-        const [bytesA, bytesB] = await Promise.all([sliceA.arrayBuffer(), sliceB.arrayBuffer()]);
-
-        if (bytesA.byteLength !== bytesB.byteLength) {
-            return false;
-        }
-
-        const viewA = new Uint8Array(bytesA);
-        const viewB = new Uint8Array(bytesB);
-        if (!viewA.every((byte, index) => byte === viewB[index])) {
-            return false;
-        }
-    }
-
+  if (a.size !== b.size) {
+    return false;
+  }
+  if (a.size === 0) {
     return true;
+  }
+
+  if (a.size <= chunkingThreshold) {
+    // Process small files in one go
+    const [bytesA, bytesB] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+    if (bytesA.byteLength === bytesB.byteLength) {
+      const viewA = new Uint8Array(bytesA);
+      const viewB = new Uint8Array(bytesB);
+      return viewA.every((byte, index) => byte === viewB[index]);
+    }
+    return false;
+  }
+
+  // Process large files in chunks
+  for (let offset = 0; offset < a.size; offset += chunkSize) {
+    const sliceA = a.slice(offset, offset + chunkSize);
+    const sliceB = b.slice(offset, offset + chunkSize);
+    const [bytesA, bytesB] = await Promise.all([sliceA.arrayBuffer(), sliceB.arrayBuffer()]);
+
+    if (bytesA.byteLength !== bytesB.byteLength) {
+      return false;
+    }
+
+    const viewA = new Uint8Array(bytesA);
+    const viewB = new Uint8Array(bytesB);
+    if (!viewA.every((byte, index) => byte === viewB[index])) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 const imageExtensions: Set<string> = new Set(["jpg", "jpeg", "png", "gif", "webp", "bmp", /*"svg",*/ "tiff", "ico"]);
 
 export function isImageFile(fileName: string | null) {
-    if (fileName === null) {
-        return false;
-    }
-    const lastDot = fileName.lastIndexOf(".");
-    if (lastDot === -1) {
-        return false;
-    }
-    const extension = fileName.substring(lastDot + 1).toLowerCase();
-    return imageExtensions.has(extension);
+  if (fileName === null) {
+    return false;
+  }
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot === -1) {
+    return false;
+  }
+  const extension = fileName.substring(lastDot + 1).toLowerCase();
+  return imageExtensions.has(extension);
 }
 
 export type LazyPromise<T> = {
-    hasValue: () => boolean;
-    getValue: () => Promise<T>;
+  hasValue: () => boolean;
+  getValue: () => Promise<T>;
 };
 
 export function lazyPromise<T>(fn: () => Promise<T>): LazyPromise<T> {
-    let value: T | null = null;
-    let pendingValue: Promise<T> | null = null;
-    return {
-        hasValue: () => pendingValue !== null || value !== null,
-        getValue: async () => {
-            if (value !== null) {
-                return value;
-            }
-            if (pendingValue !== null) {
-                return pendingValue;
-            }
-            pendingValue = fn();
-            value = await pendingValue;
-            return value;
-        },
-    };
+  let value: T | null = null;
+  let pendingValue: Promise<T> | null = null;
+  return {
+    hasValue: () => pendingValue !== null || value !== null,
+    getValue: async () => {
+      if (value !== null) {
+        return value;
+      }
+      if (pendingValue !== null) {
+        return pendingValue;
+      }
+      pendingValue = fn();
+      value = await pendingValue;
+      return value;
+    },
+  };
 }
 
 // Map of extensions to Shiki-supported languages (unique keys only)
 const languageMap: { [key: string]: BundledLanguage | SpecialLanguage } = {
-    ".abap": "abap",
-    ".ada": "ada",
-    ".adb": "ada",
-    ".ads": "ada",
-    ".as": "actionscript-3",
-    ".apacheconf": "apache",
-    ".applescript": "applescript",
-    ".scpt": "applescript",
-    ".awk": "awk",
-    ".bash": "bash",
-    ".sh": "bash", // Common shell extension, prioritizing bash
-    ".zsh": "bash",
-    ".bat": "bat",
-    ".cmd": "bat",
-    ".bicep": "bicep",
-    ".c": "c",
-    ".h": "c",
-    ".clj": "clojure",
-    ".cljs": "clojure",
-    ".cljc": "clojure",
-    ".coffee": "coffeescript",
-    ".cpp": "cpp",
-    ".cc": "cpp",
-    ".cxx": "cpp",
-    ".hpp": "cpp",
-    ".cs": "csharp",
-    ".csx": "csharp",
-    ".css": "css",
-    ".dart": "dart",
-    // ".diff": "diff", // We highlight diffs ourselves
-    // ".patch": "diff", // We highlight diffs ourselves
-    dockerfile: "docker", // No dot for Dockerfile
-    ".docker": "docker",
-    ".elm": "elm",
-    ".erb": "erb",
-    ".ex": "elixir",
-    ".exs": "elixir",
-    ".fs": "fsharp",
-    ".fsi": "fsharp",
-    ".fsx": "fsharp",
-    ".go": "go",
-    ".graphql": "graphql",
-    ".gql": "graphql",
-    ".groovy": "groovy",
-    ".gvy": "groovy",
-    ".haml": "haml",
-    ".hbs": "handlebars",
-    ".handlebars": "handlebars",
-    ".hs": "haskell",
-    ".lhs": "haskell",
-    ".html": "html",
-    ".htm": "html",
-    ".ini": "ini",
-    ".properties": "ini",
-    ".java": "java",
-    ".js": "javascript",
-    ".jsx": "javascript",
-    ".mjs": "javascript",
-    ".cjs": "javascript",
-    ".json": "json",
-    ".jsonc": "json",
-    ".jl": "julia",
-    ".kt": "kotlin",
-    ".kts": "kotlin",
-    ".less": "less",
-    ".liquid": "liquid",
-    ".lua": "lua",
-    ".md": "markdown",
-    ".markdown": "markdown",
-    ".m": "objective-c", // Prioritizing Objective-C over MATLAB for .m
-    ".mm": "objective-c",
-    ".nginx": "nginx",
-    ".nim": "nim",
-    ".nix": "nix",
-    ".ml": "ocaml",
-    ".mli": "ocaml",
-    ".pas": "pascal",
-    ".p": "pascal",
-    ".pl": "perl", // Prioritizing Perl over Prolog for .pl
-    ".pm": "perl",
-    ".php": "php",
-    ".phtml": "php",
-    ".txt": "plaintext",
-    ".ps1": "powershell",
-    ".psm1": "powershell",
-    ".prisma": "prisma",
-    ".pro": "prolog",
-    ".pug": "pug",
-    ".jade": "pug",
-    ".pp": "puppet",
-    ".py": "python",
-    ".pyc": "python",
-    ".pyo": "python",
-    ".r": "r",
-    ".rb": "ruby",
-    ".rbx": "ruby",
-    ".rs": "rust",
-    ".sass": "sass",
-    ".scss": "scss",
-    ".scala": "scala",
-    ".sc": "scala",
-    ".scheme": "scheme",
-    ".scm": "scheme",
-    ".ss": "scheme",
-    ".svelte": "svelte",
-    ".swift": "swift",
-    ".tf": "terraform",
-    ".hcl": "terraform",
-    ".toml": "toml",
-    ".ts": "typescript",
-    ".tsx": "typescript",
-    ".twig": "twig",
-    ".vb": "vb",
-    ".vbs": "vb",
-    ".v": "verilog",
-    ".sv": "verilog",
-    ".vhdl": "vhdl",
-    ".vhd": "vhdl",
-    ".vue": "vue",
-    ".wgsl": "wgsl",
-    ".xml": "xml",
-    ".xsd": "xml",
-    ".xsl": "xml",
-    ".yaml": "yaml",
-    ".yml": "yaml",
+  ".abap": "abap",
+  ".ada": "ada",
+  ".adb": "ada",
+  ".ads": "ada",
+  ".as": "actionscript-3",
+  ".apacheconf": "apache",
+  ".applescript": "applescript",
+  ".scpt": "applescript",
+  ".awk": "awk",
+  ".bash": "bash",
+  ".sh": "bash", // Common shell extension, prioritizing bash
+  ".zsh": "bash",
+  ".bat": "bat",
+  ".cmd": "bat",
+  ".bicep": "bicep",
+  ".c": "c",
+  ".h": "c",
+  ".clj": "clojure",
+  ".cljs": "clojure",
+  ".cljc": "clojure",
+  ".coffee": "coffeescript",
+  ".cpp": "cpp",
+  ".cc": "cpp",
+  ".cxx": "cpp",
+  ".hpp": "cpp",
+  ".cs": "csharp",
+  ".csx": "csharp",
+  ".css": "css",
+  ".dart": "dart",
+  // ".diff": "diff", // We highlight diffs ourselves
+  // ".patch": "diff", // We highlight diffs ourselves
+  dockerfile: "docker", // No dot for Dockerfile
+  ".docker": "docker",
+  ".elm": "elm",
+  ".erb": "erb",
+  ".ex": "elixir",
+  ".exs": "elixir",
+  ".fs": "fsharp",
+  ".fsi": "fsharp",
+  ".fsx": "fsharp",
+  ".go": "go",
+  ".graphql": "graphql",
+  ".gql": "graphql",
+  ".groovy": "groovy",
+  ".gvy": "groovy",
+  ".haml": "haml",
+  ".hbs": "handlebars",
+  ".handlebars": "handlebars",
+  ".hs": "haskell",
+  ".lhs": "haskell",
+  ".html": "html",
+  ".htm": "html",
+  ".ini": "ini",
+  ".properties": "ini",
+  ".java": "java",
+  ".js": "javascript",
+  ".jsx": "javascript",
+  ".mjs": "javascript",
+  ".cjs": "javascript",
+  ".json": "json",
+  ".jsonc": "json",
+  ".jl": "julia",
+  ".kt": "kotlin",
+  ".kts": "kotlin",
+  ".less": "less",
+  ".liquid": "liquid",
+  ".lua": "lua",
+  ".md": "markdown",
+  ".markdown": "markdown",
+  ".m": "objective-c", // Prioritizing Objective-C over MATLAB for .m
+  ".mm": "objective-c",
+  ".nginx": "nginx",
+  ".nim": "nim",
+  ".nix": "nix",
+  ".ml": "ocaml",
+  ".mli": "ocaml",
+  ".pas": "pascal",
+  ".p": "pascal",
+  ".pl": "perl", // Prioritizing Perl over Prolog for .pl
+  ".pm": "perl",
+  ".php": "php",
+  ".phtml": "php",
+  ".txt": "plaintext",
+  ".ps1": "powershell",
+  ".psm1": "powershell",
+  ".prisma": "prisma",
+  ".pro": "prolog",
+  ".pug": "pug",
+  ".jade": "pug",
+  ".pp": "puppet",
+  ".py": "python",
+  ".pyc": "python",
+  ".pyo": "python",
+  ".r": "r",
+  ".rb": "ruby",
+  ".rbx": "ruby",
+  ".rs": "rust",
+  ".sass": "sass",
+  ".scss": "scss",
+  ".scala": "scala",
+  ".sc": "scala",
+  ".scheme": "scheme",
+  ".scm": "scheme",
+  ".ss": "scheme",
+  ".svelte": "svelte",
+  ".swift": "swift",
+  ".tf": "terraform",
+  ".hcl": "terraform",
+  ".toml": "toml",
+  ".ts": "typescript",
+  ".tsx": "typescript",
+  ".twig": "twig",
+  ".vb": "vb",
+  ".vbs": "vb",
+  ".v": "verilog",
+  ".sv": "verilog",
+  ".vhdl": "vhdl",
+  ".vhd": "vhdl",
+  ".vue": "vue",
+  ".wgsl": "wgsl",
+  ".xml": "xml",
+  ".xsd": "xml",
+  ".xsl": "xml",
+  ".yaml": "yaml",
+  ".yml": "yaml",
 };
 
 const reverseLanguageMap = Object.fromEntries(Object.entries(languageMap).map(([ext, lang]) => [lang, ext]));
 
 export function getExtensionForLanguage(language: BundledLanguage | SpecialLanguage): string {
-    return reverseLanguageMap[language] || ".txt";
+  return reverseLanguageMap[language] || ".txt";
 }
 
 export function guessLanguageFromExtension(fileName: string): BundledLanguage | SpecialLanguage {
-    const lowerFileName = fileName.toLowerCase();
-    const extensionIndex = lowerFileName.lastIndexOf(".");
-    if (extensionIndex === -1) return "text";
-    const extension = lowerFileName.slice(extensionIndex);
-    return languageMap[extension] || "text";
+  const lowerFileName = fileName.toLowerCase();
+  const extensionIndex = lowerFileName.lastIndexOf(".");
+  if (extensionIndex === -1) return "text";
+  const extension = lowerFileName.slice(extensionIndex);
+  return languageMap[extension] || "text";
 }
 
 export function capitalizeFirstLetter(val: string): string {
-    return val.charAt(0).toUpperCase() + val.slice(1);
+  return val.charAt(0).toUpperCase() + val.slice(1);
 }
 
 export function formatErrorWithCauses(error: unknown): string {
-    const parts: string[] = [];
-    const seen = new Set<unknown>();
-    let current: unknown = error;
+  const parts: string[] = [];
+  const seen = new Set<unknown>();
+  let current: unknown = error;
 
-    while (current !== undefined && !seen.has(current)) {
-        seen.add(current);
-        parts.push(String(current));
+  while (current !== undefined && !seen.has(current)) {
+    seen.add(current);
+    parts.push(String(current));
 
-        if (!(current instanceof Error) || current.cause === undefined) {
-            break;
-        }
-        current = current.cause;
+    if (!(current instanceof Error) || current.cause === undefined) {
+      break;
     }
+    current = current.cause;
+  }
 
-    return parts.map((part, index) => (index === 0 ? part : `Cause: ${part}`)).join("\n");
+  return parts.map((part, index) => (index === 0 ? part : `Cause: ${part}`)).join("\n");
 }
 
 export function countOccurrences(str: string, substr: string): number {
-    let count = 0;
-    let idx = 0;
-    while (idx > -1) {
-        idx = str.indexOf(substr, idx);
-        if (idx > -1) {
-            count++;
-            idx += substr.length;
-        }
+  let count = 0;
+  let idx = 0;
+  while (idx > -1) {
+    idx = str.indexOf(substr, idx);
+    if (idx > -1) {
+      count++;
+      idx += substr.length;
     }
-    return count;
+  }
+  return count;
 }
 
 // Watches for changes to local storage in other tabs
 export function watchLocalStorage(key: string, callback: (newValue: string | null) => void) {
-    onMount(() => {
-        function storageChanged(event: StorageEvent) {
-            if (event.storageArea === localStorage && event.key === key) {
-                callback(event.newValue);
-            }
-        }
+  onMount(() => {
+    function storageChanged(event: StorageEvent) {
+      if (event.storageArea === localStorage && event.key === key) {
+        callback(event.newValue);
+      }
+    }
 
-        const destroy = on(window, "storage", storageChanged);
-        return { destroy };
-    });
+    const destroy = on(window, "storage", storageChanged);
+    return { destroy };
+  });
 }
 
 export function resizeObserver(callback: ResizeObserverCallback): Attachment<HTMLElement> {
-    return (element) => {
-        const observer = new ResizeObserver(callback);
-        observer.observe(element);
-        return () => {
-            observer.disconnect();
-        };
+  return (element) => {
+    const observer = new ResizeObserver(callback);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
     };
+  };
 }
 
 export function animationFramePromise() {
-    return new Promise((resolve) => {
-        requestAnimationFrame(resolve);
-    });
+  return new Promise((resolve) => {
+    requestAnimationFrame(resolve);
+  });
 }
 
 export async function yieldToBrowser() {
-    await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 export type TryCompileRegexSuccess = { success: true; regex: RegExp; input: string };
@@ -339,13 +339,13 @@ export type TryCompileRegexFailure = { success: false; error: string; input: str
 export type TryCompileRegexResult = TryCompileRegexSuccess | TryCompileRegexFailure;
 
 export function tryCompileRegex(pattern: string, options?: { allowEmpty?: boolean }): TryCompileRegexResult {
-    const allowEmpty = options?.allowEmpty ?? false;
-    if (pattern === "" && !allowEmpty) {
-        return { success: false, error: "Pattern cannot be empty", input: pattern };
-    }
-    try {
-        return { success: true, regex: new RegExp(pattern), input: pattern };
-    } catch (e) {
-        return { success: false, error: e instanceof Error ? e.message : String(e), input: pattern };
-    }
+  const allowEmpty = options?.allowEmpty ?? false;
+  if (pattern === "" && !allowEmpty) {
+    return { success: false, error: "Pattern cannot be empty", input: pattern };
+  }
+  try {
+    return { success: true, regex: new RegExp(pattern), input: pattern };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : String(e), input: pattern };
+  }
 }

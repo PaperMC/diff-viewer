@@ -1,37 +1,37 @@
 {
-    "name": "web-extension",
-    "displayName": "diffs.dev",
-    "description": "Streamlines opening diffs in the diffs.dev Diff Viewer.",
-    "version": "0.0.9",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "format": "prettier --write .",
-        "lint": "tsc && prettier --check . && eslint .",
-        "manifest:chrome": "node --experimental-strip-types scripts/manifest.ts",
-        "manifest:firefox": "EXTENSION=firefox node --experimental-strip-types scripts/manifest.ts",
-        "build": "vite build",
-        "pack:chrome": "pnpm run manifest:chrome && pnpm run build && mkdir -p pack && rm -f pack/chrome.zip && (cd dist && zip -r ../pack/chrome.zip .)",
-        "pack:firefox": "pnpm run manifest:firefox && pnpm run build && mkdir -p pack && rm -f pack/firefox.zip && (cd dist && zip -r ../pack/firefox.zip .)",
-        "pack": "pnpm run pack:chrome && pnpm run pack:firefox"
-    },
-    "devDependencies": {
-        "@eslint/compat": "^2.1.1",
-        "@eslint/js": "^10.0.1",
-        "@types/webextension-polyfill": "^0.12.6",
-        "chrome-types": "^0.1.443",
-        "eslint": "^10.9.1",
-        "eslint-config-prettier": "^10.1.8",
-        "globals": "^17.12.0",
-        "prettier": "^3.9.6",
-        "prettier-plugin-tailwindcss": "^0.8.1",
-        "typescript": "^6.0.3",
-        "typescript-eslint": "^8.69.0",
-        "vite": "^8.2.2"
-    },
-    "dependencies": {
-        "@tailwindcss/vite": "^4.3.3",
-        "tailwindcss": "^4.3.3",
-        "webextension-polyfill": "^0.12.0"
-    }
+  "name": "web-extension",
+  "displayName": "diffs.dev",
+  "description": "Streamlines opening diffs in the diffs.dev Diff Viewer.",
+  "version": "0.0.9",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "lint": "tsc && prettier --check . && eslint .",
+    "manifest:chrome": "node --experimental-strip-types scripts/manifest.ts",
+    "manifest:firefox": "EXTENSION=firefox node --experimental-strip-types scripts/manifest.ts",
+    "build": "vite build",
+    "pack:chrome": "pnpm run manifest:chrome && pnpm run build && mkdir -p pack && rm -f pack/chrome.zip && (cd dist && zip -r ../pack/chrome.zip .)",
+    "pack:firefox": "pnpm run manifest:firefox && pnpm run build && mkdir -p pack && rm -f pack/firefox.zip && (cd dist && zip -r ../pack/firefox.zip .)",
+    "pack": "pnpm run pack:chrome && pnpm run pack:firefox"
+  },
+  "devDependencies": {
+    "@eslint/compat": "^2.1.1",
+    "@eslint/js": "^10.0.1",
+    "@types/webextension-polyfill": "^0.12.6",
+    "chrome-types": "^0.1.443",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.69.0",
+    "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "webextension-polyfill": "^0.12.0"
+  }
 }

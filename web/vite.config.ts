@@ -3,12 +3,12 @@ import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(() => ({
-    plugins: [tailwindcss(), sveltekit()],
-    ssr: { noExternal: ["@sveltejs/kit", "chroma-js", "diff", "shiki"] },
-    // Tell Vitest to use the `browser` entry points in `package.json` files, even though it's running in Node
-    resolve: process.env.VITEST
-        ? {
-              conditions: ["browser"],
-          }
-        : undefined,
+  plugins: [tailwindcss(), sveltekit()],
+  ssr: { noExternal: ["@sveltejs/kit", "chroma-js", "diff", "shiki"] },
+  // Tell Vitest to use the `browser` entry points in `package.json` files, even though it's running in Node
+  resolve: process.env.VITEST
+    ? {
+        conditions: ["browser"],
+      }
+    : undefined,
 }));
