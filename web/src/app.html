@@ -1,17 +1,17 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <link rel="icon" href="%sveltekit.assets%/favicon.ico" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <script type="module" blocking="render">
-            // This script is in the head and does not import anything to ensure it runs before hydration and avoids FOUC with dark/auto mode
-            const initialTheme = localStorage.getItem("theme");
-            document.documentElement.setAttribute("data-theme", initialTheme || "auto");
-        </script>
-        %sveltekit.head%
-    </head>
-    <body data-sveltekit-preload-data="hover" class="bg-neutral">
-        <div style="display: contents">%sveltekit.body%</div>
-    </body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script type="module" blocking="render">
+      // This script is in the head and does not import anything to ensure it runs before hydration and avoids FOUC with dark/auto mode
+      const initialTheme = localStorage.getItem("theme");
+      document.documentElement.setAttribute("data-theme", initialTheme || "auto");
+    </script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover" class="bg-neutral">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
 </html>

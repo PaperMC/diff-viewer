@@ -1,44 +1,44 @@
 <script lang="ts">
-    import { mergeProps, Progress } from "bits-ui";
-    import { type ProgressBarProps, useProgressBarState } from "$lib/components/progress-bar/index.svelte";
+  import { mergeProps, Progress } from "bits-ui";
+  import { type ProgressBarProps, useProgressBarState } from "$lib/components/progress-bar/index.svelte";
 
-    let { state = $bindable(), ...restProps }: ProgressBarProps = $props();
+  let { state = $bindable(), ...restProps }: ProgressBarProps = $props();
 
-    state = useProgressBarState(state);
+  state = useProgressBarState(state);
 
-    const mergedProps = $derived(
-        mergeProps(
-            {
-                class: "bg-em-disabled/30 inset-shadow-xs relative overflow-hidden rounded-full",
-            },
-            restProps,
-        ),
-    );
+  const mergedProps = $derived(
+    mergeProps(
+      {
+        class: "bg-em-disabled/30 inset-shadow-xs relative overflow-hidden rounded-full",
+      },
+      restProps,
+    ),
+  );
 </script>
 
 <Progress.Root value={state.value} max={state.max} {...mergedProps}>
-    {@const percent = state.getPercent()}
-    {#if percent !== undefined}
-        <div
-            class="h-full w-full rounded-full bg-em-high drop-shadow-sm transition-all duration-50 ease-in-out will-change-transform"
-            style={`transform: translateX(-${100 - percent}%)`}
-        ></div>
-    {:else}
-        <div id="spinner" class="h-full w-[20%] rounded-full bg-em-high drop-shadow-sm"></div>
-    {/if}
+  {@const percent = state.getPercent()}
+  {#if percent !== undefined}
+    <div
+      class="h-full w-full rounded-full bg-em-high drop-shadow-sm transition-all duration-50 ease-in-out will-change-transform"
+      style={`transform: translateX(-${100 - percent}%)`}
+    ></div>
+  {:else}
+    <div id="spinner" class="h-full w-[20%] rounded-full bg-em-high drop-shadow-sm"></div>
+  {/if}
 </Progress.Root>
 
 <style>
-    #spinner {
-        animation: slide 1s linear infinite alternate;
-    }
+  #spinner {
+    animation: slide 1s linear infinite alternate;
+  }
 
-    @keyframes slide {
-        0% {
-            transform: translateX(0%);
-        }
-        100% {
-            transform: translateX(400%);
-        }
+  @keyframes slide {
+    0% {
+      transform: translateX(0%);
     }
+    100% {
+      transform: translateX(400%);
+    }
+  }
 </style>

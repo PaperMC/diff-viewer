@@ -5,184 +5,184 @@ import type { Snippet } from "svelte";
 import type { RestProps } from "$lib/types";
 
 export interface FileSystemEntry {
-    fileName: string;
+  fileName: string;
 }
 
 export class DirectoryEntry implements FileSystemEntry {
-    fileName: string;
-    children: FileSystemEntry[];
+  fileName: string;
+  children: FileSystemEntry[];
 
-    constructor(fileName: string, children: FileSystemEntry[]) {
-        this.fileName = fileName;
-        this.children = children;
-    }
+  constructor(fileName: string, children: FileSystemEntry[]) {
+    this.fileName = fileName;
+    this.children = children;
+  }
 }
 
 export class FileEntry implements FileSystemEntry {
-    fileName: string;
-    file: File;
+  fileName: string;
+  file: File;
 
-    constructor(fileName: string, file: File) {
-        this.fileName = fileName;
-        this.file = file;
-    }
+  constructor(fileName: string, file: File) {
+    this.fileName = fileName;
+    this.file = file;
+  }
 }
 
 export type DirectoryInputProps = {
-    children?: Snippet<[{ directory: DirectoryEntry | undefined; picking: boolean }]>;
-    directory?: DirectoryEntry;
-    picking?: boolean;
+  children?: Snippet<[{ directory: DirectoryEntry | undefined; picking: boolean }]>;
+  directory?: DirectoryEntry;
+  picking?: boolean;
 } & RestProps;
 
 export type DirectoryInputStateProps = WritableBoxedValues<{
-    directory: DirectoryEntry | undefined;
-    picking: boolean;
+  directory: DirectoryEntry | undefined;
+  picking: boolean;
 }>;
 
 export class DirectoryInputState {
-    private readonly opts: DirectoryInputStateProps;
+  private readonly opts: DirectoryInputStateProps;
 
-    constructor(opts: DirectoryInputStateProps) {
-        this.opts = opts;
-        this.onclick = this.onclick.bind(this);
-    }
+  constructor(opts: DirectoryInputStateProps) {
+    this.opts = opts;
+    this.onclick = this.onclick.bind(this);
+  }
 
-    get props() {
-        return {
-            onclick: this.onclick,
-        };
-    }
+  get props() {
+    return {
+      onclick: this.onclick,
+    };
+  }
 
-    async onclick() {
-        if (this.opts.picking.current) {
-            return;
-        }
-        try {
-            this.opts.picking.current = true;
-            this.opts.directory.current = await pickDirectory();
-        } catch (e) {
-            if (e instanceof Error && e.name === "AbortError") {
-                return;
-            } else {
-                console.error("Failed to pick directory", e);
-            }
-        } finally {
-            this.opts.picking.current = false;
-        }
+  async onclick() {
+    if (this.opts.picking.current) {
+      return;
     }
+    try {
+      this.opts.picking.current = true;
+      this.opts.directory.current = await pickDirectory();
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") {
+        return;
+      } else {
+        console.error("Failed to pick directory", e);
+      }
+    } finally {
+      this.opts.picking.current = false;
+    }
+  }
 }
 
 async function pickDirectory(): Promise<DirectoryEntry> {
-    if (window.showDirectoryPicker === undefined) {
-        return await pickDirectoryLegacy();
-    }
+  if (window.showDirectoryPicker === undefined) {
+    return await pickDirectoryLegacy();
+  }
 
-    const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker();
+  const directoryHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker();
 
-    if (!directoryHandle.entries) {
-        return await pickDirectoryLegacy();
-    }
+  if (!directoryHandle.entries) {
+    return await pickDirectoryLegacy();
+  }
 
-    return await handleToDirectoryEntry(directoryHandle);
+  return await handleToDirectoryEntry(directoryHandle);
 }
 
 async function handleToDirectoryEntry(directoryHandle: FileSystemDirectoryHandle): Promise<DirectoryEntry> {
-    const root = new DirectoryEntry(directoryHandle.name, []);
+  const root = new DirectoryEntry(directoryHandle.name, []);
 
-    type StackEntry = [FileSystemDirectoryHandle, DirectoryEntry];
-    const stack: StackEntry[] = [[directoryHandle, root]];
+  type StackEntry = [FileSystemDirectoryHandle, DirectoryEntry];
+  const stack: StackEntry[] = [[directoryHandle, root]];
 
-    while (stack.length > 0) {
-        const [dirHandle, dirEntry] = stack.shift()!;
+  while (stack.length > 0) {
+    const [dirHandle, dirEntry] = stack.shift()!;
 
-        for await (const [, handle] of dirHandle.entries()) {
-            if (handle.kind === "directory") {
-                const subDir = new DirectoryEntry(handle.name, []);
-                dirEntry.children.push(subDir);
-                stack.push([handle, subDir]);
-            } else if (handle.kind === "file") {
-                dirEntry.children.push(await handleToFileEntry(handle));
-            }
-        }
+    for await (const [, handle] of dirHandle.entries()) {
+      if (handle.kind === "directory") {
+        const subDir = new DirectoryEntry(handle.name, []);
+        dirEntry.children.push(subDir);
+        stack.push([handle, subDir]);
+      } else if (handle.kind === "file") {
+        dirEntry.children.push(await handleToFileEntry(handle));
+      }
     }
+  }
 
-    return root;
+  return root;
 }
 
 async function handleToFileEntry(fileHandle: FileSystemFileHandle): Promise<FileEntry> {
-    const file = await fileHandle.getFile();
-    return new FileEntry(fileHandle.name, file);
+  const file = await fileHandle.getFile();
+  return new FileEntry(fileHandle.name, file);
 }
 
 async function pickDirectoryLegacy(): Promise<DirectoryEntry> {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.webkitdirectory = true;
-    input.multiple = true;
+  const input = document.createElement("input");
+  input.type = "file";
+  input.webkitdirectory = true;
+  input.multiple = true;
 
-    return new Promise((resolve, reject) => {
-        input.addEventListener("change", (event) => {
-            const files = (event.target as HTMLInputElement).files;
-            if (!files) {
-                reject(new Error("No files selected"));
-                return;
-            }
+  return new Promise((resolve, reject) => {
+    input.addEventListener("change", (event) => {
+      const files = (event.target as HTMLInputElement).files;
+      if (!files) {
+        reject(new Error("No files selected"));
+        return;
+      }
 
-            resolve(filesToDirectory(files));
-        });
-
-        input.addEventListener("cancel", () => {
-            const error = new Error("User cancelled directory selection");
-            error.name = "AbortError";
-            reject(error);
-        });
-
-        input.click();
+      resolve(filesToDirectory(files));
     });
+
+    input.addEventListener("cancel", () => {
+      const error = new Error("User cancelled directory selection");
+      error.name = "AbortError";
+      reject(error);
+    });
+
+    input.click();
+  });
 }
 
 function filesToDirectory(files: FileList): DirectoryEntry {
-    let ret: DirectoryEntry | null = null;
+  let ret: DirectoryEntry | null = null;
 
-    for (const file of files) {
-        const parts = file.webkitRelativePath.split("/");
+  for (const file of files) {
+    const parts = file.webkitRelativePath.split("/");
 
-        if (parts.length === 1) {
-            throw Error("File has no path");
-        }
-
-        let current: DirectoryEntry | null = null;
-
-        for (let i = 0; i < parts.length; i++) {
-            const part = parts[i];
-
-            if (current === null) {
-                current = ret;
-                if (current === null) {
-                    current = new DirectoryEntry(part, []);
-                    ret = current;
-                }
-                continue;
-            }
-
-            if (i === parts.length - 1) {
-                current.children.push(new FileEntry(part, file));
-            } else {
-                let dirEntry = current.children.find((entry) => entry.fileName === part) as DirectoryEntry;
-                if (!dirEntry) {
-                    dirEntry = new DirectoryEntry(part, []);
-                    current.children.push(dirEntry);
-                }
-                current = dirEntry;
-            }
-        }
+    if (parts.length === 1) {
+      throw Error("File has no path");
     }
 
-    if (ret === null) {
-        throw Error("Selected empty directory");
-    }
+    let current: DirectoryEntry | null = null;
 
-    return ret;
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+
+      if (current === null) {
+        current = ret;
+        if (current === null) {
+          current = new DirectoryEntry(part, []);
+          ret = current;
+        }
+        continue;
+      }
+
+      if (i === parts.length - 1) {
+        current.children.push(new FileEntry(part, file));
+      } else {
+        let dirEntry = current.children.find((entry) => entry.fileName === part) as DirectoryEntry;
+        if (!dirEntry) {
+          dirEntry = new DirectoryEntry(part, []);
+          current.children.push(dirEntry);
+        }
+        current = dirEntry;
+      }
+    }
+  }
+
+  if (ret === null) {
+    throw Error("Selected empty directory");
+  }
+
+  return ret;
 }
 
 export type FileType = SpecialLanguage | BundledLanguage | "auto";
@@ -190,158 +190,163 @@ export type FileType = SpecialLanguage | BundledLanguage | "auto";
 export type FileInputMode = "file" | "url" | "text";
 
 export type MultimodalFileInputValueMetadata = {
-    type: FileInputMode;
-    name: string;
+  type: FileInputMode;
+  name: string;
 };
 
 export type MultimodalFileInputProps = {
-    state?: MultimodalFileInputState | undefined;
+  state?: MultimodalFileInputState | undefined;
 
-    label?: string | undefined;
-    required?: boolean | undefined;
-    fileTypeOverride?: boolean | undefined;
-    defaultMode?: FileInputMode | undefined;
+  label?: string | undefined;
+  required?: boolean | undefined;
+  fileTypeOverride?: boolean | undefined;
+  defaultMode?: FileInputMode | undefined;
 };
 
 export type MultimodalFileInputStateProps = {
-    state: MultimodalFileInputState | undefined;
+  state: MultimodalFileInputState | undefined;
 } & ReadableBoxedValues<{
-    label: string;
-    required: boolean;
-    fileTypeOverride: boolean;
-    defaultMode: FileInputMode;
+  label: string;
+  required: boolean;
+  fileTypeOverride: boolean;
+  defaultMode: FileInputMode;
 }>;
 
 export class MultimodalFileInputState {
-    private readonly opts: MultimodalFileInputStateProps;
-    mode: FileInputMode = $state("text");
-    text: string = $state("");
-    textType: FileType = $state("plaintext");
-    file: File | undefined = $state(undefined);
-    fileType: FileType = $state("auto");
-    url: string = $state("");
-    urlType: FileType = $state("auto");
-    private urlResolver = $derived.by(() => {
-        const url = this.url;
-        return lazyPromise(async () => {
-            let threw = false;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    threw = true;
-                    throw new Error(`Failed to fetch from URL: ${url}\nStatus: ${response.status}\nBody:\n${await response.text()}`);
-                }
-                return await response.blob();
-            } catch (e) {
-                if (threw) {
-                    throw e;
-                }
-                throw new Error(`Failed to fetch from URL: ${url}\nSome errors, such as those caused by CORS, will only print in the console.`, {
-                    cause: e,
-                });
-            }
-        });
+  private readonly opts: MultimodalFileInputStateProps;
+  mode: FileInputMode = $state("text");
+  text: string = $state("");
+  textType: FileType = $state("plaintext");
+  file: File | undefined = $state(undefined);
+  fileType: FileType = $state("auto");
+  url: string = $state("");
+  urlType: FileType = $state("auto");
+  private urlResolver = $derived.by(() => {
+    const url = this.url;
+    return lazyPromise(async () => {
+      let threw = false;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          threw = true;
+          throw new Error(
+            `Failed to fetch from URL: ${url}\nStatus: ${response.status}\nBody:\n${await response.text()}`,
+          );
+        }
+        return await response.blob();
+      } catch (e) {
+        if (threw) {
+          throw e;
+        }
+        throw new Error(
+          `Failed to fetch from URL: ${url}\nSome errors, such as those caused by CORS, will only print in the console.`,
+          {
+            cause: e,
+          },
+        );
+      }
     });
-    dragActive = $state(false);
+  });
+  dragActive = $state(false);
 
-    /**
-     * For creating a state instance before the component is mounted.
-     *
-     * @returns new state instance
-     */
-    static createInstance() {
-        return new MultimodalFileInputState({
-            state: undefined,
+  /**
+   * For creating a state instance before the component is mounted.
+   *
+   * @returns new state instance
+   */
+  static createInstance() {
+    return new MultimodalFileInputState({
+      state: undefined,
 
-            // These will be overridden by the component itself. Only the actual input state is inherited.
-            label: box.with(() => ""),
-            required: box.with(() => false),
-            fileTypeOverride: box.with(() => false),
-            defaultMode: box.with(() => "file"),
-        });
+      // These will be overridden by the component itself. Only the actual input state is inherited.
+      label: box.with(() => ""),
+      required: box.with(() => false),
+      fileTypeOverride: box.with(() => false),
+      defaultMode: box.with(() => "file"),
+    });
+  }
+
+  constructor(opts: MultimodalFileInputStateProps) {
+    this.opts = opts;
+    if (this.opts.state) {
+      this.mode = this.opts.state.mode;
+      this.text = this.opts.state.text;
+      this.textType = this.opts.state.textType;
+      this.file = this.opts.state.file;
+      this.fileType = this.opts.state.fileType;
+      this.url = this.opts.state.url;
+      this.urlType = this.opts.state.urlType;
+      this.urlResolver = this.opts.state.urlResolver;
+    } else {
+      this.mode = this.opts.defaultMode.current ?? "text";
     }
+  }
 
-    constructor(opts: MultimodalFileInputStateProps) {
-        this.opts = opts;
-        if (this.opts.state) {
-            this.mode = this.opts.state.mode;
-            this.text = this.opts.state.text;
-            this.textType = this.opts.state.textType;
-            this.file = this.opts.state.file;
-            this.fileType = this.opts.state.fileType;
-            this.url = this.opts.state.url;
-            this.urlType = this.opts.state.urlType;
-            this.urlResolver = this.opts.state.urlResolver;
-        } else {
-            this.mode = this.opts.defaultMode.current ?? "text";
-        }
+  getFileType(): FileType {
+    const mode = this.mode;
+    if (mode === "file") {
+      return this.fileType;
+    } else if (mode === "url") {
+      return this.urlType;
+    } else if (mode === "text") {
+      return this.textType;
     }
+    throw new Error("Invalid mode");
+  }
 
-    getFileType(): FileType {
-        const mode = this.mode;
-        if (mode === "file") {
-            return this.fileType;
-        } else if (mode === "url") {
-            return this.urlType;
-        } else if (mode === "text") {
-            return this.textType;
-        }
-        throw new Error("Invalid mode");
+  setFileType(fileType: FileType) {
+    const mode = this.mode;
+    if (mode === "file") {
+      this.fileType = fileType;
+    } else if (mode === "url") {
+      this.urlType = fileType;
+    } else if (mode === "text") {
+      this.textType = fileType;
+    } else {
+      throw new Error("Invalid mode");
     }
+  }
 
-    setFileType(fileType: FileType) {
-        const mode = this.mode;
-        if (mode === "file") {
-            this.fileType = fileType;
-        } else if (mode === "url") {
-            this.urlType = fileType;
-        } else if (mode === "text") {
-            this.textType = fileType;
-        } else {
-            throw new Error("Invalid mode");
-        }
+  private getExtensionOrBlank() {
+    const fileType = this.getFileType();
+    if (fileType === "auto") {
+      return "";
     }
+    return getExtensionForLanguage(fileType);
+  }
 
-    private getExtensionOrBlank() {
-        const fileType = this.getFileType();
-        if (fileType === "auto") {
-            return "";
-        }
-        return getExtensionForLanguage(fileType);
+  get metadata(): MultimodalFileInputValueMetadata | null {
+    const mode = this.mode;
+    const label = this.opts.label.current;
+    if (mode === "file" && this.file !== undefined) {
+      const file = this.file;
+      return { type: "file", name: `${file.name}${this.getExtensionOrBlank()}` };
+    } else if (mode === "url" && this.url !== "") {
+      return { type: "url", name: `${this.url}${this.getExtensionOrBlank()}` };
+    } else if (mode === "text" && this.text !== "") {
+      return { type: "text", name: `${label}${this.getExtensionOrBlank()}` };
+    } else {
+      return null;
     }
+  }
 
-    get metadata(): MultimodalFileInputValueMetadata | null {
-        const mode = this.mode;
-        const label = this.opts.label.current;
-        if (mode === "file" && this.file !== undefined) {
-            const file = this.file;
-            return { type: "file", name: `${file.name}${this.getExtensionOrBlank()}` };
-        } else if (mode === "url" && this.url !== "") {
-            return { type: "url", name: `${this.url}${this.getExtensionOrBlank()}` };
-        } else if (mode === "text" && this.text !== "") {
-            return { type: "text", name: `${label}${this.getExtensionOrBlank()}` };
-        } else {
-            return null;
-        }
+  async resolve(): Promise<Blob> {
+    const mode = this.mode;
+    if (mode === "file" && this.file !== undefined) {
+      return this.file;
+    } else if (mode === "url" && this.url !== "") {
+      return this.urlResolver.getValue();
+    } else if (mode === "text" && this.text !== "") {
+      return new Blob([this.text], { type: "text/plain" });
+    } else {
+      throw Error("No value present");
     }
+  }
 
-    async resolve(): Promise<Blob> {
-        const mode = this.mode;
-        if (mode === "file" && this.file !== undefined) {
-            return this.file;
-        } else if (mode === "url" && this.url !== "") {
-            return this.urlResolver.getValue();
-        } else if (mode === "text" && this.text !== "") {
-            return new Blob([this.text], { type: "text/plain" });
-        } else {
-            throw Error("No value present");
-        }
-    }
-
-    reset() {
-        this.text = "";
-        this.file = undefined;
-        this.url = "";
-        this.mode = this.opts.defaultMode.current;
-    }
+  reset() {
+    this.text = "";
+    this.file = undefined;
+    this.url = "";
+    this.mode = this.opts.defaultMode.current;
+  }
 }

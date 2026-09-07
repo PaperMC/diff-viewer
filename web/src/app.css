@@ -2,203 +2,203 @@
 
 @import "tw-animate-css";
 @plugin "@iconify/tailwind4" {
-    prefixes: octicon;
+  prefixes: octicon;
 }
 
 @custom-variant dark {
-    /* Enable dark mode when data-theme attribute = dark */
-    &:where([data-theme="dark"], [data-theme="dark"] *) {
-        @slot;
+  /* Enable dark mode when data-theme attribute = dark */
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  /* Enable dark mode when data-theme attribute = auto and prefers-color-scheme is dark */
+  @media (prefers-color-scheme: dark) {
+    &:where([data-theme="auto"], [data-theme="auto"] *) {
+      @slot;
     }
-    /* Enable dark mode when data-theme attribute = auto and prefers-color-scheme is dark */
-    @media (prefers-color-scheme: dark) {
-        &:where([data-theme="auto"], [data-theme="auto"] *) {
-            @slot;
-        }
-    }
+  }
 }
 
 @theme {
-    --color-btn-primary: var(--color-green-700);
-    --color-focus: var(--color-blue-600);
+  --color-btn-primary: var(--color-green-700);
+  --color-focus: var(--color-blue-600);
 
-    /* Text colors */
-    --color-em-high-light: rgba(0, 0, 0, 0.87);
-    --color-em-high-dark: rgba(255, 255, 255, 0.87);
-    --color-em-high: var(--color-em-high-light);
+  /* Text colors */
+  --color-em-high-light: rgba(0, 0, 0, 0.87);
+  --color-em-high-dark: rgba(255, 255, 255, 0.87);
+  --color-em-high: var(--color-em-high-light);
 
-    --color-em-med-light: rgba(0, 0, 0, 0.6);
-    --color-em-med-dark: rgba(255, 255, 255, 0.6);
-    --color-em-med: var(--color-em-med-light);
+  --color-em-med-light: rgba(0, 0, 0, 0.6);
+  --color-em-med-dark: rgba(255, 255, 255, 0.6);
+  --color-em-med: var(--color-em-med-light);
 
-    --color-em-disabled-light: rgba(0, 0, 0, 0.38);
-    --color-em-disabled-dark: rgba(255, 255, 255, 0.38);
-    --color-em-disabled: var(--color-em-disabled-light);
+  --color-em-disabled-light: rgba(0, 0, 0, 0.38);
+  --color-em-disabled-dark: rgba(255, 255, 255, 0.38);
+  --color-em-disabled: var(--color-em-disabled-light);
 
-    /* Bg colors */
-    --color-neutral-light: var(--color-white);
-    --color-neutral-dark: var(--color-neutral-900);
-    --color-neutral: var(--color-neutral-light);
-    --color-neutral-light-2: var(--color-neutral-100);
-    --color-neutral-dark-2: var(--color-neutral-800);
-    --color-neutral-2: var(--color-neutral-light-2);
-    --color-neutral-light-3: var(--color-neutral-200);
-    --color-neutral-dark-3: var(--color-neutral-700);
-    --color-neutral-3: var(--color-neutral-light-3);
+  /* Bg colors */
+  --color-neutral-light: var(--color-white);
+  --color-neutral-dark: var(--color-neutral-900);
+  --color-neutral: var(--color-neutral-light);
+  --color-neutral-light-2: var(--color-neutral-100);
+  --color-neutral-dark-2: var(--color-neutral-800);
+  --color-neutral-2: var(--color-neutral-light-2);
+  --color-neutral-light-3: var(--color-neutral-200);
+  --color-neutral-dark-3: var(--color-neutral-700);
+  --color-neutral-3: var(--color-neutral-light-3);
 
-    /* Border colors */
-    --color-edge-light: rgba(0, 0, 0, 0.2);
-    --color-edge-dark: rgba(255, 255, 255, 0.2);
-    --color-edge: var(--color-edge-light);
+  /* Border colors */
+  --color-edge-light: rgba(0, 0, 0, 0.2);
+  --color-edge-dark: rgba(255, 255, 255, 0.2);
+  --color-edge: var(--color-edge-light);
 }
 
 @layer base {
-    @variant dark {
-        --color-em-high: var(--color-em-high-dark);
-        --color-em-med: var(--color-em-med-dark);
-        --color-em-disabled: var(--color-em-disabled-dark);
+  @variant dark {
+    --color-em-high: var(--color-em-high-dark);
+    --color-em-med: var(--color-em-med-dark);
+    --color-em-disabled: var(--color-em-disabled-dark);
 
-        --color-neutral: var(--color-neutral-dark);
-        --color-neutral-2: var(--color-neutral-dark-2);
-        --color-neutral-3: var(--color-neutral-dark-3);
+    --color-neutral: var(--color-neutral-dark);
+    --color-neutral-2: var(--color-neutral-dark-2);
+    --color-neutral-3: var(--color-neutral-dark-3);
 
-        --color-edge: var(--color-edge-dark);
-    }
-    html {
-        color: var(--color-em-high);
+    --color-edge: var(--color-edge-dark);
+  }
+  html {
+    color: var(--color-em-high);
 
-        @apply dark:[color-scheme:dark];
-    }
-    * {
-        border-color: var(--color-edge);
-    }
-    textarea {
-        vertical-align: bottom;
-    }
+    @apply dark:[color-scheme:dark];
+  }
+  * {
+    border-color: var(--color-edge);
+  }
+  textarea {
+    vertical-align: bottom;
+  }
 }
 
 @utility btn-link-hover {
-    @apply text-blue-500;
+  @apply text-blue-500;
 }
 @utility btn-link-active {
-    @apply text-blue-600;
+  @apply text-blue-600;
 }
 @utility btn-link {
-    &:hover {
-        @apply btn-link-hover;
-    }
-    &:active {
-        @apply btn-link-active;
-    }
-    @apply cursor-pointer text-em-med transition-colors duration-100 ease-in-out;
+  &:hover {
+    @apply btn-link-hover;
+  }
+  &:active {
+    @apply btn-link-active;
+  }
+  @apply cursor-pointer text-em-med transition-colors duration-100 ease-in-out;
 }
 
 @utility btn-base {
-    --btn-color: var(--color-btn-primary);
-    --btn-focus: var(--color-focus);
-    --tw-shadow-color: color-mix(in oklab, var(--btn-color) 50%, transparent);
+  --btn-color: var(--color-btn-primary);
+  --btn-focus: var(--color-focus);
+  --tw-shadow-color: color-mix(in oklab, var(--btn-color) 50%, transparent);
 
-    --btn-hover: color-mix(in oklch, var(--btn-color), black 5%);
-    --btn-active: color-mix(in oklch, var(--btn-color), black 10%);
-    --btn-border: color-mix(in oklch, var(--btn-color), black 12%);
-    @variant dark {
-        --btn-hover: color-mix(in oklch, var(--btn-color), white 5%);
-        --btn-active: color-mix(in oklch, var(--btn-color), white 10%);
-        --btn-border: color-mix(in oklch, var(--btn-color), white 12%);
-    }
+  --btn-hover: color-mix(in oklch, var(--btn-color), black 5%);
+  --btn-active: color-mix(in oklch, var(--btn-color), black 10%);
+  --btn-border: color-mix(in oklch, var(--btn-color), black 12%);
+  @variant dark {
+    --btn-hover: color-mix(in oklch, var(--btn-color), white 5%);
+    --btn-active: color-mix(in oklch, var(--btn-color), white 10%);
+    --btn-border: color-mix(in oklch, var(--btn-color), white 12%);
+  }
 
-    border-color: var(--btn-border);
+  border-color: var(--btn-border);
 
-    @apply transition-colors duration-100 ease-in-out;
-    @apply ring-(--btn-focus) focus:outline-none focus-visible:ring-2 has-focus-visible:ring-2;
+  @apply transition-colors duration-100 ease-in-out;
+  @apply ring-(--btn-focus) focus:outline-none focus-visible:ring-2 has-focus-visible:ring-2;
 }
 
 @utility btn-fill {
-    @apply border btn-base shadow-xs;
+  @apply border btn-base shadow-xs;
 
-    background-color: var(--btn-color);
+  background-color: var(--btn-color);
 
-    &:hover {
-        background-color: var(--btn-hover);
-    }
-    &:active {
-        background-color: var(--btn-active);
-        @apply shadow-none;
-    }
+  &:hover {
+    background-color: var(--btn-hover);
+  }
+  &:active {
+    background-color: var(--btn-active);
+    @apply shadow-none;
+  }
 }
 
 @utility btn-fill-danger {
-    @apply btn-fill text-white;
-    --btn-color: var(--color-red-700);
-    @variant dark {
-        --btn-color: var(--color-red-800);
-    }
+  @apply btn-fill text-white;
+  --btn-color: var(--color-red-700);
+  @variant dark {
+    --btn-color: var(--color-red-800);
+  }
 }
 
 @utility btn-fill-primary {
-    @apply btn-fill text-white;
-    --btn-color: var(--color-btn-primary);
+  @apply btn-fill text-white;
+  --btn-color: var(--color-btn-primary);
 }
 
 @utility btn-fill-neutral {
-    @apply btn-fill;
-    --btn-color: var(--color-neutral-100);
-    @variant dark {
-        --btn-color: var(--color-neutral-800);
-    }
+  @apply btn-fill;
+  --btn-color: var(--color-neutral-100);
+  @variant dark {
+    --btn-color: var(--color-neutral-800);
+  }
 }
 
 @utility btn-ghost {
-    @apply btn-base;
+  @apply btn-base;
 
-    --btn-color: var(--color-neutral-100);
-    @variant dark {
-        --btn-color: var(--color-neutral-800);
-    }
+  --btn-color: var(--color-neutral-100);
+  @variant dark {
+    --btn-color: var(--color-neutral-800);
+  }
 
-    &:hover {
-        background-color: var(--btn-hover);
-    }
-    &:active {
-        background-color: var(--btn-active);
-    }
+  &:hover {
+    background-color: var(--btn-hover);
+  }
+  &:active {
+    background-color: var(--btn-active);
+  }
 }
 @utility btn-ghost-hover {
-    @apply btn-ghost;
-    background-color: var(--btn-hover);
+  @apply btn-ghost;
+  background-color: var(--btn-hover);
 }
 @utility btn-ghost-active {
-    @apply btn-ghost;
-    background-color: var(--btn-active);
+  @apply btn-ghost;
+  background-color: var(--btn-active);
 }
 @utility btn-ghost-visible {
-    @apply btn-ghost-hover;
-    &:active {
-        @apply btn-ghost-active;
-    }
+  @apply btn-ghost-hover;
+  &:active {
+    @apply btn-ghost-active;
+  }
 }
 
 @utility btn-ghost-danger {
-    @apply border btn-ghost;
-    --btn-color: var(--color-red-700);
-    color: var(--color-red-800);
-    @variant dark {
-        --btn-color: var(--color-red-800);
-        color: var(--color-red-300);
-    }
-    border-color: transparent;
-    &:hover {
-        color: white;
-        border-color: var(--btn-border);
-        @apply shadow-xs;
-    }
-    &:active {
-        color: white;
-        border-color: var(--btn-border);
-        @apply shadow-none;
-    }
+  @apply border btn-ghost;
+  --btn-color: var(--color-red-700);
+  color: var(--color-red-800);
+  @variant dark {
+    --btn-color: var(--color-red-800);
+    color: var(--color-red-300);
+  }
+  border-color: transparent;
+  &:hover {
+    color: white;
+    border-color: var(--btn-border);
+    @apply shadow-xs;
+  }
+  &:active {
+    color: white;
+    border-color: var(--btn-border);
+    @apply shadow-none;
+  }
 }
 
 .png-bg {
-    background: url("/png.gif") right bottom var(--color-gray-300);
+  background: url("/png.gif") right bottom var(--color-gray-300);
 }

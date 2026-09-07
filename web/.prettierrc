@@ -1,16 +1,16 @@
 {
-    "endOfLine": "lf",
-    "useTabs": false,
-    "tabWidth": 4,
-    "printWidth": 160,
-    "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
-    "tailwindStylesheet": "./src/app.css",
-    "overrides": [
-        {
-            "files": "*.svelte",
-            "options": {
-                "parser": "svelte"
-            }
-        }
-    ]
+  "endOfLine": "lf",
+  "useTabs": false,
+  "tabWidth": 2,
+  "printWidth": 120,
+  "plugins": ["prettier-plugin-svelte", "prettier-plugin-tailwindcss"],
+  "tailwindStylesheet": "./src/app.css",
+  "overrides": [
+    {
+      "files": "*.svelte",
+      "options": {
+        "parser": "svelte"
+      }
+    }
+  ]
 }

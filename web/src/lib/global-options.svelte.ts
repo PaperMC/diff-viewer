@@ -11,137 +11,137 @@ export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";
 export type SidebarLocation = "left" | "right";
 
 export class GlobalOptions {
-    static readonly key = "diff-viewer-global-options";
-    private static readonly context = new Context<GlobalOptions>(GlobalOptions.key);
+  static readonly key = "diff-viewer-global-options";
+  private static readonly context = new Context<GlobalOptions>(GlobalOptions.key);
 
-    static init(cookie?: string) {
-        const opts = new GlobalOptions();
-        if (!browser) {
-            GlobalOptions.context.set(opts);
-            if (cookie) {
-                opts.deserialize(cookie);
-            }
-            return opts;
-        }
-        const serialized = localStorage.getItem(GlobalOptions.key);
-        if (serialized !== null) {
-            opts.deserialize(serialized);
-        }
-        GlobalOptions.context.set(opts);
-        return opts;
+  static init(cookie?: string) {
+    const opts = new GlobalOptions();
+    if (!browser) {
+      GlobalOptions.context.set(opts);
+      if (cookie) {
+        opts.deserialize(cookie);
+      }
+      return opts;
     }
-
-    static get() {
-        return GlobalOptions.context.get();
+    const serialized = localStorage.getItem(GlobalOptions.key);
+    if (serialized !== null) {
+      opts.deserialize(serialized);
     }
+    GlobalOptions.context.set(opts);
+    return opts;
+  }
 
-    syntaxHighlighting = $state(true);
-    syntaxHighlightingThemeLight: BundledTheme = $state(DEFAULT_THEME_LIGHT);
-    syntaxHighlightingThemeDark: BundledTheme = $state(DEFAULT_THEME_DARK);
-    wordDiffs = $state(true);
-    lineWrap = $state(true);
-    omitPatchHeaderOnlyHunks = $state(true);
-    sidebarLocation: SidebarLocation = $state("left");
-    defaultFilters = new DiffFilterDialogState();
+  static get() {
+    return GlobalOptions.context.get();
+  }
 
-    private constructor() {
-        $effect(() => {
-            this.save();
-        });
+  syntaxHighlighting = $state(true);
+  syntaxHighlightingThemeLight: BundledTheme = $state(DEFAULT_THEME_LIGHT);
+  syntaxHighlightingThemeDark: BundledTheme = $state(DEFAULT_THEME_DARK);
+  wordDiffs = $state(true);
+  lineWrap = $state(true);
+  omitPatchHeaderOnlyHunks = $state(true);
+  sidebarLocation: SidebarLocation = $state("left");
+  defaultFilters = new DiffFilterDialogState();
 
-        watchLocalStorage(GlobalOptions.key, (newValue) => {
-            if (newValue) {
-                this.deserialize(newValue);
-            }
-        });
+  private constructor() {
+    $effect(() => {
+      this.save();
+    });
+
+    watchLocalStorage(GlobalOptions.key, (newValue) => {
+      if (newValue) {
+        this.deserialize(newValue);
+      }
+    });
+  }
+
+  get syntaxHighlightingTheme() {
+    switch (getEffectiveGlobalTheme()) {
+      case "dark":
+        return this.syntaxHighlightingThemeDark;
+      case "light":
+        return this.syntaxHighlightingThemeLight;
     }
+  }
 
-    get syntaxHighlightingTheme() {
-        switch (getEffectiveGlobalTheme()) {
-            case "dark":
-                return this.syntaxHighlightingThemeDark;
-            case "light":
-                return this.syntaxHighlightingThemeLight;
-        }
+  private save() {
+    if (!browser) {
+      return;
     }
+    localStorage.setItem(GlobalOptions.key, this.serialize());
+    setCookie(GlobalOptions.key, this.serializeCookie());
+  }
 
-    private save() {
-        if (!browser) {
-            return;
-        }
-        localStorage.setItem(GlobalOptions.key, this.serialize());
-        setCookie(GlobalOptions.key, this.serializeCookie());
-    }
-
-    private serialize() {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cereal: any = {
-            syntaxHighlighting: this.syntaxHighlighting,
-            omitPatchHeaderOnlyHunks: this.omitPatchHeaderOnlyHunks,
-            wordDiff: this.wordDiffs,
-            lineWrap: this.lineWrap,
-            sidebarLocation: this.sidebarLocation,
-        };
-        if (this.syntaxHighlightingThemeLight !== DEFAULT_THEME_LIGHT) {
-            cereal.syntaxHighlightingThemeLight = this.syntaxHighlightingThemeLight;
-        }
-        if (this.syntaxHighlightingThemeDark !== DEFAULT_THEME_DARK) {
-            cereal.syntaxHighlightingThemeDark = this.syntaxHighlightingThemeDark;
-        }
-        const defaultFiltersCereal = this.defaultFilters.serialize();
-        if (defaultFiltersCereal !== null) {
-            cereal.defaultFilters = defaultFiltersCereal;
-        }
-        return JSON.stringify(cereal);
-    }
-
-    private serializeCookie() {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cereal: any = {
-            sidebarLocation: this.sidebarLocation,
-        };
-        return JSON.stringify(cereal);
-    }
-
-    private deserialize(serialized: string) {
-        try {
-            const jsonObject = JSON.parse(serialized);
-            this.loadFrom(jsonObject);
-            this.defaultFilters.loadFrom(jsonObject.defaultFilters);
-        } catch {
-            // Ignore invalid options
-        }
-    }
-
+  private serialize() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private loadFrom(jsonObject: any) {
-        if (jsonObject === undefined || jsonObject === null) {
-            return;
-        }
-        if (typeof jsonObject.syntaxHighlighting === "boolean") {
-            this.syntaxHighlighting = jsonObject.syntaxHighlighting;
-        }
-        if (jsonObject.syntaxHighlightingThemeLight !== undefined) {
-            this.syntaxHighlightingThemeLight = jsonObject.syntaxHighlightingThemeLight as BundledTheme;
-        } else {
-            this.syntaxHighlightingThemeLight = DEFAULT_THEME_LIGHT;
-        }
-        if (jsonObject.syntaxHighlightingThemeDark !== undefined) {
-            this.syntaxHighlightingThemeDark = jsonObject.syntaxHighlightingThemeDark as BundledTheme;
-        } else {
-            this.syntaxHighlightingThemeDark = DEFAULT_THEME_DARK;
-        }
-        if (typeof jsonObject.omitPatchHeaderOnlyHunks === "boolean") {
-            this.omitPatchHeaderOnlyHunks = jsonObject.omitPatchHeaderOnlyHunks;
-        }
-        if (typeof jsonObject.wordDiff === "boolean") {
-            this.wordDiffs = jsonObject.wordDiff;
-        }
-        if (typeof jsonObject.lineWrap === "boolean") {
-            this.lineWrap = jsonObject.lineWrap;
-        }
-        if (jsonObject.sidebarLocation !== undefined) {
-            this.sidebarLocation = jsonObject.sidebarLocation;
-        }
+    const cereal: any = {
+      syntaxHighlighting: this.syntaxHighlighting,
+      omitPatchHeaderOnlyHunks: this.omitPatchHeaderOnlyHunks,
+      wordDiff: this.wordDiffs,
+      lineWrap: this.lineWrap,
+      sidebarLocation: this.sidebarLocation,
+    };
+    if (this.syntaxHighlightingThemeLight !== DEFAULT_THEME_LIGHT) {
+      cereal.syntaxHighlightingThemeLight = this.syntaxHighlightingThemeLight;
     }
+    if (this.syntaxHighlightingThemeDark !== DEFAULT_THEME_DARK) {
+      cereal.syntaxHighlightingThemeDark = this.syntaxHighlightingThemeDark;
+    }
+    const defaultFiltersCereal = this.defaultFilters.serialize();
+    if (defaultFiltersCereal !== null) {
+      cereal.defaultFilters = defaultFiltersCereal;
+    }
+    return JSON.stringify(cereal);
+  }
+
+  private serializeCookie() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cereal: any = {
+      sidebarLocation: this.sidebarLocation,
+    };
+    return JSON.stringify(cereal);
+  }
+
+  private deserialize(serialized: string) {
+    try {
+      const jsonObject = JSON.parse(serialized);
+      this.loadFrom(jsonObject);
+      this.defaultFilters.loadFrom(jsonObject.defaultFilters);
+    } catch {
+      // Ignore invalid options
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private loadFrom(jsonObject: any) {
+    if (jsonObject === undefined || jsonObject === null) {
+      return;
+    }
+    if (typeof jsonObject.syntaxHighlighting === "boolean") {
+      this.syntaxHighlighting = jsonObject.syntaxHighlighting;
+    }
+    if (jsonObject.syntaxHighlightingThemeLight !== undefined) {
+      this.syntaxHighlightingThemeLight = jsonObject.syntaxHighlightingThemeLight as BundledTheme;
+    } else {
+      this.syntaxHighlightingThemeLight = DEFAULT_THEME_LIGHT;
+    }
+    if (jsonObject.syntaxHighlightingThemeDark !== undefined) {
+      this.syntaxHighlightingThemeDark = jsonObject.syntaxHighlightingThemeDark as BundledTheme;
+    } else {
+      this.syntaxHighlightingThemeDark = DEFAULT_THEME_DARK;
+    }
+    if (typeof jsonObject.omitPatchHeaderOnlyHunks === "boolean") {
+      this.omitPatchHeaderOnlyHunks = jsonObject.omitPatchHeaderOnlyHunks;
+    }
+    if (typeof jsonObject.wordDiff === "boolean") {
+      this.wordDiffs = jsonObject.wordDiff;
+    }
+    if (typeof jsonObject.lineWrap === "boolean") {
+      this.lineWrap = jsonObject.lineWrap;
+    }
+    if (jsonObject.sidebarLocation !== undefined) {
+      this.sidebarLocation = jsonObject.sidebarLocation;
+    }
+  }
 }
