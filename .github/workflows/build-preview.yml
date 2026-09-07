@@ -22,11 +22,6 @@ jobs:
                   cache: "pnpm"
             - run: pnpm install --frozen-lockfile
             - run: pnpm --filter=web run build
-            # Temporary: master's deploy-preview.yml expects the
-            # <root>/web/.svelte-kit layout (wrangler resolves _worker.js's
-            # ../output and ../cloudflare-tmp imports at deploy time). Drop
-            # this step at merge and upload web/.svelte-kit directly, pointing
-            # the deploy directory at <download-path>/cloudflare.
             - name: "prepare build artifact"
               run: |
                   mkdir -p preview-artifact/web
