@@ -20,7 +20,9 @@ jobs:
               with:
                   node-version: "24"
                   cache: "pnpm"
-            - run: pnpm install
+            # The deployment workflow receives this dependency tree as an artifact. Use a physical,
+            # npm-compatible layout instead of pnpm's symlinked virtual store so Wrangler can bundle the worker.
+            - run: pnpm install --frozen-lockfile --config.node-linker=hoisted
             - run: pnpm --filter=web run build
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v7"
