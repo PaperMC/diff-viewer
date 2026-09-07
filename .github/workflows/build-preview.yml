@@ -22,13 +22,9 @@ jobs:
                   cache: "pnpm"
             - run: pnpm install --frozen-lockfile
             - run: pnpm --filter=web run build
-            - name: "prepare build artifact"
-              run: |
-                  mkdir -p preview-artifact/web
-                  cp -a web/.svelte-kit preview-artifact/web/
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v7"
               with:
                   name: "preview-build"
-                  path: preview-artifact
+                  path: "web/.svelte-kit"
                   include-hidden-files: true
