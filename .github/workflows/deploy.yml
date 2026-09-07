@@ -1,35 +1,37 @@
 name: Deploy to Cloudflare Pages
 
 on:
-  push:
-    branches: ["master"]
+    push:
+        branches: ["master"]
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    name: Build and deploy
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: "24"
-          cache: "pnpm"
-      - name: Install frontend dependencies
-        run: pnpm install
-      - name: Build frontend
-        run: pnpm --filter=web run build
-        env:
-          GITHUB_CLIENT_SECRET: ${{ secrets.VITE_GITHUB_CLIENT_SECRET }}
-      - name: "Deploy to Cloudflare Pages"
-        uses: "AdrianGonz97/refined-cf-pages-action@v1"
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          projectName: "diffs"
-          directory: "web/.svelte-kit/cloudflare"
-          deploymentName: Production
+    deploy:
+        runs-on: ubuntu-latest
+        name: Build and deploy
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v6
+            - name: Setup pnpm
+              uses: pnpm/action-setup@v6
+            - name: Setup Node
+              uses: actions/setup-node@v5
+              with:
+                  node-version: "24"
+                  cache: "pnpm"
+            - name: Install frontend dependencies
+              run: pnpm install
+            - name: Build frontend
+              run: pnpm --filter=web run build
+              env:
+                  GITHUB_CLIENT_SECRET: ${{ secrets.VITE_GITHUB_CLIENT_SECRET }}
+            - name: "Deploy to Cloudflare Pages"
+              uses: "AdrianGonz97/refined-cf-pages-action@v1"
+              with:
+                  apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+                  githubToken: ${{ secrets.GITHUB_TOKEN }}
+                  projectName: "diffs"
+                  directory: ".svelte-kit/cloudflare"
+                  workingDirectory: "web"
+                  wranglerVersion: "4"
+                  deploymentName: Production

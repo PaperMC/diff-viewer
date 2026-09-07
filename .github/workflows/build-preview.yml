@@ -20,14 +20,11 @@ jobs:
               with:
                   node-version: "24"
                   cache: "pnpm"
-            - run: pnpm install
+            - run: pnpm install --frozen-lockfile
             - run: pnpm --filter=web run build
             - name: "upload build artifact"
               uses: "actions/upload-artifact@v7"
               with:
                   name: "preview-build"
-                  path: |
-                    node_modules
-                    web/.svelte-kit
-                    web/node_modules
+                  path: "web/.svelte-kit"
                   include-hidden-files: true
