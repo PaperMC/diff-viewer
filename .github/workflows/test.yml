@@ -9,15 +9,19 @@ jobs:
   test:
     # Only run on PRs if the source branch is on someone else's repo
     if: ${{ github.event_name != 'pull_request' || github.repository != github.event.pull_request.head.repo.full_name }}
-    runs-on: ubuntu-latest
+    runs-on: namespace-profile-linux-default
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v7
+        uses: namespacelabs/nscloud-checkout-action@v9
       - uses: pnpm/action-setup@v6
+      - name: Set up pnpm cache
+        uses: namespacelabs/nscloud-cache-action@v1
+        with:
+          cache: pnpm
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
-          cache: "pnpm"
+          package-manager-cache: false
       - run: pnpm install
       - run: pnpm --filter=web run lint
       - run: pnpm --filter=web run check
