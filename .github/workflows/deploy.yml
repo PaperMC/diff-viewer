@@ -6,18 +6,20 @@ on:
 
 jobs:
     deploy:
-        runs-on: ubuntu-latest
+        runs-on: namespace-profile-linux-default
         name: Build and deploy
         steps:
             - name: Checkout Repository
-              uses: actions/checkout@v7
-            - name: Setup pnpm
-              uses: pnpm/action-setup@v6
-            - name: Setup Node
-              uses: actions/setup-node@v7
+              uses: namespacelabs/nscloud-checkout-action@v9
+            - uses: pnpm/action-setup@v6
+            - name: Set up pnpm cache
+              uses: namespacelabs/nscloud-cache-action@v1
               with:
-                  node-version: "24"
-                  cache: "pnpm"
+                cache: pnpm
+            - uses: actions/setup-node@v7
+              with:
+                node-version: "24"
+                package-manager-cache: false
             - name: Install frontend dependencies
               run: pnpm install
             - name: Build frontend
