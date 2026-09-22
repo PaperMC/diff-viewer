@@ -32,4 +32,4 @@ Web extension that streamlines opening diffs in the viewer.
 
 - The frontend uses ESLint and Prettier for code style. Run `pnpm run format` to reformat and `pnpm run lint` to check style.
 
-<img src="https://papermc.io/assets/misc/namespace-oss-badge.svg?project=diff-viewer" alt="CI powered by namespace badge" />
+[![CI powered by namespace badge](https://papermc.io/assets/misc/namespace-oss-badge.svg?project=diff-viewer)](https://namespace.so/github-actions/?utm_source=oss&utm_campaign=papermc)
