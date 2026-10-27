@@ -1,6 +1,6 @@
 <script lang="ts">
   import { mergeProps, Progress } from "bits-ui";
-  import { type ProgressBarProps, useProgressBarState } from "$lib/components/progress-bar/index.svelte";
+  import { type ProgressBarProps, useProgressBarState } from "#lib/components/progress-bar/index.svelte.ts";
 
   let { state = $bindable(), ...restProps }: ProgressBarProps = $props();
 

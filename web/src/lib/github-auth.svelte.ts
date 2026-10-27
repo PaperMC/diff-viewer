@@ -1,5 +1,5 @@
-import { browser } from "$app/environment";
-import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
+import { browser } from "$app/env";
+import { PUBLIC_GITHUB_APP_NAME, PUBLIC_GITHUB_CLIENT_ID } from "$app/env/public";
 
 export const GITHUB_USERNAME_KEY = "github_username";
 export const GITHUB_TOKEN_KEY = "github_token";

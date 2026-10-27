@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
-  import { Keybinds } from "$lib/keybinds.svelte";
+  import { MultiFileDiffViewerState } from "#lib/diff-viewer.svelte.ts";
+  import { Keybinds } from "#lib/keybinds.svelte.ts";
   import { Menubar, Button } from "bits-ui";
-  import SidebarToggle from "$lib/components/SidebarToggle.svelte";
+  import SidebarToggle from "#lib/components/SidebarToggle.svelte";
 
   const viewer = MultiFileDiffViewerState.get();
 </script>

@@ -1,5 +1,5 @@
 import { type Snippet } from "svelte";
-import type { Getter } from "$lib/util";
+import type { Getter } from "#lib/util.ts";
 import { watch } from "runed";
 import { SvelteSet } from "svelte/reactivity";
 

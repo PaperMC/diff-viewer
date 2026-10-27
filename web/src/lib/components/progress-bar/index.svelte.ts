@@ -1,4 +1,4 @@
-import type { RestProps } from "$lib/types";
+import type { RestProps } from "#lib/types.ts";
 
 export interface ProgressBarProps extends RestProps {
   state?: ProgressBarState | undefined;

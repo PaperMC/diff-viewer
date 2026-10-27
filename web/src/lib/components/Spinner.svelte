@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RestProps } from "$lib/types";
+  import type { RestProps } from "#lib/types.ts";
   import { mergeProps } from "bits-ui";
 
   interface Props extends RestProps {

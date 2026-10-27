@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { DiffMetadata } from "$lib/diff-viewer.svelte";
-  import type { GithubDiff } from "$lib/github-api";
+  import type { DiffMetadata } from "#lib/diff-viewer.svelte.ts";
+  import type { GithubDiff } from "#lib/github-api.ts";
 
   interface Props {
     meta: DiffMetadata;

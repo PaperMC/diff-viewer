@@ -1,5 +1,5 @@
-import { browser } from "$app/environment";
-import { watchLocalStorage } from "$lib/util";
+import { browser } from "$app/env";
+import { watchLocalStorage } from "#lib/util.ts";
 import { MediaQuery } from "svelte/reactivity";
 
 export type Theme = "dark" | "light" | "auto";

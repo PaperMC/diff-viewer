@@ -6,10 +6,10 @@ import {
   fetchGithubFile,
   type GithubDiff,
   type GithubDiffResult,
-} from "./github-api";
-import type { GithubDiffSource } from "./github-url";
-import { makeImageDetails } from "./file-details";
-import { parseMultiFilePatch } from "./multi-file-patch";
+} from "#lib/github-api.ts";
+import type { GithubDiffSource } from "#lib/github-url.ts";
+import { makeImageDetails } from "#lib/file-details.ts";
+import { parseMultiFilePatch } from "#lib/multi-file-patch.ts";
 
 export function fetchGithubDiff(
   token: string | null,

@@ -1,7 +1,7 @@
 <script lang="ts">
   import { type BundledTheme, bundledThemes } from "shiki";
   import { Label, Select, useId } from "bits-ui";
-  import { capitalizeFirstLetter, resizeObserver } from "$lib/util";
+  import { capitalizeFirstLetter, resizeObserver } from "#lib/util.ts";
 
   interface Props {
     value: BundledTheme;

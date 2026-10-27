@@ -1,9 +1,9 @@
 import type { BundledTheme } from "shiki";
-import { browser } from "$app/environment";
-import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
-import { setCookie, watchLocalStorage } from "$lib/util";
+import { browser } from "$app/env";
+import { getEffectiveGlobalTheme } from "#lib/theme.svelte.ts";
+import { setCookie, watchLocalStorage } from "#lib/util.ts";
 import { Context } from "runed";
-import { DiffFilterDialogState } from "./components/diff-filtering/index.svelte";
+import { DiffFilterDialogState } from "#lib/components/diff-filtering/index.svelte.ts";
 
 export const DEFAULT_THEME_LIGHT: BundledTheme = "github-light-default";
 export const DEFAULT_THEME_DARK: BundledTheme = "github-dark-default";

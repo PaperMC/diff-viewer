@@ -1,8 +1,8 @@
 import { box, type ReadableBoxedValues, type WritableBoxedValues } from "svelte-toolbelt";
-import { getExtensionForLanguage, lazyPromise } from "$lib/util";
+import { getExtensionForLanguage, lazyPromise } from "#lib/util.ts";
 import type { BundledLanguage, SpecialLanguage } from "shiki";
 import type { Snippet } from "svelte";
-import type { RestProps } from "$lib/types";
+import type { RestProps } from "#lib/types.ts";
 
 export interface FileSystemEntry {
   fileName: string;

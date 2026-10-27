@@ -1,4 +1,4 @@
-import { hasNonHeaderChanges } from "$lib/patch-utils";
+import { hasNonHeaderChanges } from "#lib/patch-utils.ts";
 import { diffArrays, type StructuredPatchHunk, type StructuredPatch } from "diff";
 import {
   codeToTokens,
@@ -11,12 +11,12 @@ import {
   type ThemeRegistration,
   bundledThemes,
 } from "shiki";
-import { guessLanguageFromExtension, type MutableValue } from "$lib/util";
+import { guessLanguageFromExtension, type MutableValue } from "#lib/util.ts";
 import type { IRawThemeSetting } from "shiki/textmate";
 import chroma from "chroma-js";
-import { getEffectiveGlobalTheme } from "$lib/theme.svelte";
+import { getEffectiveGlobalTheme } from "#lib/theme.svelte.ts";
 import { onDestroy } from "svelte";
-import { DEFAULT_THEME_LIGHT } from "$lib/global-options.svelte";
+import { DEFAULT_THEME_LIGHT } from "#lib/global-options.svelte.ts";
 import type { ReadableBoxedValues, WritableBoxedValues } from "svelte-toolbelt";
 import type { Attachment } from "svelte/attachments";
 import { on } from "svelte/events";

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { parseGithubUrl } from "$lib/github-url";
+import { parseGithubUrl } from "#lib/github-url.ts";
 
 const GITHUB = "https://github.com/octocat/repo";
 

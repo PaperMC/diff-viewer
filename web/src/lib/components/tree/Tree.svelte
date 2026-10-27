@@ -1,5 +1,5 @@
 <script lang="ts" generics="T">
-  import { type TreeProps, type TreeNodeView, TreeState } from "./index.svelte";
+  import { type TreeProps, type TreeNodeView, TreeState } from "#lib/components/tree/index.svelte.ts";
 
   let {
     instance = $bindable(undefined),

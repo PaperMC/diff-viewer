@@ -1,8 +1,8 @@
-import type { FileStatus, FileDetails } from "./file-details";
-import type { GithubDiff, GithubDiffResult } from "./github-api";
-import { fetchGithubDiff, parseMultiFilePatchGithub } from "./github-diff";
-import { getGithubToken } from "./github-auth.svelte";
-import type { GithubDiffSource } from "./github-url";
+import type { FileStatus, FileDetails } from "#lib/file-details.ts";
+import type { GithubDiff, GithubDiffResult } from "#lib/github-api.ts";
+import { fetchGithubDiff, parseMultiFilePatchGithub } from "#lib/github-diff.ts";
+import { getGithubToken } from "#lib/github-auth.svelte.ts";
+import type { GithubDiffSource } from "#lib/github-url.ts";
 import { type StructuredPatch } from "diff";
 import {
   TextDiffCachedState,
@@ -11,21 +11,20 @@ import {
   writeLineRef,
   parseLineRef,
   type UnresolvedLineSelection,
-} from "$lib/components/diff/text-diff.svelte";
-import { countOccurrences, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "$lib/util";
+} from "#lib/components/diff/text-diff.svelte.ts";
+import { countOccurrences, animationFramePromise, formatErrorWithCauses, yieldToBrowser } from "#lib/util.ts";
 import { onDestroy, onMount, tick } from "svelte";
 import { VList } from "virtua/svelte";
 import { Context, Debounced, watch } from "runed";
 import { MediaQuery } from "svelte/reactivity";
-import { ProgressBarState } from "$lib/components/progress-bar/index.svelte";
-import { Keybinds } from "./keybinds.svelte";
-import { LayoutState, type PersistentLayoutState } from "./layout.svelte";
+import { ProgressBarState } from "#lib/components/progress-bar/index.svelte.ts";
+import { Keybinds } from "#lib/keybinds.svelte.ts";
+import { LayoutState, type PersistentLayoutState } from "#lib/layout.svelte.ts";
 import { page } from "$app/state";
-import { afterNavigate, goto, replaceState } from "$app/navigation";
-import { type AfterNavigate } from "@sveltejs/kit";
-import { DiffFilterDialogState } from "./components/diff-filtering/index.svelte";
-import { FileTreeState } from "./components/sidebar/index.svelte";
-import { GlobalOptions } from "./global-options.svelte";
+import { afterNavigate, goto, type AfterNavigate } from "$app/navigation";
+import { DiffFilterDialogState } from "#lib/components/diff-filtering/index.svelte.ts";
+import { FileTreeState } from "#lib/components/sidebar/index.svelte.ts";
+import { GlobalOptions } from "#lib/global-options.svelte.ts";
 
 export const GITHUB_URL_PARAM = "github_url";
 export const PATCH_URL_PARAM = "patch_url";
@@ -419,7 +418,7 @@ export class MultiFileDiffViewerState {
 
     if (!selectionsSemanticallyEqual(oldSelection, this.selection)) {
       goto(`?${page.url.searchParams}#${makeUrlHashValue(this.selection)}`, {
-        keepFocus: true,
+        reset: false,
         state: this.createPageState(),
       });
     }
@@ -431,7 +430,7 @@ export class MultiFileDiffViewerState {
 
     if (oldSelection !== undefined) {
       goto(`?${page.url.searchParams}`, {
-        keepFocus: true,
+        reset: false,
         state: this.createPageState(),
       });
     }
@@ -630,18 +629,22 @@ export class MultiFileDiffViewerState {
         await animationFramePromise();
       }
 
-      const newUrl = new URL(page.url);
+      const newUrl = new URL(page.url.href);
       updateSearchParams(newUrl.searchParams, this.diffMetadata);
       if (this.selection) {
         newUrl.hash = makeUrlHashValue(this.selection);
       }
       const link = `${newUrl.search}${newUrl.hash}`;
       if (opts?.state === "replace") {
-        replaceState(link, this.createPageState({ initialLoad: true }));
+        await goto(link, {
+          shallow: true,
+          replace: true,
+          state: this.createPageState({ initialLoad: true }),
+        });
       } else {
-        // We must use goto instead of replaceState, otherwise page.url will not be updated.
+        // Use a full goto rather than a shallow one so page.url is updated; shallow navigations only
+        // update page.shallow.url (https://github.com/sveltejs/kit/issues/13569, closed by #16449).
         // This is fine for loadPatches, but may be heavy handed in other cases. Do not blindly copy this strategy.
-        // https://github.com/sveltejs/kit/issues/13569
         await goto(link, {
           state: this.createPageState({ initialLoad: true }),
         });

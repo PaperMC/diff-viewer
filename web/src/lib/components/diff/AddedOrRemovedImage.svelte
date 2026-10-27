@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { getDimensions } from "$lib/image";
-  import AddedOrRemovedImageLabel from "$lib/components/diff/AddedOrRemovedImageLabel.svelte";
-  import type { AddOrRemove } from "$lib/diff-viewer.svelte";
+  import { getDimensions } from "#lib/image.ts";
+  import AddedOrRemovedImageLabel from "#lib/components/diff/AddedOrRemovedImageLabel.svelte";
+  import type { AddOrRemove } from "#lib/diff-viewer.svelte.ts";
 
   interface Props {
     file: string;

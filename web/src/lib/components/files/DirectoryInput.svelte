@@ -4,7 +4,7 @@
     type DirectoryEntry,
     type DirectoryInputProps,
     DirectoryInputState,
-  } from "$lib/components/files/index.svelte";
+  } from "#lib/components/files/index.svelte.ts";
   import { box } from "svelte-toolbelt";
 
   let {

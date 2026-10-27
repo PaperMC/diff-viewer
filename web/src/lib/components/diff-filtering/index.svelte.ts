@@ -1,5 +1,5 @@
-import { FILE_STATUSES, type FileStatus, type FileDetails } from "$lib/file-details";
-import type { TryCompileRegexSuccess } from "$lib/util";
+import { FILE_STATUSES, type FileStatus, type FileDetails } from "#lib/file-details.ts";
+import type { TryCompileRegexSuccess } from "#lib/util.ts";
 import { SvelteSet } from "svelte/reactivity";
 
 export type FilePathFilterMode = "include" | "exclude";

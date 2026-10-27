@@ -1,21 +1,21 @@
 <script lang="ts">
   import { VList } from "virtua/svelte";
-  import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
-  import DiffStats from "$lib/components/diff/DiffStats.svelte";
+  import { MultiFileDiffViewerState } from "#lib/diff-viewer.svelte.ts";
+  import DiffStats from "#lib/components/diff/DiffStats.svelte";
   import DiffSearch from "./DiffSearch.svelte";
-  import FileHeader from "$lib/components/diff/FileHeader.svelte";
+  import FileHeader from "#lib/components/diff/FileHeader.svelte";
   import DiffTitle from "./DiffTitle.svelte";
   import OpenDiffDialog from "./OpenDiffDialog.svelte";
   import type { PageProps } from "./$types";
-  import ProgressBar from "$lib/components/progress-bar/ProgressBar.svelte";
-  import { GlobalOptions } from "$lib/global-options.svelte";
-  import MenuBar from "$lib/components/menu-bar/MenuBar.svelte";
-  import SettingsDialog from "$lib/components/settings/SettingsDialog.svelte";
-  import Sidebar from "$lib/components/sidebar/Sidebar.svelte";
-  import FileDiff from "$lib/components/diff/FileDiff.svelte";
+  import ProgressBar from "#lib/components/progress-bar/ProgressBar.svelte";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
+  import MenuBar from "#lib/components/menu-bar/MenuBar.svelte";
+  import SettingsDialog from "#lib/components/settings/SettingsDialog.svelte";
+  import Sidebar from "#lib/components/sidebar/Sidebar.svelte";
+  import FileDiff from "#lib/components/diff/FileDiff.svelte";
   import { PaneGroup, Pane, PaneResizer } from "paneforge";
-  import DiffFilterDialog from "$lib/components/diff-filtering/DiffFilterDialog.svelte";
-  import DiffFilterIndicator from "$lib/components/diff-filtering/DiffFilterIndicator.svelte";
+  import DiffFilterDialog from "#lib/components/diff-filtering/DiffFilterDialog.svelte";
+  import DiffFilterIndicator from "#lib/components/diff-filtering/DiffFilterIndicator.svelte";
 
   let { data }: PageProps = $props();
   const globalOptions = GlobalOptions.get();
