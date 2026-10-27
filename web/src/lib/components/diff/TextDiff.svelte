@@ -287,8 +287,14 @@
       color-mix(in oklab, var(--deleted) 15%, transparent),
       color-mix(in oklab, var(--deleted) 20%, transparent)
     );
-    --inserted-text-bg: color-mix(in oklab, var(--added) 40%, transparent);
-    --removed-text-bg: color-mix(in oklab, var(--deleted) 40%, transparent);
+    --inserted-text-bg: light-dark(
+      color-mix(in oklab, var(--added) 25%, transparent),
+      color-mix(in oklab, var(--added) 30%, transparent)
+    );
+    --removed-text-bg: light-dark(
+      color-mix(in oklab, var(--deleted) 25%, transparent),
+      color-mix(in oklab, var(--deleted) 30%, transparent)
+    );
 
     /* Text of changed lines within a diffed patch file; mixed towards the theme foreground to stay readable */
     --inner-inserted-fg: color-mix(in oklab, var(--added) 65%, var(--editor-fg));
