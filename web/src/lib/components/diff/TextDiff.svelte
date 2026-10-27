@@ -123,7 +123,7 @@
 </script>
 
 {#snippet lineContent(line: PatchLine, lineType: PatchLineTypeProps, innerLineType: InnerPatchLineTypeProps)}
-  <span class="prefix inline leading-[0.875rem]" style={innerLineType.style} data-prefix={lineType.prefix}>
+  <span class="prefix inline" style={innerLineType.style} data-prefix={lineType.prefix}>
     {#if line.lineBreak}<br />{:else}
       {#each line.content as segment, index (index)}
         {@const iconClass = segment.iconClass}
@@ -154,7 +154,7 @@
         <div class="relative">
           {@render lineContent(line, lineType, innerLineType)}
           <span class="pointer-events-none absolute top-0 left-0 text-transparent select-none">
-            <span class="inline leading-[0.875rem]">
+            <span class="inline">
               {#each lineSearchSegments as searchSegment, index (index)}
                 {#if searchSegment.highlighted}<span
                     {@attach (element) => {
@@ -318,6 +318,8 @@
     position: absolute;
     left: -0.75rem;
     top: 0;
+    /* Match the height of the inline span's content area so the prefix lines up with the text */
+    line-height: normal;
   }
 
   .selected-indicator[data-selected] {
