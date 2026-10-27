@@ -6,24 +6,20 @@ on:
 
 jobs:
     build-preview:
-        runs-on: namespace-profile-linux-default
+        runs-on: "ubuntu-latest"
         name: "Build Preview Site and Upload Build Artifact"
         steps:
             - name: "checkout"
-              uses: "namespacelabs/nscloud-checkout-action@v9"
+              uses: "actions/checkout@v7"
               with:
                   fetch-depth: 0
                   ref: ${{ github.event.pull_request.head.ref }}
                   repository: ${{ github.event.pull_request.head.repo.full_name }}
             - uses: pnpm/action-setup@v6
-            - name: Set up pnpm cache
-              uses: namespacelabs/nscloud-cache-action@v1
-              with:
-                cache: pnpm
             - uses: actions/setup-node@v7
               with:
-                node-version: "24"
-                package-manager-cache: false
+                  node-version: "24"
+                  cache: "pnpm"
             - run: pnpm install --frozen-lockfile
             - run: pnpm --filter=web run build
             - name: "upload build artifact"
