@@ -196,7 +196,7 @@
   {@const lineType = patchLineTypeProps[line.type]}
   {@const lineTypeSelectable = line.type !== PatchLineType.HEADER && line.type !== PatchLineType.SPACER}
   <div
-    class="line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
+    class="line-number old-line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
     data-hunk-idx={hunkIndex}
     data-line-idx={lineIndex}
     data-selectable={boolAttr(lineTypeSelectable)}
@@ -278,22 +278,23 @@
     --added: light-dark(var(--color-green-600), var(--color-green-500));
     --deleted: light-dark(var(--color-red-600), var(--color-red-500));
 
-    /* Changed lines get a tint of the accent, and changed words within them a stronger one on top */
+    /* Changed lines get a light tint of the accent and a bar at the left edge of the row. Changed words within them
+       get a stronger tint and an underline. */
     --inserted-line-bg: light-dark(
-      color-mix(in oklab, var(--added) 15%, transparent),
-      color-mix(in oklab, var(--added) 20%, transparent)
+      color-mix(in oklab, var(--added) 8%, transparent),
+      color-mix(in oklab, var(--added) 10%, transparent)
     );
     --removed-line-bg: light-dark(
-      color-mix(in oklab, var(--deleted) 15%, transparent),
-      color-mix(in oklab, var(--deleted) 20%, transparent)
+      color-mix(in oklab, var(--deleted) 8%, transparent),
+      color-mix(in oklab, var(--deleted) 10%, transparent)
     );
     --inserted-text-bg: light-dark(
-      color-mix(in oklab, var(--added) 25%, transparent),
-      color-mix(in oklab, var(--added) 30%, transparent)
+      color-mix(in oklab, var(--added) 12%, transparent),
+      color-mix(in oklab, var(--added) 15%, transparent)
     );
     --removed-text-bg: light-dark(
-      color-mix(in oklab, var(--deleted) 25%, transparent),
-      color-mix(in oklab, var(--deleted) 30%, transparent)
+      color-mix(in oklab, var(--deleted) 12%, transparent),
+      color-mix(in oklab, var(--deleted) 15%, transparent)
     );
 
     /* Text of changed lines within a diffed patch file; mixed towards the theme foreground to stay readable */
@@ -322,6 +323,18 @@
     text-align: end;
     vertical-align: top;
     text-wrap: nowrap;
+  }
+  .old-line-number {
+    box-shadow: inset 3px 0 0 0 var(--line-bar, transparent);
+  }
+
+  .inserted-word {
+    background-color: var(--inserted-text-bg);
+    box-shadow: inset 0 -2px 0 0 color-mix(in oklab, var(--added) 50%, transparent);
+  }
+  .removed-word {
+    background-color: var(--removed-text-bg);
+    box-shadow: inset 0 -2px 0 0 color-mix(in oklab, var(--deleted) 50%, transparent);
   }
 
   .prefix {

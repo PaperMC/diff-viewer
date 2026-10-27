@@ -155,12 +155,12 @@ export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
   },
   [PatchLineType.ADD]: {
     classes: "bg-[var(--inserted-line-bg)]",
-    lineNoClasses: "bg-[var(--inserted-line-bg)]",
+    lineNoClasses: "bg-[var(--inserted-line-bg)] [--line-bar:var(--added)]",
     prefix: "+",
   },
   [PatchLineType.REMOVE]: {
     classes: "bg-[var(--removed-line-bg)]",
-    lineNoClasses: "bg-[var(--removed-line-bg)]",
+    lineNoClasses: "bg-[var(--removed-line-bg)] [--line-bar:var(--deleted)]",
     prefix: "-",
   },
   [PatchLineType.CONTEXT]: {
@@ -474,19 +474,11 @@ class LineProcessor {
       for (const change of diffResult) {
         const text = change.value.join("");
         if (change.added) {
-          const segments = this.makeSegments(addShikiResult, addPos, text, `bg-[var(--inserted-text-bg)]`);
-
-          segments[0].classes = segments[0].classes + " rounded-l-sm";
-          segments[segments.length - 1].classes = segments[segments.length - 1].classes + " rounded-r-sm";
-
+          const segments = this.makeSegments(addShikiResult, addPos, text, "inserted-word");
           addLine.push(...segments);
           addPos += text.length;
         } else if (change.removed) {
-          const segments = this.makeSegments(removeShikiResult, removePos, text, `bg-[var(--removed-text-bg)]`);
-
-          segments[0].classes = segments[0].classes + " rounded-l-sm";
-          segments[segments.length - 1].classes = segments[segments.length - 1].classes + " rounded-r-sm";
-
+          const segments = this.makeSegments(removeShikiResult, removePos, text, "removed-word");
           removeLine.push(...segments);
           removePos += text.length;
         } else {
