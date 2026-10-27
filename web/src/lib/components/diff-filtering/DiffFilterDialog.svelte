@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { FILE_STATUSES } from "$lib/file-details";
-  import { getFileStatusProps } from "$lib/diff-viewer.svelte";
+  import { FILE_STATUSES } from "#lib/file-details.ts";
+  import { getFileStatusProps } from "#lib/diff-viewer.svelte.ts";
   import { Button, Dialog, ToggleGroup } from "bits-ui";
-  import { tryCompileRegex } from "$lib/util";
+  import { tryCompileRegex } from "#lib/util.ts";
   import { slide } from "svelte/transition";
-  import { type DiffFilterDialogProps, type FilePathFilterMode } from "$lib/components/diff-filtering/index.svelte";
-  import { GlobalOptions } from "$lib/global-options.svelte";
+  import { type DiffFilterDialogProps, type FilePathFilterMode } from "#lib/components/diff-filtering/index.svelte.ts";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
 
   let { instance, mode, open = $bindable() }: DiffFilterDialogProps = $props();
 

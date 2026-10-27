@@ -1,9 +1,9 @@
 <script lang="ts">
   import "../app.css";
-  import { initThemeHooks } from "$lib/theme.svelte";
+  import { initThemeHooks } from "#lib/theme.svelte.ts";
   import { Tooltip } from "bits-ui";
   import { type LayoutProps } from "./$types";
-  import { GlobalOptions } from "$lib/global-options.svelte";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
 
   let { children, data }: LayoutProps = $props();
   GlobalOptions.init(data.globalOptions);

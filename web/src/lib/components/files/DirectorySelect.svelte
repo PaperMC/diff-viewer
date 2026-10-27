@@ -1,7 +1,7 @@
 <script lang="ts">
-  import DirectoryInput from "$lib/components/files/DirectoryInput.svelte";
-  import { type DirectoryEntry } from "$lib/components/files/index.svelte";
-  import Spinner from "$lib/components/Spinner.svelte";
+  import DirectoryInput from "#lib/components/files/DirectoryInput.svelte";
+  import { type DirectoryEntry } from "#lib/components/files/index.svelte.ts";
+  import Spinner from "#lib/components/Spinner.svelte";
 
   interface Props {
     placeholder: string;

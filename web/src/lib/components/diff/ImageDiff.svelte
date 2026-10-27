@@ -1,8 +1,8 @@
 <script lang="ts">
   import { RadioGroup, Slider } from "bits-ui";
-  import Spinner from "$lib/components/Spinner.svelte";
-  import { getDimensions, type ImageDimensions } from "$lib/image";
-  import AddedOrRemovedImageLabel from "$lib/components/diff/AddedOrRemovedImageLabel.svelte";
+  import Spinner from "#lib/components/Spinner.svelte";
+  import { getDimensions, type ImageDimensions } from "#lib/image.ts";
+  import AddedOrRemovedImageLabel from "#lib/components/diff/AddedOrRemovedImageLabel.svelte";
   import { ElementSize } from "runed";
 
   interface Props {

@@ -1,6 +1,6 @@
 import type { RequestHandler } from "@sveltejs/kit";
-import { PUBLIC_GITHUB_CLIENT_ID } from "$env/static/public";
-import { GITHUB_CLIENT_SECRET } from "$env/static/private";
+import { PUBLIC_GITHUB_CLIENT_ID } from "$app/env/public";
+import { GITHUB_CLIENT_SECRET } from "$app/env/private";
 
 export const POST: RequestHandler = async ({ url }) => {
   const code = url.searchParams.get("code");

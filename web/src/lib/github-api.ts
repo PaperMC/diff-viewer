@@ -1,5 +1,5 @@
 import type { components } from "@octokit/openapi-types";
-import { trimCommitHash } from "$lib/util";
+import { trimCommitHash } from "#lib/util.ts";
 
 export interface GithubDiff {
   owner: string;

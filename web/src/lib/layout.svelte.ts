@@ -1,5 +1,5 @@
 import type { Pane } from "paneforge";
-import { clearCookie, setCookie } from "./util";
+import { clearCookie, setCookie } from "#lib/util.ts";
 import { watch } from "runed";
 
 export const ROOT_LAYOUT_KEY = "diff-viewer-root-layout";

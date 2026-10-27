@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { type ImageDimensions } from "$lib/image";
-  import type { AddOrRemove } from "$lib/diff-viewer.svelte";
+  import { type ImageDimensions } from "#lib/image.ts";
+  import type { AddOrRemove } from "#lib/diff-viewer.svelte.ts";
 
   interface Props {
     dims: Promise<ImageDimensions> | ImageDimensions;

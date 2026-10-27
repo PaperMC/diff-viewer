@@ -1,16 +1,16 @@
-import { binaryFileDummyDetails, makeImageDetails, makeTextDetails, type FileStatus } from "$lib/file-details";
-import { parseMultiFilePatch } from "$lib/multi-file-patch";
+import { binaryFileDummyDetails, makeImageDetails, makeTextDetails, type FileStatus } from "#lib/file-details.ts";
+import { parseMultiFilePatch } from "#lib/multi-file-patch.ts";
 import type { WritableBoxedValues } from "svelte-toolbelt";
 import {
   DirectoryEntry,
   FileEntry,
   MultimodalFileInputState,
   type MultimodalFileInputValueMetadata,
-} from "./components/files/index.svelte";
+} from "#lib/components/files/index.svelte.ts";
 import { SvelteSet } from "svelte/reactivity";
-import { parseGithubUrl } from "$lib/github-url";
-import { MultiFileDiffViewerState, type LoadPatchesOptions } from "$lib/diff-viewer.svelte";
-import { bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, tryCompileRegex } from "$lib/util";
+import { parseGithubUrl } from "#lib/github-url.ts";
+import { MultiFileDiffViewerState, type LoadPatchesOptions } from "#lib/diff-viewer.svelte.ts";
+import { bytesEqual, formatErrorWithCauses, isBinaryFile, isImageFile, tryCompileRegex } from "#lib/util.ts";
 import { createTwoFilesPatch } from "diff";
 
 export interface OpenDiffDialogProps {

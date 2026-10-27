@@ -9,9 +9,9 @@
     GITHUB_USERNAME_KEY,
     githubUsername,
     logoutGithub,
-  } from "$lib/github-auth.svelte";
-  import { fetchCurrentGithubUser } from "$lib/github-api";
-  import Spinner from "$lib/components/Spinner.svelte";
+  } from "#lib/github-auth.svelte.ts";
+  import { fetchCurrentGithubUser } from "#lib/github-api.ts";
+  import Spinner from "#lib/components/Spinner.svelte";
 
   async function leave() {
     const authReferrer = localStorage.getItem("authReferrer");

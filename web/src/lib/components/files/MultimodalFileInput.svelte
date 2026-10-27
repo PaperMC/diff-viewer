@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { type MultimodalFileInputProps, MultimodalFileInputState } from "$lib/components/files/index.svelte";
+  import { type MultimodalFileInputProps, MultimodalFileInputState } from "#lib/components/files/index.svelte.ts";
   import { box } from "svelte-toolbelt";
   import { RadioGroup } from "bits-ui";
-  import SingleFileInput from "$lib/components/files/SingleFileInput.svelte";
-  import FileTypeSelect from "$lib/components/files/FileTypeSelect.svelte";
+  import SingleFileInput from "#lib/components/files/SingleFileInput.svelte";
+  import FileTypeSelect from "#lib/components/files/FileTypeSelect.svelte";
 
   let {
     state = $bindable(),

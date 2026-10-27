@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { type FileDetails } from "$lib/file-details";
+  import { type FileDetails } from "#lib/file-details.ts";
 
-  import { getFileStatusProps, MultiFileDiffViewerState, staticSidebar } from "$lib/diff-viewer.svelte";
-  import Tree from "$lib/components/tree/Tree.svelte";
-  import { type TreeNode } from "$lib/components/tree/index.svelte";
+  import { getFileStatusProps, MultiFileDiffViewerState, staticSidebar } from "#lib/diff-viewer.svelte.ts";
+  import Tree from "#lib/components/tree/Tree.svelte";
+  import { type TreeNode } from "#lib/components/tree/index.svelte.ts";
   import { on } from "svelte/events";
   import { createAttachmentKey, type Attachment } from "svelte/attachments";
   import { boolAttr } from "runed";
-  import type { FileTreeNodeData } from "$lib/components/sidebar/index.svelte";
+  import type { FileTreeNodeData } from "#lib/components/sidebar/index.svelte.ts";
 
   const viewer = MultiFileDiffViewerState.get();
   const fileTree = viewer.fileTree;

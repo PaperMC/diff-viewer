@@ -1,13 +1,13 @@
 <script lang="ts">
-  import SettingsGroup from "./SettingsGroup.svelte";
+  import SettingsGroup from "#lib/components/settings/SettingsGroup.svelte";
   import { Label, Dialog, Button } from "bits-ui";
-  import SimpleRadioGroup from "$lib/components/settings/SimpleRadioGroup.svelte";
-  import { GlobalOptions } from "$lib/global-options.svelte";
-  import { getGlobalTheme, setGlobalTheme } from "$lib/theme.svelte";
-  import LabeledCheckbox from "../LabeledCheckbox.svelte";
+  import SimpleRadioGroup from "#lib/components/settings/SimpleRadioGroup.svelte";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
+  import { getGlobalTheme, setGlobalTheme } from "#lib/theme.svelte.ts";
+  import LabeledCheckbox from "#lib/components/LabeledCheckbox.svelte";
 
-  import ShikiThemeSelector from "./ShikiThemeSelector.svelte";
-  import DiffFilterDialog from "../diff-filtering/DiffFilterDialog.svelte";
+  import ShikiThemeSelector from "#lib/components/settings/ShikiThemeSelector.svelte";
+  import DiffFilterDialog from "#lib/components/diff-filtering/DiffFilterDialog.svelte";
   import { watch } from "runed";
   interface Props {
     open?: boolean;

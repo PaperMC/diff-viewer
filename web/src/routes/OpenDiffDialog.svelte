@@ -5,17 +5,17 @@
     installGithubApp,
     loginWithGithub,
     logoutGithub,
-  } from "$lib/github-auth.svelte";
+  } from "#lib/github-auth.svelte.ts";
   import { Button, Dialog, Separator, Popover } from "bits-ui";
-  import InfoPopup from "$lib/components/InfoPopup.svelte";
+  import InfoPopup from "#lib/components/InfoPopup.svelte";
   import { page } from "$app/state";
   import { onMount } from "svelte";
-  import DirectorySelect from "$lib/components/files/DirectorySelect.svelte";
-  import MultimodalFileInput from "$lib/components/files/MultimodalFileInput.svelte";
+  import DirectorySelect from "#lib/components/files/DirectorySelect.svelte";
+  import MultimodalFileInput from "#lib/components/files/MultimodalFileInput.svelte";
   import { flip } from "svelte/animate";
-  import { OpenDiffDialogState, type OpenDiffDialogProps } from "$lib/open-diff-dialog.svelte";
+  import { OpenDiffDialogState, type OpenDiffDialogProps } from "#lib/open-diff-dialog.svelte.ts";
   import { box } from "svelte-toolbelt";
-  import { GITHUB_URL_PARAM, PATCH_URL_PARAM } from "$lib/diff-viewer.svelte";
+  import { GITHUB_URL_PARAM, PATCH_URL_PARAM } from "#lib/diff-viewer.svelte.ts";
 
   let { open = $bindable(false) }: OpenDiffDialogProps = $props();
 

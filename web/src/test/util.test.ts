@@ -1,4 +1,4 @@
-import { splitMultiFilePatch } from "$lib/multi-file-patch";
+import { splitMultiFilePatch } from "#lib/multi-file-patch.ts";
 import { expect, test } from "vitest";
 import * as path from "node:path";
 import * as fs from "node:fs";

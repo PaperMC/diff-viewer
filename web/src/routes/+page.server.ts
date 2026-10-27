@@ -1,4 +1,4 @@
-import { ROOT_LAYOUT_KEY, type PersistentLayoutState } from "$lib/layout.svelte";
+import { ROOT_LAYOUT_KEY, type PersistentLayoutState } from "#lib/layout.svelte.ts";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ cookies }) => {

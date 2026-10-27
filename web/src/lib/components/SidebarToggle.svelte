@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
+  import { MultiFileDiffViewerState } from "#lib/diff-viewer.svelte.ts";
   import { Button, mergeProps } from "bits-ui";
-  import { type RestProps } from "$lib/types";
-  import { GlobalOptions } from "$lib/global-options.svelte";
+  import { type RestProps } from "#lib/types.ts";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
 
   let { ...restProps }: RestProps = $props();
 

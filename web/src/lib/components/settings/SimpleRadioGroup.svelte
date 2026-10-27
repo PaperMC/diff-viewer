@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Label, RadioGroup } from "bits-ui";
-  import { capitalizeFirstLetter } from "$lib/util";
-  import type { RestProps } from "$lib/types";
+  import { capitalizeFirstLetter } from "#lib/util.ts";
+  import type { RestProps } from "#lib/types.ts";
 
   interface Props extends RestProps {
     value: string;

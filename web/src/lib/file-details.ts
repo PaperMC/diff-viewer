@@ -1,6 +1,6 @@
 import type { StructuredPatch } from "diff";
-import { parseSinglePatch, patchHeaderDiffOnly } from "./patch-utils";
-import { lazyPromise, type LazyPromise } from "./util";
+import { parseSinglePatch, patchHeaderDiffOnly } from "#lib/patch-utils.ts";
+import { lazyPromise, type LazyPromise } from "#lib/util.ts";
 
 export type FileStatus = "added" | "removed" | "modified" | "renamed" | "renamed_modified";
 export const FILE_STATUSES: FileStatus[] = ["added", "removed", "modified", "renamed", "renamed_modified"];

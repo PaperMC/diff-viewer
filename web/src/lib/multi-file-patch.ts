@@ -4,8 +4,8 @@ import {
   type FileDetails,
   type ImageFileDetails,
   type FileStatus,
-} from "./file-details";
-import { isImageFile } from "./util";
+} from "#lib/file-details.ts";
+import { isImageFile } from "#lib/util.ts";
 
 const fileRegex = /diff --git a\/(\S+) b\/(\S+)\r?\n(?:.+\r?\n)*?(?=-- \r?\n|diff --git|$)/g;
 

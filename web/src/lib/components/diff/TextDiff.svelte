@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type TextFileDetails } from "$lib/file-details";
+  import { type TextFileDetails } from "#lib/file-details.ts";
 
   import {
     TextDiffState,
@@ -12,11 +12,11 @@
     type PatchLineTypeProps,
     patchLineTypeProps,
     type SearchSegment,
-  } from "$lib/components/diff/text-diff.svelte";
-  import Spinner from "$lib/components/Spinner.svelte";
-  import { GlobalOptions } from "$lib/global-options.svelte";
-  import { MultiFileDiffViewerState } from "$lib/diff-viewer.svelte";
-  import { type MutableValue } from "$lib/util";
+  } from "#lib/components/diff/text-diff.svelte.ts";
+  import Spinner from "#lib/components/Spinner.svelte";
+  import { GlobalOptions } from "#lib/global-options.svelte.ts";
+  import { MultiFileDiffViewerState } from "#lib/diff-viewer.svelte.ts";
+  import { type MutableValue } from "#lib/util.ts";
   import { box } from "svelte-toolbelt";
   import { boolAttr } from "runed";
 
