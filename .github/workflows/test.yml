@@ -28,7 +28,7 @@ jobs:
           node-version: "24"
           cache: ${{ github.event_name == 'pull_request' && 'pnpm' || '' }}
           package-manager-cache: false
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter=web run lint
       - run: pnpm --filter=web run check
       - run: pnpm --filter=web run test

@@ -21,7 +21,7 @@ jobs:
                 node-version: "24"
                 package-manager-cache: false
             - name: Install frontend dependencies
-              run: pnpm install
+              run: pnpm install --frozen-lockfile
             - name: Build frontend
               run: pnpm --filter=web run build
               env:
