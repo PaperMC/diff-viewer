@@ -642,9 +642,9 @@ export class MultiFileDiffViewerState {
           state: this.createPageState({ initialLoad: true }),
         });
       } else {
-        // We must use a full goto instead of a shallow one, otherwise page.url will not be updated.
+        // Use a full goto rather than a shallow one so page.url is updated; shallow navigations only
+        // update page.shallow.url (https://github.com/sveltejs/kit/issues/13569, closed by #16449).
         // This is fine for loadPatches, but may be heavy handed in other cases. Do not blindly copy this strategy.
-        // https://github.com/sveltejs/kit/issues/13569
         await goto(link, {
           state: this.createPageState({ initialLoad: true }),
         });
