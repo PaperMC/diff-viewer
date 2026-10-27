@@ -13,8 +13,6 @@ import {
 } from "shiki";
 import { guessLanguageFromExtension, type MutableValue } from "#lib/util.ts";
 import type { IRawThemeSetting } from "shiki/textmate";
-import chroma from "chroma-js";
-import { getEffectiveGlobalTheme } from "#lib/theme.svelte.ts";
 import { onDestroy } from "svelte";
 import { DEFAULT_THEME_LIGHT } from "#lib/global-options.svelte.ts";
 import type { ReadableBoxedValues, WritableBoxedValues } from "svelte-toolbelt";
@@ -157,12 +155,12 @@ export const patchLineTypeProps: Record<PatchLineType, PatchLineTypeProps> = {
   },
   [PatchLineType.ADD]: {
     classes: "bg-[var(--inserted-line-bg)]",
-    lineNoClasses: "bg-[var(--inserted-line-bg)]",
+    lineNoClasses: "bg-[var(--inserted-line-bg)] [--line-bar:var(--added)]",
     prefix: "+",
   },
   [PatchLineType.REMOVE]: {
     classes: "bg-[var(--removed-line-bg)]",
-    lineNoClasses: "bg-[var(--removed-line-bg)]",
+    lineNoClasses: "bg-[var(--removed-line-bg)] [--line-bar:var(--deleted)]",
     prefix: "-",
   },
   [PatchLineType.CONTEXT]: {
@@ -183,18 +181,10 @@ export interface InnerPatchLineTypeProps {
 
 export const innerPatchLineTypeProps: Record<InnerPatchLineType, InnerPatchLineTypeProps> = {
   [InnerPatchLineType.ADD]: {
-    // Make sure tailwind emits these props
-    // "bg-green-100 bg-green-300 bg-green-400 bg-green-800"
-    style: `
-          --fg-override: var(--inner-inserted-line-fg);
-          background-color: var(--inner-inserted-line-bg);`,
+    style: "--inner-fg: var(--inner-inserted-fg);",
   },
   [InnerPatchLineType.REMOVE]: {
-    // Make sure tailwind emits these props
-    // "bg-red-100 bg-red-300 bg-red-400 bg-red-800"
-    style: `
-          --fg-override: var(--inner-removed-line-fg);
-          background-color: var(--inner-removed-line-bg);`,
+    style: "--inner-fg: var(--inner-removed-fg);",
   },
   [InnerPatchLineType.NONE]: {
     style: "",
@@ -354,23 +344,16 @@ class LineProcessor {
     const tokensResult = await this.codeToTokensResult(text, state);
     if (tokensResult) {
       return tokensResult.tokens[0].map((token) => {
-        return { text: token.content, style: this.getSegmentStyle(state, token.color) };
+        return { text: token.content, style: this.getSegmentStyle(token.color) };
       });
     } else {
-      return [{ text, style: this.getSegmentStyle(state) }];
+      return [{ text, style: this.getSegmentStyle() }];
     }
   }
 
-  private getSegmentStyle(state: LineProcessorState, color?: string | undefined): string {
+  private getSegmentStyle(color?: string | undefined): string {
     const segmentFg = color ? `--segment-fg: ${color};` : "";
-    switch (state) {
-      case LineProcessorState.ADD:
-        return `color: var(--fg-override, var(--inserted-line-fg-themed, var(--segment-fg, var(--editor-fg)))); ${segmentFg}`;
-      case LineProcessorState.REMOVE:
-        return `color: var(--fg-override, var(--removed-line-fg-themed, var(--segment-fg, var(--editor-fg)))); ${segmentFg}`;
-      case LineProcessorState.CONTEXT:
-        return `color: var(--fg-override, var(--segment-fg, var(--editor-fg)));${segmentFg};`;
-    }
+    return `color: var(--inner-fg, var(--segment-fg, var(--editor-fg)));${segmentFg}`;
   }
 
   private async codeToTokensResult(text: string, state: LineProcessorState): Promise<TokensResult | null> {
@@ -491,13 +474,7 @@ class LineProcessor {
       for (const change of diffResult) {
         const text = change.value.join("");
         if (change.added) {
-          const segments = this.makeSegments(
-            addShikiResult,
-            addPos,
-            text,
-            `bg-[var(--inserted-text-bg)]`,
-            LineProcessorState.ADD,
-          );
+          const segments = this.makeSegments(addShikiResult, addPos, text, `bg-[var(--inserted-text-bg)]`);
 
           segments[0].classes = segments[0].classes + " rounded-l-sm";
           segments[segments.length - 1].classes = segments[segments.length - 1].classes + " rounded-r-sm";
@@ -505,13 +482,7 @@ class LineProcessor {
           addLine.push(...segments);
           addPos += text.length;
         } else if (change.removed) {
-          const segments = this.makeSegments(
-            removeShikiResult,
-            removePos,
-            text,
-            `bg-[var(--removed-text-bg)]`,
-            LineProcessorState.REMOVE,
-          );
+          const segments = this.makeSegments(removeShikiResult, removePos, text, `bg-[var(--removed-text-bg)]`);
 
           segments[0].classes = segments[0].classes + " rounded-l-sm";
           segments[segments.length - 1].classes = segments[segments.length - 1].classes + " rounded-r-sm";
@@ -519,10 +490,10 @@ class LineProcessor {
           removeLine.push(...segments);
           removePos += text.length;
         } else {
-          addLine.push(...this.makeSegments(addShikiResult, addPos, text, "", LineProcessorState.ADD));
+          addLine.push(...this.makeSegments(addShikiResult, addPos, text, ""));
           addPos += text.length;
 
-          removeLine.push(...this.makeSegments(removeShikiResult, removePos, text, "", LineProcessorState.REMOVE));
+          removeLine.push(...this.makeSegments(removeShikiResult, removePos, text, ""));
           removePos += text.length;
         }
       }
@@ -563,13 +534,12 @@ class LineProcessor {
     startPosition: number,
     text: string,
     baseClasses: string,
-    lineState: LineProcessorState,
   ): LineSegment[] {
     if (shikiResult) {
-      return this.makeSegmentsShiki(shikiResult, startPosition, text, baseClasses, lineState);
+      return this.makeSegmentsShiki(shikiResult, startPosition, text, baseClasses);
     }
 
-    return [{ text, classes: baseClasses, style: this.getSegmentStyle(lineState) }];
+    return [{ text, classes: baseClasses, style: this.getSegmentStyle() }];
   }
 
   // Use the Shiki color data to split the text into colored segments
@@ -578,7 +548,6 @@ class LineProcessor {
     startPosition: number,
     text: string,
     baseClasses: string,
-    lineState: LineProcessorState,
   ): LineSegment[] {
     const segments: LineSegment[] = [];
     let remainingText = text;
@@ -610,7 +579,7 @@ class LineProcessor {
       segments.push({
         text: overlapText,
         classes: baseClasses,
-        style: this.getSegmentStyle(lineState, token.color),
+        style: this.getSegmentStyle(token.color),
       });
 
       remainingText = trailingText;
@@ -841,202 +810,36 @@ function hasScope(token: IRawThemeSetting, scope: string) {
   return token.scope && (token.scope === scope || token.scope.includes(scope));
 }
 
-type ThemeColorQuery = {
-  // color name in theme.colors
-  color?: string;
-  // scope of token to use background color from
-  bgTokenScope?: string;
-  // scope of token to use foreground color from
-  fgTokenScope?: string;
-  // optional modifier for the color value
-  modifier?: (value: string | undefined) => string | undefined;
-};
-
-function extractColor(theme: ThemeRegistration, opts: ThemeColorQuery): string | undefined {
-  const colors = theme.colors || {};
-  const tokenColors = theme.tokenColors || [];
-  const modifier = opts.modifier || ((v) => v);
-  const value = opts.color ? colors[opts.color] : null;
-  if (value) {
-    return modifier(value);
-  }
-  if (opts.bgTokenScope) {
-    const token = tokenColors.find((t) => hasScope(t, opts.bgTokenScope!) && t.settings.background);
-    if (token) {
-      return modifier(token.settings.background);
-    }
-  }
-  if (opts.fgTokenScope) {
-    const token = tokenColors.find((t) => hasScope(t, opts.fgTokenScope!) && t.settings.foreground);
-    if (token) {
-      return modifier(token.settings.foreground);
-    }
-  }
-  return undefined;
+function scopeForeground(theme: ThemeRegistration, scope: string): string | undefined {
+  return theme.tokenColors?.find((t) => hasScope(t, scope) && t.settings.foreground)?.settings.foreground;
 }
 
-function makeLCHVars(prefix: string, color: string | undefined, into: Map<string, string | undefined>) {
-  if (!color) {
-    return;
-  }
-  const oklch = chroma(color).oklch();
-  into.set(`${prefix}-l`, `${oklch[0]}`);
-  into.set(`${prefix}-c`, `${oklch[1]}`);
-  if (isNaN(oklch[2])) {
-    into.set(`${prefix}-h`, "0");
-  } else {
-    into.set(`${prefix}-h`, `${oklch[2]}`);
-  }
-}
-
-function moreChroma(color: string | undefined, value: number = 1) {
-  if (!color) return undefined;
-  return chroma(color).saturate(value).css("oklch");
-}
-
-function darken(color: string | undefined, value: number = 1) {
-  if (!color) return undefined;
-  return chroma(color).darken(value).css("oklch");
-}
-
-function makeTransparent(hex: string | undefined) {
-  if (!hex) return undefined;
-  const rgb = chroma(hex).rgb();
-  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.5)`;
-}
-
+// Picks the few base colors we take from the theme. Diff colors are our own rather than the theme's, as themes define
+// them too inconsistently; everything else is derived in TextDiff.svelte, which also provides fallbacks.
 export async function getBaseColors(themeKey: BundledTheme | undefined, syntaxHighlighting: boolean): Promise<string> {
-  const theme = await getTheme(themeKey);
-  if (!syntaxHighlighting || !theme) {
-    let styles = "";
-    if (getEffectiveGlobalTheme() === "dark") {
-      // Make sure tailwind emits these props
-      // "text-green-600 text-red-600 text-green-700 text-red-700 text-green-800 text-red-800 text-blue-800"
-      styles += `
-              --hunk-header-bg-themed: var(--color-gray-800);
-              --select-bg-themed: var(--color-blue-800);
-
-              --inserted-text-bg-themed: var(--color-green-700);
-              --removed-text-bg-themed: var(--color-red-700);
-              --inserted-line-bg-themed: var(--color-green-800);
-              --removed-line-bg-themed: var(--color-red-800);
-              --inner-inserted-line-bg-themed: var(--color-green-600);
-              --inner-removed-line-bg-themed: var(--color-red-600);
-              --inner-inserted-line-fg-themed: var(--color-green-300);
-              --inner-removed-line-fg-themed: var(--color-red-300);
-              `;
-    } else {
-      styles += `
-              --inserted-text-bg-themed: var(--color-green-400);
-              --removed-text-bg-themed: var(--color-red-400);
-              --inserted-line-bg-themed: var(--color-green-100);
-              --removed-line-bg-themed: var(--color-red-100);
-              --inner-inserted-line-bg-themed: var(--color-green-300);
-              --inner-removed-line-bg-themed: var(--color-red-300);
-              --inner-inserted-line-fg-themed: var(--color-green-800);
-              --inner-removed-line-fg-themed: var(--color-red-800);
-              `;
-    }
-    return styles;
-  }
-  const tokenColors = theme.default.tokenColors || [];
-
-  const style: Map<string, string | undefined> = new Map();
-
-  // Find the foreground/default text color for the theme
-  const foundFg = extractColor(theme.default, { color: "editor.foreground" });
-  if (foundFg) {
-    style.set("--editor-fg-themed", foundFg);
-    makeLCHVars("--editor-foreground", foundFg, style);
-  } else {
-    let globalScope = tokenColors.find((t) => t.scope === undefined);
-    if (!globalScope) {
-      // Tokenize something to force Shiki to run it's fix for 'broken' themes
-      await codeToTokens("hi", { theme: theme.default, lang: "text" });
-      globalScope = tokenColors.find((t) => t.scope === undefined);
-    }
-    const globalFg = globalScope?.settings.foreground;
-    if (globalFg) {
-      style.set("--editor-fg-themed", globalFg);
-      makeLCHVars("--editor-foreground", globalFg, style);
-    } else {
-      console.error("No foreground color found in theme");
-    }
+  const theme = syntaxHighlighting ? (await getTheme(themeKey))?.default : undefined;
+  if (!theme) {
+    return "";
   }
 
-  // These colors are mostly universal
-  style.set("--editor-bg-themed", extractColor(theme.default, { color: "editor.background" }));
-  makeLCHVars("--editor-background", style.get("--editor-bg-themed"), style);
-  style.set("--select-bg-themed", extractColor(theme.default, { color: "editor.selectionBackground" }));
-
-  // Don't use these - just add chroma to the inner diff highlight below for consistency
-  // These are also applied to the line by VSCode...?
-  // style.set("--inserted-text-bg-themed", extractColor(theme.default, { color: "diffEditor.insertedTextBackground" }));
-  // style.set("--removed-text-bg-themed", extractColor(theme.default, { color: "diffEditor.removedTextBackground" }));
-
-  // 1) Try diffEditor.insertedLineBackground for inserted line highlight color
-  // 2) Try editorGutter.addedBackground for inserted line highlight color
-  // 3) Try markup.inserted scope bg for inserted line highlight color
-  // 4) Try markup.inserted scope fg for inserted line text color
-  let insertLineBg = extractColor(theme.default, { color: "diffEditor.insertedLineBackground" });
-  if (!insertLineBg) {
-    insertLineBg = extractColor(theme.default, { color: "editorGutter.addedBackground", modifier: makeTransparent });
-  }
-  if (!insertLineBg) {
-    insertLineBg = extractColor(theme.default, { bgTokenScope: "markup.inserted", modifier: makeTransparent });
-  }
-  if (insertLineBg) {
-    style.set("--inserted-line-bg-themed", insertLineBg);
-    style.set("--inner-inserted-line-bg-themed", moreChroma(insertLineBg, 0.5));
-    style.set("--inserted-text-bg-themed", darken(moreChroma(insertLineBg, 1.25), 0.25));
-
-    // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
-    // Increase chroma to match our adjustments to bg color above
-    style.set(
-      "--inner-inserted-line-fg-themed",
-      moreChroma(extractColor(theme.default, { fgTokenScope: "markup.inserted" })),
-    );
-  } else {
-    style.set("--inserted-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.inserted" }));
+  let editorFg = theme.colors?.["editor.foreground"];
+  if (!editorFg) {
+    // Tokenize something to force Shiki to run its fix for 'broken' themes, which adds a global scope
+    await codeToTokens("hi", { theme, lang: "text" });
+    editorFg = theme.tokenColors?.find((t) => t.scope === undefined)?.settings.foreground;
   }
 
-  // 1) Try diffEditor.removedLineBackground for removed line highlight color
-  // 2) Try editorGutter.deletedBackground for removed line highlight color
-  // 3) Try markup.deleted scope bg for removed line highlight color
-  // 4) Try markup.deleted scope fg for removed line text color
-  let removeLineBg = extractColor(theme.default, { color: "diffEditor.removedLineBackground" });
-  if (!removeLineBg) {
-    removeLineBg = extractColor(theme.default, { color: "editorGutter.deletedBackground", modifier: makeTransparent });
-  }
-  if (!removeLineBg) {
-    removeLineBg = extractColor(theme.default, { bgTokenScope: "markup.deleted", modifier: makeTransparent });
-  }
-  if (removeLineBg) {
-    style.set("--removed-line-bg-themed", removeLineBg);
-    style.set("--inner-removed-line-bg-themed", moreChroma(removeLineBg, 0.5));
-    style.set("--removed-text-bg-themed", darken(moreChroma(removeLineBg, 1.25), 0.25));
+  const colors: Record<string, string | undefined> = {
+    "--editor-fg-themed": editorFg,
+    "--editor-bg-themed": theme.colors?.["editor.background"],
+    "--select-bg-themed": theme.colors?.["editor.selectionBackground"],
+    "--hunk-header-fg-themed": scopeForeground(theme, "meta.diff.header"),
+  };
 
-    // Only use the fg color if we have a bg color -- otherwise it will conflict with the top level diff add/remove lines
-    // Increase chroma to match our adjustments to bg color above
-    style.set(
-      "--inner-removed-line-fg-themed",
-      moreChroma(extractColor(theme.default, { fgTokenScope: "markup.deleted" })),
-    );
-  } else {
-    style.set("--removed-line-fg-themed", extractColor(theme.default, { fgTokenScope: "markup.deleted" }));
-  }
-
-  // One or both of these is often missing, see TextDiff.svelte <style> for fallback behavior
-  style.set("--hunk-header-bg-themed", extractColor(theme.default, { color: "sideBarSectionHeader.background" }));
-  style.set("--hunk-header-fg-themed", extractColor(theme.default, { fgTokenScope: "meta.diff.header" }));
-
-  let styleString = "";
-  style.forEach((value, key) => {
-    if (value) {
-      styleString += `${key}: ${value};`;
-    }
-  });
-  return styleString;
+  return Object.entries(colors)
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value};`)
+    .join("");
 }
 
 let cachedThemeKey: BundledTheme | undefined = $state(undefined);
