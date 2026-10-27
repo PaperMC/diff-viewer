@@ -278,8 +278,8 @@
     --added: light-dark(var(--color-green-600), var(--color-green-500));
     --deleted: light-dark(var(--color-red-600), var(--color-red-500));
 
-    /* Changed lines get a light tint of the accent and a bar at the left edge of the row. Changed words within them
-       get a stronger tint and an underline. */
+    /* Changed lines get a light tint of the accent and a bar at the left edge of the row, and changed words within
+       them a stronger tint on top */
     --inserted-line-bg: light-dark(
       color-mix(in oklab, var(--added) 8%, transparent),
       color-mix(in oklab, var(--added) 10%, transparent)
@@ -289,12 +289,12 @@
       color-mix(in oklab, var(--deleted) 10%, transparent)
     );
     --inserted-text-bg: light-dark(
-      color-mix(in oklab, var(--added) 12%, transparent),
-      color-mix(in oklab, var(--added) 15%, transparent)
+      color-mix(in oklab, var(--added) 18%, transparent),
+      color-mix(in oklab, var(--added) 22%, transparent)
     );
     --removed-text-bg: light-dark(
-      color-mix(in oklab, var(--deleted) 12%, transparent),
-      color-mix(in oklab, var(--deleted) 15%, transparent)
+      color-mix(in oklab, var(--deleted) 18%, transparent),
+      color-mix(in oklab, var(--deleted) 22%, transparent)
     );
 
     /* Text of changed lines within a diffed patch file; mixed towards the theme foreground to stay readable */
@@ -326,15 +326,6 @@
   }
   .old-line-number {
     box-shadow: inset 3px 0 0 0 var(--line-bar, transparent);
-  }
-
-  .inserted-word {
-    background-color: var(--inserted-text-bg);
-    box-shadow: inset 0 -2px 0 0 color-mix(in oklab, var(--added) 50%, transparent);
-  }
-  .removed-word {
-    background-color: var(--removed-text-bg);
-    box-shadow: inset 0 -2px 0 0 color-mix(in oklab, var(--deleted) 50%, transparent);
   }
 
   .prefix {
