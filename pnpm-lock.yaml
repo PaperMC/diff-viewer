@@ -149,7 +149,7 @@ importers:
         version: 0.12.6
       chrome-types:
         specifier: ^0.1.459
-        version: 0.1.459
+        version: 0.1.460
       eslint:
         specifier: ^10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1162,8 +1162,8 @@ packages:
   chroma-js@3.2.0:
     resolution: {integrity: sha512-os/OippSlX1RlWWr+QDPcGUZs0uoqr32urfxESG9U93lhUfbnlyckte84Q8P1UQY/qth983AS1JONKmLS4T0nw==}
 
-  chrome-types@0.1.459:
-    resolution: {integrity: sha512-ev1r7o/gAQ4wU97Uz9yWAhAeXQrti1BbuPsMcleabjpgCigG9mF1rnDW7uVypDy2SyOIfqHZHp+Us4AZolDe6g==}
+  chrome-types@0.1.460:
+    resolution: {integrity: sha512-qJBNKJazbmqsz9KR7ZwOmWZTu4Vi+F6ow5QnC1whpFlnAfTasRf1qIRop11kXSdhhc2PoE1WRNScK+iHLGfM9w==}
 
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
@@ -3117,7 +3117,7 @@ snapshots:
 
   chroma-js@3.2.0: {}
 
-  chrome-types@0.1.459: {}
+  chrome-types@0.1.460: {}
 
   clsx@2.1.1: {}
 
