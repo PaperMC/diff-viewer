@@ -28,3 +28,4 @@ jobs:
                   name: "preview-build"
                   path: "web/.svelte-kit"
                   include-hidden-files: true
+                  retention-days: 0
