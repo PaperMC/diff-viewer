@@ -196,7 +196,7 @@
   {@const lineType = patchLineTypeProps[line.type]}
   {@const lineTypeSelectable = line.type !== PatchLineType.HEADER && line.type !== PatchLineType.SPACER}
   <div
-    class="line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
+    class="line-number old-line-number h-full bg-[var(--hunk-header-bg)] px-2 select-none data-selectable:cursor-pointer {lineType.lineNoClasses}"
     data-hunk-idx={hunkIndex}
     data-line-idx={lineIndex}
     data-selectable={boolAttr(lineTypeSelectable)}
@@ -268,25 +268,40 @@
 
 <style>
   .diff-content {
+    /* From the syntax highlighting theme when available (see getBaseColors) */
     --editor-fg: var(--editor-fg-themed, var(--color-em-high));
-    /* TODO: better fallback, remove dark mode override */
-    --select-bg: var(--select-bg-themed, var(--color-blue-300));
     --editor-bg: var(--editor-bg-themed, var(--color-neutral));
+    --select-bg: var(--select-bg-themed, color-mix(in oklab, var(--color-blue-500) 35%, transparent));
 
-    --inserted-text-bg: var(--inserted-text-bg-themed, initial);
-    --removed-text-bg: var(--removed-text-bg-themed, initial);
-    --inserted-line-bg: var(--inserted-line-bg-themed, initial);
-    --removed-line-bg: var(--removed-line-bg-themed, initial);
-    --inner-inserted-line-bg: var(--inner-inserted-line-bg-themed, initial);
-    --inner-removed-line-bg: var(--inner-removed-line-bg-themed, initial);
-    --inner-inserted-line-fg: var(--inner-inserted-line-fg-themed, initial);
-    --inner-removed-line-fg: var(--inner-removed-line-fg-themed, initial);
+    /* Our own diff colors; themes define theirs too inconsistently to rely on. Tints are translucent so they sit on
+       any theme background. */
+    --added: light-dark(var(--color-green-600), var(--color-green-500));
+    --deleted: light-dark(var(--color-red-600), var(--color-red-500));
 
-    --color-editor-bg-600: oklch(0.6 var(--editor-background-c) var(--editor-background-h));
-    --color-editor-fg-200: oklch(
-      calc(max(0.9, var(--editor-foreground-l))) var(--editor-foreground-c) var(--editor-foreground-h)
+    /* Changed lines get a light tint of the accent and a bar at the left edge of the row, and changed words within
+       them a stronger tint on top */
+    --inserted-line-bg: light-dark(
+      color-mix(in oklab, var(--added) 8%, transparent),
+      color-mix(in oklab, var(--added) 10%, transparent)
     );
-    --hunk-header-bg: var(--hunk-header-bg-themed, var(--color-editor-bg-600, var(--color-gray-200)));
+    --removed-line-bg: light-dark(
+      color-mix(in oklab, var(--deleted) 8%, transparent),
+      color-mix(in oklab, var(--deleted) 10%, transparent)
+    );
+    --inserted-text-bg: light-dark(
+      color-mix(in oklab, var(--added) 18%, transparent),
+      color-mix(in oklab, var(--added) 22%, transparent)
+    );
+    --removed-text-bg: light-dark(
+      color-mix(in oklab, var(--deleted) 18%, transparent),
+      color-mix(in oklab, var(--deleted) 22%, transparent)
+    );
+
+    /* Text of changed lines within a diffed patch file; mixed towards the theme foreground to stay readable */
+    --inner-inserted-fg: color-mix(in oklab, var(--added) 65%, var(--editor-fg));
+    --inner-removed-fg: color-mix(in oklab, var(--deleted) 65%, var(--editor-fg));
+
+    --hunk-header-bg: color-mix(in oklab, var(--editor-fg) 8%, var(--editor-bg));
     --hunk-header-fg: var(--hunk-header-fg-themed, var(--editor-fg));
 
     display: grid;
@@ -308,6 +323,9 @@
     text-align: end;
     vertical-align: top;
     text-wrap: nowrap;
+  }
+  .old-line-number {
+    box-shadow: inset 3px 0 0 0 var(--line-bar, transparent);
   }
 
   .prefix {
